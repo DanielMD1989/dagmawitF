@@ -52,17 +52,27 @@ supabase start                    # prints the URL and publishable key for .env.
 
 ## Put it online (once)
 
-1. **Supabase project.** Create it, then link and push the migrations:
-   `supabase link --project-ref <ref>` and `supabase db push`.
-2. **Sign-in settings** (dashboard, Authentication). Menu names change; the settings are:
-   - Turn **off** "Allow new users to sign up".
-   - In Email Templates, open **Magic Link** and paste `supabase/templates/magic_link.html`. It must contain `{{ .Token }}`.
-   - Add her user: Users > Add user, with her email. Her profile row is created automatically.
-3. **Hosting** (for example Vercel). Import the repository and set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY`.
-   Every pull request then gets a preview link. Use the publishable key (formerly "anon"), never the secret key.
-4. **Email (required before she can sign in).** Without its own email sender, Supabase delivers sign-in codes only to
-   members of the project's organization; anyone else gets "Email address not authorized". Add an SMTP provider
-   (Authentication > Emails > SMTP Settings) before she signs in, and send yourself a code to check it.
+In this order. Each step says how to check it before going on.
+
+1. **GitHub.** Push this repository (branch `main`). CI runs the checks, the database tests (with the restore drill)
+   and the browser suite against a local Supabase. _Check:_ both CI jobs are green.
+2. **Supabase project.** Create one in the region nearest Addis Ababa that Supabase offers, with a strong database
+   password kept in a password manager. Then `supabase link --project-ref <ref>` and `supabase db push`.
+   _Check:_ Table Editor lists `orders`, `task`, `plan_version`; Storage lists the private bucket `order-files`.
+3. **Email sender (before anything else in Authentication).** Without its own SMTP sender, Supabase delivers sign-in
+   codes only to members of the project's organization; anyone else gets "Email address not authorized". Add an SMTP
+   provider (Authentication > Emails > SMTP Settings). _Check:_ step 5's code reaches you.
+4. **Sign-in settings** (Authentication; menu names change, the settings do not):
+   - turn **off** "Allow new users to sign up";
+   - Email Templates > **Magic Link**: paste `supabase/templates/magic_link.html` (it must contain `{{ .Token }}`);
+   - URL Configuration > Site URL: the app's address from step 6 (come back after step 6).
+5. **Her account.** Authentication > Users > Add user, with her email (and one for you, to try it first). Her profile,
+   starter templates and measurement list are created automatically.
+6. **Hosting** (for example Vercel). Import the repository; set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` (Project
+   Settings > API). Never the secret key. Put the functions in the region nearest the Supabase project.
+   _Check:_ sign in with your own account by code; the browser's console shows no Content-Security-Policy errors;
+   Settings > Download everything gives a zip, and `npm run drill:restore -- --file <zip>` passes on your computer.
+7. **Her phone.** Stage 0's exit test below, then Stage 6's.
 
 ## Stage 0 exit tests
 
