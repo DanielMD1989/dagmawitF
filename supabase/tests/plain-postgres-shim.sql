@@ -71,6 +71,24 @@ alter table storage.objects enable row level security;
 -- As on Supabase: buckets are not readable through the API unless a policy says so (ours adds none).
 alter table storage.buckets enable row level security;
 
+-- As on Supabase (storage migration 0055): a DELETE on the storage tables is refused unless the Storage API, which
+-- also removes the file itself, says it is the one deleting. A delete in SQL alone would leave the file behind.
+create function storage.protect_delete() returns trigger
+language plpgsql
+as $$
+begin
+  if coalesce(current_setting('storage.allow_delete_query', true), 'false') <> 'true' then
+    raise exception 'Direct deletion from storage tables is not allowed. Use the Storage API instead.'
+      using errcode = '42501';
+  end if;
+  return null;
+end
+$$;
+create trigger protect_objects_delete before delete on storage.objects
+  for each statement execute function storage.protect_delete();
+create trigger protect_buckets_delete before delete on storage.buckets
+  for each statement execute function storage.protect_delete();
+
 -- Same behaviour as Supabase's: every part of the path except the file name.
 create function storage.foldername(name text) returns text[]
 language plpgsql

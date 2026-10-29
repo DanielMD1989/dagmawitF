@@ -27,5 +27,16 @@ export default defineConfig([
       ],
     },
   },
-  globalIgnores(['.next/**', 'out/**', 'build/**', 'next-env.d.ts', 'node_modules/**', 'supabase/**']),
+  globalIgnores([
+    '.next/**',
+    'out/**',
+    'build/**',
+    'next-env.d.ts',
+    'node_modules/**',
+    'supabase/**',
+    // What a run of the browser suite leaves behind.
+    'test-results/**',
+    'playwright-report/**',
+    'e2e/.auth/**',
+  ]),
 ]);

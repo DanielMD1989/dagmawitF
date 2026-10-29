@@ -549,6 +549,16 @@ describe('attachment', () => {
 describe('private storage for order files', () => {
   const put = (c: PoolClient, name: string, bucket = 'order-files') =>
     attempt(c, `insert into storage.objects (bucket_id, name) values ($1, $2)`, [bucket, name]);
+  /** Says this transaction deletes as the Storage API does (it removes the file too), past Supabase's guard. */
+  const storageApiDeletes = (c: PoolClient) =>
+    c.query(`select set_config('storage.allow_delete_query', 'true', true)`);
+
+  it('refuses a delete in SQL alone, which would leave the file behind (Supabase’s own guard)', async () => {
+    await signedIn(async (c, id) => {
+      await put(c, `${id}/some-order/file.jpg`);
+      expect(await attempt(c, `delete from storage.objects`)).toMatchObject({ ok: false, code: NO_RIGHT });
+    });
+  });
 
   it('is a private bucket for pictures of at most 5 MB', async () => {
     await signedIn(async (c) => {
@@ -578,6 +588,8 @@ describe('private storage for order files', () => {
           `${id}/some-order/renamed.jpg`,
         ]),
       ).toMatchObject({ ok: true, rowCount: 1 });
+      // As the Storage API does when it removes a file: the policies decide, not the guard against SQL deletes.
+      await storageApiDeletes(c);
       expect(await attempt(c, `delete from storage.objects where name like $1`, [`${id}/%`])).toMatchObject({
         ok: true,
         rowCount: 1,
@@ -600,6 +612,7 @@ describe('private storage for order files', () => {
           `${a}/order/file.jpg`,
         ]),
       ).toMatchObject({ ok: true, rowCount: 0 });
+      await storageApiDeletes(c);
       expect(await attempt(c, `delete from storage.objects`)).toMatchObject({ ok: true, rowCount: 0 });
       await actAsOwner(c);
       expect((await c.query(`select count(*)::int as n from storage.objects`)).rows[0]!.n).toBe(1);

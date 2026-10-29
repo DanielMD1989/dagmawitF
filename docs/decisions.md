@@ -412,3 +412,12 @@ that CI runs against `supabase start`: real sign-in, storage and database. It ke
   a stored file, which no screen can do.
 - Every date is counted from today in her time zone, so the suite does not rot.
 - It refuses to run against anything but local services unless told otherwise: it deletes its account first.
+
+## 0063. The local stand-in for Supabase follows what CI finds on the real stack
+
+The database tests run on plain PostgreSQL with a small stand-in for Supabase (`supabase/tests/plain-postgres-shim.sql`),
+and in CI on the Supabase stack itself. When CI finds a difference, the stand-in is corrected to match Supabase, so the
+local tests cannot hide it again. So far: storage buckets are not readable through the API, and a SQL delete on the
+storage tables is refused unless it comes from the Storage API (Supabase's `storage.protect_delete` guard, which keeps
+a file from being left behind). The app deletes pictures only through the Storage API; the tests that check the delete
+policies say they delete as the Storage API does.
