@@ -4,6 +4,8 @@ import { env, ZONE } from './env';
 
 /** Her signed-in session, made once by the global setup. */
 export const STATE = `${import.meta.dirname}/../.auth/her.json`;
+/** Her password, made afresh by the global setup for each run. */
+export const PASSWORD_FILE = `${import.meta.dirname}/../.auth/password.txt`;
 
 const PHONE = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 };
 const DESKTOP = { viewport: { width: 1280, height: 900 } };

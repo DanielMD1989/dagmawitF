@@ -66,21 +66,22 @@ In this order. Each step says how to check it before going on.
    tab). _Check:_ the Database run is green; Table Editor lists `orders`, `task`, `plan_version`; Storage lists the
    private bucket `order-files`.
 
-3. **Email sender (before anything else in Authentication).** Without its own SMTP sender, Supabase delivers sign-in
-   codes only to members of the project's organization; anyone else gets "Email address not authorized". Add an SMTP
-   provider (Authentication > Emails > SMTP Settings). _Check:_ step 5's code reaches you.
-4. **Sign-in settings** (Authentication; menu names change, the settings do not):
+3. **Sign-in settings** (Authentication; menu names change, the settings do not):
    - turn **off** "Allow new users to sign up" (under Sign In / Providers, the general switch);
-   - leave the **Email** provider itself **on**: it is how she signs in. Switching it off stops every code;
-   - Email Templates > **Magic Link**: paste `supabase/templates/magic_link.html` (it must contain `{{ .Token }}`);
-   - URL Configuration > Site URL: the app's address from step 6 (come back after step 6).
-5. **Her account.** Authentication > Users > Add user, with her email (and one for you, to try it first). Her profile,
+   - leave the **Email** provider itself **on**: it is how she signs in with her email and password;
+   - set the minimum password length to **10** (the app asks for the same);
+   - URL Configuration > Site URL: the app's address from step 5 (come back after step 5).
+
+   No email sender is needed: the app never sends email (decision 0065).
+
+4. **Her account.** Authentication > Users > Add user, with her email and a password, and "Auto Confirm User" ticked
+   (and one for you, to try it first). Give her the password in person; she can change it in Settings. Her profile,
    starter templates and measurement list are created automatically.
-6. **Hosting** (for example Vercel). Import the repository; set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` (Project
+5. **Hosting** (for example Vercel). Import the repository; set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` (Project
    Settings > API). Never the secret key. Put the functions in the region nearest the Supabase project.
-   _Check:_ sign in with your own account by code; the browser's console shows no Content-Security-Policy errors;
+   _Check:_ sign in with your own account and its password; the browser's console shows no Content-Security-Policy errors;
    Settings > Download everything gives a zip, and `npm run drill:restore -- --file <zip>` passes on your computer.
-7. **Her phone.** Stage 0's exit test below, then Stage 6's.
+6. **Her phone.** Stage 0's exit test below, then Stage 6's.
 
 ## Stage 0 exit tests
 

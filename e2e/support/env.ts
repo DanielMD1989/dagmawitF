@@ -6,7 +6,6 @@ export const env = {
   baseURL: process.env.E2E_BASE_URL ?? 'http://127.0.0.1:3000',
   supabaseUrl: process.env.SUPABASE_URL ?? 'http://127.0.0.1:54321',
   serviceRoleKey: process.env.SUPABASE_SERVICE_ROLE_KEY ?? '',
-  mailpitUrl: process.env.E2E_MAILPIT_URL ?? 'http://127.0.0.1:54324',
   databaseUrl: process.env.E2E_DATABASE_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
   /** The account the suite creates afresh on every run, and deletes first if it exists. */
   email: process.env.E2E_EMAIL ?? 'dagmawit.e2e@example.test',

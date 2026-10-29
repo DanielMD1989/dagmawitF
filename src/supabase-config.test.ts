@@ -1,10 +1,11 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
+import { MIN_PASSWORD } from './domain/passwords';
 
 /**
  * The sign-in settings of the local Supabase stack (supabase/config.toml), which CI and the browser suite run on.
- * Two settings with the same name do different things, and getting them crossed once stopped every sign-in code.
+ * Two settings with the same name do different things, and getting them crossed once stopped every sign-in.
  */
 
 function setting(toml: string, section: string, key: string): string | undefined {
@@ -28,13 +29,11 @@ describe('sign-in settings of the local Supabase stack', () => {
     expect(setting(config, 'auth', 'enable_signup')).toBe('false');
   });
 
-  it('keeps signing in by emailed code switched on (the email "enable_signup" is the email method itself)', () => {
+  it('keeps signing in with an email address switched on (the email "enable_signup" is the email method itself)', () => {
     expect(setting(config, 'auth.email', 'enable_signup')).toBe('true');
   });
 
-  it('sends six-digit codes, at most one a minute, valid for an hour', () => {
-    expect(setting(config, 'auth.email', 'otp_length')).toBe('6');
-    expect(setting(config, 'auth.email', 'max_frequency')).toBe('"1m0s"');
-    expect(setting(config, 'auth.email', 'otp_expiry')).toBe('3600');
+  it('asks for passwords as long as the app does', () => {
+    expect(setting(config, 'auth', 'minimum_password_length')).toBe(String(MIN_PASSWORD));
   });
 });

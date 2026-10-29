@@ -13,6 +13,7 @@ import { requireUser } from '@/server/session';
 import { createSupabase } from '@/server/supabase';
 import { ExceptionForm } from './ExceptionForm';
 import { OrderDefaultsForm } from './OrderDefaultsForm';
+import { PasswordForm } from './PasswordForm';
 import { ProfileForm } from './ProfileForm';
 import { TidyForm } from './TidyForm';
 import { WorkWeekForm } from './WorkWeekForm';
@@ -157,6 +158,12 @@ export default async function SettingsPage() {
           <h2 id="account-heading">Account</h2>
           <p className="hint">Signed in as {user.email ?? 'this account'}.</p>
         </div>
+        <details className="disclosure disclosure--link">
+          <summary>Change the password</summary>
+          <div className="disclosure__panel">
+            <PasswordForm />
+          </div>
+        </details>
         <SignOutForm action={signOut} />
       </section>
     </>

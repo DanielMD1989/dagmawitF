@@ -17,6 +17,8 @@ Why: the likeliest future mistake is a new table shipped without protection. Che
 
 ## 0003. Sign in with an emailed code, not a link
 
+_Replaced by decision 0065._
+
 She types a six-digit code. A link opened from email lands in the phone's browser, but an app installed on the home
 screen keeps its own separate storage, so the link would sign her in somewhere she is not looking. Sign-up is off and
 `shouldCreateUser` is false, so the form can never create an account. The form gives the same answer whether or not an
@@ -404,9 +406,9 @@ changes nothing invites someone to build a second way of showing dates. Days sta
 The browser checks had run from outside the repository against a stand-in. They are now `e2e/`, a Playwright suite
 that CI runs against `supabase start`: real sign-in, storage and database. It keeps to what she can do:
 
-- One account, made afresh for every run through Supabase's admin API, and **one sign-in**, by the emailed code read
-  from Mailpit. Supabase sends at most one code a minute, and signing out ends every session, so the session is shared
-  and signing out is the last spec.
+- One account, made afresh for every run through Supabase's admin API, and **one sign-in** with its password
+  (decision 0065). Signing out ends every session, so the session is shared and the password change and signing out
+  are the last spec.
 - The specs are her story, in order: take orders, plan, live the day, change the plan, work without signal, sign out.
 - Data changes only through the screens; the database is read to check what was stored. The one exception is ageing
   a stored file, which no screen can do.
@@ -429,3 +431,14 @@ the migrations CI has just tested, to exactly that commit, one run at a time. No
 laptop, so the live database is always at a version that was tested, and no database password is typed anywhere but
 GitHub's encrypted secrets. Sign-in settings stay in the dashboard: `config.toml` describes the local stack (its site
 address is the local one), so it is never pushed to the live project.
+
+## 0065. Sign in with an email and a password
+
+Replaces 0003. An emailed code needs an email sender of her own: Supabase's built-in one delivers only to members of
+the project's organization, and a reliable sender needs a domain she does not have. So she signs in with her email and
+a password; the app sends no email at all. A password survives the home-screen app's separate storage as well as a code
+did. Accounts are still made by hand (sign-up is off), with a password given to her in person; she changes it in
+Settings, where the password she uses now is checked first. At least 10 characters (`src/domain/passwords.ts`, and the
+same minimum in Supabase). A wrong password and an unknown email get the same answer. Forgotten: whoever looks after the
+app sets a new one (docs/operations.md). Cost: one more thing for her to remember; a password manager or the phone's
+own keychain carries it.

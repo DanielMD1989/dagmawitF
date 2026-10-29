@@ -60,6 +60,12 @@ The restore runs as the `postgres` role from the project's connection string: it
 superuser, which is all the restore needs (decision 0054). CI's database tests run the drill against the Supabase
 stack. Still, restore one real export into a scratch Supabase project before you ever need to, to know the steps.
 
+## A forgotten password
+
+The app sends no email, so a forgotten password is set again by hand: Supabase → Authentication → Users → her account
+→ the menu (⋯) → change or reset the password, to a new one of at least 10 characters. Give it to her in person; she
+can change it in Settings → Change the password.
+
 ## Tidy stored pictures
 
 Settings → Data → Tidy stored pictures removes pictures that were stored but never recorded (an upload cut off

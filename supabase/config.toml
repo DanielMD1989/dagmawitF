@@ -21,7 +21,7 @@ enabled = true
 enabled = true
 port = 54323
 
-# Catches the sign-in emails locally. Open http://127.0.0.1:54324 to read the code.
+# Catches any email locally (the app sends none: decision 0065).
 [inbucket]
 enabled = true
 port = 54324
@@ -37,20 +37,14 @@ refresh_token_reuse_interval = 10
 # never by a visitor typing an email into the sign-in form.
 enable_signup = false
 enable_anonymous_sign_ins = false
+# She signs in with her email and a password (decision 0065). The app asks for the same minimum
+# (src/domain/passwords.ts); set it in her project's dashboard too.
+minimum_password_length = 10
 
 [auth.email]
-# Despite its name, this switches signing in by email on or off altogether (the CLI passes it to the auth server as
-# GOTRUE_EXTERNAL_EMAIL_ENABLED; supabase/cli#2053). It must stay true, or no code is ever sent. New accounts are kept
-# out by `enable_signup = false` under [auth] above. A unit test holds both (src/supabase-config.test.ts).
+# Despite its name, this switches signing in with an email address on or off altogether (the CLI passes it to the auth
+# server as GOTRUE_EXTERNAL_EMAIL_ENABLED; supabase/cli#2053). It must stay true, or nobody can sign in. New accounts
+# are kept out by `enable_signup = false` under [auth] above. A unit test holds both (src/supabase-config.test.ts).
 enable_signup = true
 enable_confirmations = false
 double_confirm_changes = true
-# At most one code per address per minute, valid for an hour. Six digits.
-max_frequency = "1m0s"
-otp_length = 6
-otp_expiry = 3600
-
-# The email she receives when she asks for a code. It must contain {{ .Token }}.
-[auth.email.template.magic_link]
-subject = "Your DAGMAWIT sign-in code"
-content_path = "./supabase/templates/magic_link.html"

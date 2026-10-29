@@ -16,7 +16,7 @@ Four layers, each catching what the one before cannot. The reasons are in decisi
 ### Run it on your computer
 
 ```
-supabase start                         # database, sign-in, storage, and Mailpit for the sign-in codes
+supabase start                         # database, sign-in and storage
 supabase status                        # shows the keys below
 export SUPABASE_URL=http://127.0.0.1:54321
 export SUPABASE_PUBLISHABLE_KEY=<publishable key>
@@ -27,16 +27,16 @@ npm run test:e2e                       # starts the built app on port 3000, then
 ```
 
 Other settings, with their local defaults: `E2E_BASE_URL` (an app already running, instead of starting one),
-`E2E_DATABASE_URL` (`postgresql://postgres:postgres@127.0.0.1:54322/postgres`), `E2E_MAILPIT_URL`
-(`http://127.0.0.1:54324`), `E2E_EMAIL` (`dagmawit.e2e@example.test`).
+`E2E_DATABASE_URL` (`postgresql://postgres:postgres@127.0.0.1:54322/postgres`), `E2E_EMAIL` (`dagmawit.e2e@example.test`).
 
 A failed run leaves a trace for each failed step: `npx playwright show-trace test-results/<step>/trace.zip`.
 
 ### How it works
 
 - **One account, one sign-in.** `global-setup.ts` deletes the suite's account (and with it all its data) through
-  Supabase's admin API, creates it again, and signs in once with the code read from Mailpit. The session is saved and
-  shared: Supabase sends at most one code a minute.
+  Supabase's admin API, creates it again with a fresh random password, and signs in once on the sign-in page. The
+  session is saved and shared; the password is kept in `e2e/.auth/` (never committed) for the last spec, which changes
+  it and signs in again.
 - **Her story, in order.** The specs run one after another in one worker, each on what the one before left:
 
   | Spec                  | Stage | What she does                                                                     |

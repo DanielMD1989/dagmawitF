@@ -7,6 +7,7 @@ import { failure, success, typedIn, type ActionState } from '@/lib/action-state'
 import { parseException, parseProfile, parseWorkWeek } from '@/domain/calendar/forms';
 import { strayFiles } from '@/domain/files';
 import { parseOrderDefaults } from '@/domain/preferences';
+import { parsePasswordChange } from '@/domain/passwords';
 import { unexpected } from '@/server/action-errors';
 import { requireUser } from '@/server/session';
 import { createSupabase } from '@/server/supabase';
@@ -181,6 +182,34 @@ export async function tidyPictures(): Promise<ActionState> {
   return success(
     `Removed ${stray.length} stored picture${stray.length === 1 ? '' : 's'} that no record pointed to.`,
   );
+}
+
+/**
+ * Changes her password (decision 0065). The password she uses now is checked first, so a phone left unlocked is not
+ * enough to take the account. Nothing she typed is sent back to the page.
+ */
+export async function changePassword(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  const user = await requireUser();
+  const parsed = parsePasswordChange(formData);
+  if (!parsed.ok) return failure('Check the fields marked below.', parsed.errors);
+  if (!user.email) return failure('This account has no email address, so its password cannot be checked.');
+
+  const supabase = await createSupabase();
+  const check = await supabase.auth.signInWithPassword({ email: user.email, password: parsed.value.current });
+  if (check.error) {
+    if (check.error.status === 429) return failure('Too many tries. Wait a few minutes, then try again.');
+    return failure('Check the fields marked below.', {
+      'current-password': 'That is not the password you use now.',
+    });
+  }
+  const { error } = await supabase.auth.updateUser({ password: parsed.value.next });
+  if (error) {
+    if (error.code === 'weak_password') {
+      return failure('Check the fields marked below.', { 'new-password': 'Choose a stronger password.' });
+    }
+    return unexpected('the new password', error, {});
+  }
+  return success('Password changed. Use the new one next time you sign in.');
 }
 
 export async function signOut(): Promise<void> {

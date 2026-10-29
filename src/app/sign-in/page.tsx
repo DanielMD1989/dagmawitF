@@ -10,7 +10,7 @@ export default function SignInPage() {
         <div className="wordmark">DAGMAWIT</div>
         <div className="page-head">
           <h1>Sign in</h1>
-          <p className="lede">We email you a code. No password to remember.</p>
+          <p className="lede">With your email and password.</p>
         </div>
         <SignInForm />
       </div>

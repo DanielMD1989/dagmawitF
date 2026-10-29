@@ -62,7 +62,7 @@ jobs:
       - uses: supabase/setup-cli@v1
         with:
           version: latest
-      # Database, sign-in, storage and Mailpit (where the sign-in codes land), with every migration applied.
+      # Database, sign-in and storage, with every migration applied.
       - run: supabase start
 
       - name: Point the app and the suite at the local stack
@@ -82,7 +82,6 @@ jobs:
             echo "SUPABASE_PUBLISHABLE_KEY=$(read_key '.PUBLISHABLE_KEY // .ANON_KEY')"
             echo "SUPABASE_SERVICE_ROLE_KEY=$(read_key '.SERVICE_ROLE_KEY // .SECRET_KEY')"
             echo "E2E_DATABASE_URL=$(read_key '.DB_URL')"
-            echo "E2E_MAILPIT_URL=$(jq -r '.MAILPIT_URL // .INBUCKET_URL // "http://127.0.0.1:54324"' "$RUNNER_TEMP/supabase.json")"
           } >> "$GITHUB_ENV"
 
       - run: npx playwright install --with-deps chromium

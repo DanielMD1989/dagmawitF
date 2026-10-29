@@ -1,14 +1,15 @@
-import { mkdirSync } from 'node:fs';
+import { randomBytes } from 'node:crypto';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { chromium } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
-import { STATE } from './support/app';
+import { PASSWORD_FILE, STATE } from './support/app';
 import { assertLocal, env, ZONE } from './support/env';
-import { signInCode } from './support/mailbox';
 
 /**
- * Before the suite: a fresh account for her (deleting the last run's, and with it all its data), then one sign-in
- * by emailed code, saved for every spec. One sign-in, because Supabase sends at most one code a minute.
+ * Before the suite: a fresh account for her (deleting the last run's, and with it all its data) with a new random
+ * password, then one sign-in, saved for every spec. The password is kept beside the session for the spec that
+ * changes it.
  */
 export default async function globalSetup(): Promise<void> {
   try {
@@ -40,8 +41,10 @@ async function prepare(): Promise<void> {
     const removed = await admin.deleteUser(u.id);
     if (removed.error) throw new Error(`Could not delete the last run's account: ${removed.error.message}`);
   }
+  const password = randomBytes(18).toString('base64url');
   const created = await admin.createUser({
     email: env.email,
+    password,
     email_confirm: true,
     user_metadata: { name: 'Dagmawit' },
   });
@@ -51,13 +54,11 @@ async function prepare(): Promise<void> {
   const page = await browser.newPage({ baseURL: env.baseURL, timezoneId: ZONE, locale: 'en-GB' });
   await page.goto('/sign-in');
   await page.getByLabel('Email').fill(env.email);
-  const asked = new Date();
-  await page.getByRole('button', { name: 'Send me a code' }).click();
-  await page.locator('#code').waitFor();
-  await page.locator('#code').fill(await signInCode(env.email, asked));
+  await page.getByLabel('Password').fill(password);
   await page.getByRole('button', { name: 'Sign in' }).click();
   await page.waitForURL(`${env.baseURL}/`);
   mkdirSync(dirname(STATE), { recursive: true });
+  writeFileSync(PASSWORD_FILE, password, { mode: 0o600 });
   await page.context().storageState({ path: STATE });
   await browser.close();
 }
