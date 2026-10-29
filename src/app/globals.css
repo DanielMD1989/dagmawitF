@@ -1,0 +1,1333 @@
+/*
+ * DAGMAWIT design tokens. Each is light-dark(light value, night value).
+ * The light values are the white and off-white design she chose; the night values are a soft
+ * warm charcoal with cream text, never pure black or pure white.
+ * Contrast of every text/background pairing is checked in docs/design-tokens.md.
+ *
+ * html[data-theme] forces a side; with none, the phone's own setting decides.
+ * Needs light-dark(): Chrome 123, Safari 17.5, Firefox 120 (all 2024).
+ */
+:root {
+  color-scheme: light dark;
+
+  --bg: light-dark(#f6f2ea, #2a2723);
+  --surface: light-dark(#fffdf8, #34312b);
+  --line: light-dark(#ddd4c3, #4b473f);
+  --line-strong: light-dark(#cfc6b4, #5a564c);
+  --ink: light-dark(#25231f, #ece6d8);
+  --muted: light-dark(#5c574d, #bdb6a6);
+  --accent: light-dark(#3f5a4b, #a9c5b1);
+  --accent-2: light-dark(#4a6455, #93b3a0);
+  --tint: light-dark(#e9efe8, #3b4a41);
+  --solid: light-dark(#3f5a4b, #4d6b5a);
+  --on-solid: light-dark(#ffffff, #f3efe4);
+  --on-accent: light-dark(#ffffff, #2a2723);
+  --field: light-dark(#ffffff, #231f1b);
+  --warn: light-dark(#7a3622, #f0b9a2);
+  --warn-border: light-dark(#9c4a32, #c98a70);
+  --on-warn: light-dark(#ffffff, #2a2723);
+  --warn-bg: light-dark(#fbf0eb, #3d2d27);
+  --warn-line: light-dark(#e5c5b8, #6d4c40);
+  --track: light-dark(#e4dccb, #443f37);
+  --sand: light-dark(#e8dabb, #5a5130);
+  --sand-ink: light-dark(#4a4333, #f0e6c4);
+  --wait: light-dark(#b9a472, #c9b77f);
+
+  --font-sans: 'Instrument Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --tap: 44px;
+}
+:root[data-theme='light'] {
+  color-scheme: light;
+}
+:root[data-theme='night'] {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+html {
+  -webkit-text-size-adjust: 100%;
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-size: 15px;
+  line-height: 1.5;
+}
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+h1,
+h2 {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  line-height: 1.1;
+}
+h1 {
+  font-size: clamp(34px, 6vw, 44px);
+}
+h2 {
+  font-size: 26px;
+}
+a {
+  color: inherit;
+}
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: inherit;
+}
+:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* ---------- App shell: bottom bar on phones, sidebar on wide screens ---------- */
+.shell {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 24px 16px 112px;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+.nav {
+  position: fixed;
+  inset: auto 0 0 0;
+  z-index: 10;
+  display: flex;
+  background: var(--surface);
+  border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.nav__brand {
+  display: none;
+}
+.nav__link {
+  flex: 1;
+  min-height: 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  text-decoration: none;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 500;
+}
+.nav__link--wide {
+  display: none;
+}
+.nav__link svg {
+  width: 22px;
+  height: 22px;
+}
+.nav__link[aria-current='page'] {
+  color: var(--accent);
+  font-weight: 700;
+}
+.nav__link[aria-current='page'] .nav__icon {
+  background: var(--tint);
+}
+.nav__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 30px;
+  border-radius: 10px;
+}
+@media (min-width: 900px) {
+  .shell {
+    flex-direction: row;
+  }
+  .nav {
+    position: sticky;
+    /* top, right, bottom, left: pinned to the top edge only. This also undoes the phone layout's
+       pin to the bottom edge. (A separate "top: 0" before "inset: auto" would be overwritten.) */
+    inset: 0 auto auto auto;
+    flex: 0 0 220px;
+    height: 100dvh;
+    flex-direction: column;
+    gap: 4px;
+    padding: 24px 16px;
+    border-top: 0;
+    border-right: 1px solid var(--line);
+  }
+  .nav__brand {
+    display: block;
+    font-family: var(--font-serif);
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 0 12px 20px;
+  }
+  .nav__link--wide {
+    display: flex;
+  }
+  .nav__link {
+    flex: none;
+    min-height: var(--tap);
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 0 12px;
+    border-radius: 6px;
+    font-size: 15px;
+  }
+  .nav__link[aria-current='page'] {
+    background: var(--tint);
+  }
+  .nav__icon,
+  .nav__link[aria-current='page'] .nav__icon {
+    width: auto;
+    height: auto;
+    background: none;
+  }
+  .main {
+    padding: 40px clamp(16px, 3vw, 48px) 72px;
+    max-width: 980px;
+    margin: 0;
+  }
+}
+
+/* ---------- Page pieces ---------- */
+.eyebrow {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--muted);
+}
+.lede {
+  color: var(--muted);
+  max-width: 60ch;
+}
+.page-head {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.section__head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.card--warn {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+  color: var(--warn);
+}
+.big-number {
+  font-size: 30px;
+  line-height: 34px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.big-number small {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+  letter-spacing: 0;
+}
+.meter {
+  height: 10px;
+  border-radius: 5px;
+  background: var(--track);
+  overflow: hidden;
+}
+.meter > span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: var(--tint);
+  color: var(--accent);
+}
+.chip--sand {
+  background: var(--sand);
+  color: var(--sand-ink);
+}
+.link-button {
+  background: none;
+  border: 0;
+  padding: 0;
+  min-height: var(--tap);
+  text-align: left;
+  cursor: pointer;
+  color: var(--accent);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ---------- Forms ---------- */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field > label,
+.field > .label,
+legend {
+  font-weight: 600;
+  font-size: 14px;
+}
+.hint {
+  font-size: 13px;
+  color: var(--muted);
+}
+.error {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--warn);
+}
+.input,
+.select,
+.textarea {
+  min-height: var(--tap);
+  width: 100%;
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: 6px;
+  background: var(--field);
+  color: var(--ink);
+}
+.textarea {
+  padding: 10px 12px;
+  min-height: 96px;
+  resize: vertical;
+}
+.input[aria-invalid='true'],
+.select[aria-invalid='true'],
+.textarea[aria-invalid='true'] {
+  border-color: var(--warn-border);
+}
+.input--code {
+  font-size: 28px;
+  letter-spacing: 0.35em;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  min-width: 0;
+}
+.btn {
+  min-height: var(--tap);
+  padding: 0 20px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--ink);
+  color: var(--bg);
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+a.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+.btn--quiet {
+  background: transparent;
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+.btn--warn {
+  background: transparent;
+  color: var(--warn);
+  border-color: var(--warn-border);
+}
+.btn-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.notice {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 14px;
+}
+.notice--success {
+  background: var(--tint);
+  color: var(--accent);
+}
+.notice--error {
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid var(--warn-line);
+}
+
+/* Segmented choice (appearance, closed/shorter) */
+.segmented {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.segmented button,
+.segmented a,
+.segmented label {
+  min-height: var(--tap);
+  text-decoration: none;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  cursor: pointer;
+  font-weight: 500;
+}
+.segmented button[aria-pressed='true'],
+.segmented a[aria-current='true'],
+.segmented label:has(input:checked) {
+  background: var(--solid);
+  color: var(--on-solid);
+  border-color: var(--solid);
+}
+.segmented input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.segmented label:has(input:focus-visible) {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Working week */
+.week {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface);
+}
+.week__day {
+  display: grid;
+  gap: 10px 14px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--line);
+  grid-template-columns: 1fr;
+}
+.week__day:first-child {
+  border-top: 0;
+}
+/* An unticked day hides its times (they are kept, and come back when she ticks it) instead of dimming
+   them: dimmed text that can still be edited fails the contrast rules. */
+.week__off {
+  display: none;
+  align-self: center;
+  color: var(--muted);
+}
+.week__day:has(.week__works:not(:checked)) .week__times {
+  display: none;
+}
+.week__day:has(.week__works:not(:checked)) .week__off {
+  display: block;
+}
+.week__works-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--tap);
+  font-weight: 600;
+  cursor: pointer;
+}
+.week__works {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--solid);
+}
+.week__times {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 12px;
+}
+.week__times .field {
+  min-width: 0;
+}
+.week__times .field--wide {
+  grid-column: 1 / -1;
+}
+.time-pair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+@media (min-width: 720px) {
+  .week__day {
+    grid-template-columns: 170px 1fr;
+    align-items: start;
+  }
+  .week__times {
+    grid-template-columns: repeat(4, 1fr);
+  }
+  .week__times .field--wide {
+    grid-column: auto;
+  }
+}
+
+/* Days off list */
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.rows li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+}
+.rows li:first-child {
+  border-top: 0;
+}
+.rows__main {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.rows__title {
+  font-weight: 600;
+}
+
+/* Sign-in */
+.auth {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 24px 16px;
+}
+.auth__card {
+  width: 100%;
+  max-width: 26rem;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.wordmark {
+  font-family: var(--font-serif);
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  font-size: 22px;
+}
+
+/* ---------- Stage 2: clients, orders, preparation ---------- */
+
+/* Order status, beside the word that already says it */
+.chip--line {
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--line-strong);
+}
+.chip--muted {
+  background: var(--track);
+  color: var(--ink);
+}
+.chip--warn {
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid var(--warn-line);
+}
+
+.crumbs {
+  font-size: 13px;
+  color: var(--muted);
+}
+.crumbs a {
+  color: var(--muted);
+}
+.title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+
+/* The tabs of an order. They scroll sideways on a narrow phone rather than wrapping. */
+.tabs {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--line);
+  scrollbar-width: thin;
+}
+.tabs a {
+  flex: none;
+  min-height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 14px;
+  color: var(--muted);
+  font-weight: 500;
+  text-decoration: none;
+  border-bottom: 3px solid transparent;
+  margin-bottom: -1px;
+}
+.tabs a[aria-current='page'] {
+  color: var(--ink);
+  font-weight: 700;
+  border-bottom-color: var(--ink);
+}
+
+/* A row that is a link: the orders list, the clients list */
+.rows--links li {
+  padding: 0;
+}
+.row-link {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  align-items: center;
+  padding: 14px 16px;
+  min-height: var(--tap);
+  text-decoration: none;
+  color: inherit;
+}
+.row-link:hover {
+  background: var(--tint);
+}
+.row-link__title {
+  font-weight: 600;
+}
+.row-link__side {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  text-align: right;
+}
+.late {
+  color: var(--warn);
+  font-weight: 600;
+}
+
+/* Something that opens to show a form: "Put on hold", "Edit" */
+.disclosure > summary {
+  list-style: none;
+  cursor: pointer;
+  min-height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  padding: 0 16px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  background: var(--surface);
+}
+.disclosure > summary::-webkit-details-marker {
+  display: none;
+}
+.disclosure--link > summary {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.disclosure[open] > summary {
+  background: var(--tint);
+}
+.disclosure--link[open] > summary {
+  background: none;
+}
+.disclosure__panel {
+  margin-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.confirm__question {
+  font-weight: 600;
+}
+.check {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  min-height: var(--tap);
+  font-weight: 500;
+  cursor: pointer;
+}
+.check input {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--solid);
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+@media (min-width: 720px) {
+  .form-grid--2 {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px 18px;
+  margin: 0;
+}
+.facts dt {
+  color: var(--muted);
+}
+.facts dd {
+  margin: 0;
+  font-weight: 500;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.brief {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* Sketches and photos */
+.photos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 12px;
+}
+.photo {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+.photo__img {
+  display: block;
+  aspect-ratio: 1;
+  background: var(--track);
+}
+.photo__img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.photo__body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+}
+.photo__name {
+  font-weight: 600;
+}
+
+/* Preparation: what an order is waiting for */
+.readiness {
+  display: grid;
+  gap: 14px 28px;
+  align-items: center;
+}
+@media (min-width: 720px) {
+  .readiness {
+    grid-template-columns: auto 1fr;
+  }
+}
+.suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.suggest {
+  min-height: var(--tap);
+  padding: 0 16px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 22px;
+  background: var(--surface);
+  cursor: pointer;
+  font-weight: 500;
+}
+.suggest:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--line);
+}
+.item:first-child {
+  border-top: 0;
+}
+.item--late {
+  background: var(--warn-bg);
+}
+.item--late .item__note {
+  color: var(--warn);
+  font-weight: 600;
+}
+.item--undated .item__note {
+  color: var(--sand-ink);
+  font-weight: 600;
+}
+.item__head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.item__mark {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin-top: 1px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.item__mark--done {
+  background: var(--solid);
+  border-color: var(--solid);
+  color: var(--on-solid);
+}
+.item__mark svg {
+  width: 14px;
+  height: 14px;
+}
+.item__main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.item__title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.item__quick {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+@media (min-width: 720px) {
+  .item__quick {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+.attention {
+  color: var(--sand-ink);
+  font-weight: 600;
+}
+.groups {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Measurements */
+.measure-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+.measures {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+  gap: 4px 20px;
+  margin: 0;
+}
+.measures div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--line);
+  padding: 4px 0;
+}
+.measures dt {
+  color: var(--muted);
+}
+.measures dd {
+  margin: 0;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* History */
+.timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.timeline li {
+  display: grid;
+  grid-template-columns: 52px 1fr;
+  gap: 12px;
+  padding: 8px 0;
+  border-top: 1px solid var(--line);
+}
+.timeline li:first-child {
+  border-top: 0;
+}
+.timeline time {
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.plain-list {
+  margin: 4px 0 0;
+  padding-left: 20px;
+}
+.rows li > details {
+  width: 100%;
+  padding: 8px 0;
+}
+.status-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: flex-start;
+}
+.status-actions > details[open] {
+  flex: 1 1 100%;
+  max-width: 34rem;
+}
+h3 {
+  font-size: 18px;
+  line-height: 1.3;
+}
+
+/* Settings: her list of measurements */
+.field-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overflow: hidden;
+}
+.field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--line);
+}
+.field-row:first-child {
+  border-top: 0;
+}
+.field-row__name {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  align-items: end;
+}
+.field-row__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.field-row__label {
+  font-weight: 600;
+  min-height: var(--tap);
+  display: flex;
+  align-items: center;
+}
+.field-row--hidden .field-row__name {
+  grid-template-columns: 1fr auto;
+}
+@media (min-width: 720px) {
+  .field-row {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: end;
+    gap: 10px 24px;
+  }
+  .field-row__name {
+    flex: 1 1 320px;
+    grid-template-columns: 1fr auto;
+  }
+}
+
+/* Two numbers side by side, each with its unit: 1 hours 30 minutes */
+.pair {
+  display: flex;
+  gap: 12px;
+}
+.pair__part {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+}
+.pair__part .input {
+  min-width: 0;
+}
+
+/* Tasks: one task's editor, and the lists in it */
+h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+}
+.subsection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+.link-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.checks {
+  display: flex;
+  flex-direction: column;
+}
+.btn--small {
+  padding: 0 12px;
+  font-size: 14px;
+}
+.task-facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+/* A heading that reads as a card title, whatever its level */
+.h3 {
+  font-family: var(--font-sans);
+  font-size: 18px;
+  line-height: 1.3;
+  font-weight: 700;
+}
+
+/* Plan review */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(200px, 100%), 1fr));
+  gap: 14px;
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+.table th,
+.table td {
+  text-align: left;
+  vertical-align: top;
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+}
+.table thead th {
+  border-top: 0;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 13px;
+  white-space: nowrap;
+}
+.table tbody th {
+  font-weight: 600;
+  min-width: 12rem;
+}
+.table td {
+  white-space: nowrap;
+}
+.weeks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.week {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.week__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+.week__title {
+  font-weight: 600;
+}
+.stack {
+  display: flex;
+  height: 12px;
+  border-radius: 6px;
+  background: var(--track);
+  overflow: hidden;
+}
+.stack__this {
+  background: var(--accent);
+}
+.stack__other {
+  background: var(--sand);
+}
+.decision {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.row-link[aria-current='true'] {
+  background: var(--tint);
+}
+.table__sub {
+  display: block;
+  font-weight: 400;
+}
+
+/* My Day */
+.today__time {
+  flex: none;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  min-width: 3.2rem;
+}
+.today__done {
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  color: var(--muted);
+}
+.today__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.today__actions:empty {
+  display: none;
+}
+.today__forms {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+}
+.today__forms > details[open] {
+  flex: 1 1 100%;
+}
+
+/* The Planner's week board: a column of days on a phone, seven side by side on a wide screen */
+.board {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+@media (min-width: 1100px) {
+  .board {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 8px;
+  }
+}
+.board__day {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  min-width: 0;
+}
+.board__day--today {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.board__head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 2px 8px;
+}
+.board__tasks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.board__task {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+  min-height: var(--tap);
+  border-radius: var(--radius-sm);
+  background: var(--tint);
+  color: inherit;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.board__title {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+/* ---------- Stage 6: skip link, reduced motion, the offline page, waiting taps ---------- */
+.skip-link {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--solid);
+  color: var(--on-solid);
+  font-weight: 600;
+  text-decoration: none;
+  transform: translateY(-200%);
+}
+.skip-link:focus-visible {
+  transform: none;
+}
+/* The skip link moves focus to the content; the content itself needs no ring. */
+.main:focus {
+  outline: none;
+}
+.main--alone {
+  padding-bottom: 48px;
+}
+.nav__brand--alone {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+.sync ul {
+  margin: 8px 0 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

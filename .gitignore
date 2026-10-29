@@ -1,0 +1,17 @@
+node_modules
+.next
+out
+build
+coverage
+*.tsbuildinfo
+next-env.d.ts
+.env
+.env.*
+!.env.example
+.DS_Store
+supabase/.branches
+supabase/.temp
+# Browser suite
+e2e/.auth
+test-results
+playwright-report

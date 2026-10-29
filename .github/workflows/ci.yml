@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# One run per branch; a newer push cancels the older run.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run format:check
+      - run: npm run test:unit
+
+      # Starts PostgreSQL the way Supabase runs it and applies every migration.
+      # test:db then proves row-level security against that real database.
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase db start
+      - run: npm run test:db
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+
+      - run: npm run build
+        env:
+          # The build does not talk to Supabase; these only have to look right.
+          SUPABASE_URL: http://127.0.0.1:54321
+          SUPABASE_PUBLISHABLE_KEY: sb_publishable_build_only_not_a_real_key
+
+  # The browser suite (docs/testing.md): the whole Supabase stack, the built app, a real Chromium.
+  e2e:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      # Database, sign-in, storage and Mailpit (where the sign-in codes land), with every migration applied.
+      - run: supabase start
+
+      - name: Point the app and the suite at the local stack
+        run: |
+          supabase status -o json > "$RUNNER_TEMP/supabase.json"
+          read_key() { jq -r "$1" "$RUNNER_TEMP/supabase.json"; }
+          {
+            echo "SUPABASE_URL=$(read_key '.API_URL')"
+            echo "SUPABASE_PUBLISHABLE_KEY=$(read_key '.PUBLISHABLE_KEY // .ANON_KEY')"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$(read_key '.SERVICE_ROLE_KEY // .SECRET_KEY')"
+            echo "E2E_DATABASE_URL=$(read_key '.DB_URL')"
+            echo "E2E_MAILPIT_URL=$(read_key '.MAILPIT_URL // .INBUCKET_URL')"
+          } >> "$GITHUB_ENV"
+
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      # Starts the built app on port 3000 itself (e2e/playwright.config.ts), then runs the specs in order.
+      - run: npm run test:e2e
+
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report
+            test-results
+          retention-days: 14
