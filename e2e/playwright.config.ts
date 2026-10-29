@@ -14,8 +14,9 @@ export default defineConfig({
   retries: 0,
   timeout: 90_000,
   expect: { timeout: 10_000 },
+  // On GitHub, failures also become annotations on the run, readable without opening the logs.
   reporter: process.env.CI
-    ? [['list'], ['html', { open: 'never', outputFolder: '../playwright-report' }]]
+    ? [['github'], ['list'], ['html', { open: 'never', outputFolder: '../playwright-report' }]]
     : 'list',
   outputDir: '../test-results',
   use: {

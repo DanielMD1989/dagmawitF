@@ -11,6 +11,21 @@ import { signInCode } from './support/mailbox';
  * by emailed code, saved for every spec. One sign-in, because Supabase sends at most one code a minute.
  */
 export default async function globalSetup(): Promise<void> {
+  try {
+    await prepare();
+  } catch (error) {
+    // On GitHub, say why as an annotation on the run: a setup failure is not a test failure, so no reporter shows it.
+    if (process.env.GITHUB_ACTIONS) {
+      const message = error instanceof Error ? `${error.message}\n${error.stack ?? ''}` : String(error);
+      console.log(
+        `::error title=Browser suite setup failed::${message.replace(/%/g, '%25').replace(/\r?\n/g, '%0A')}`,
+      );
+    }
+    throw error;
+  }
+}
+
+async function prepare(): Promise<void> {
   assertLocal();
   if (!env.serviceRoleKey) {
     throw new Error(

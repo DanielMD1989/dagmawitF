@@ -15,9 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -50,9 +50,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -68,13 +68,21 @@ jobs:
       - name: Point the app and the suite at the local stack
         run: |
           supabase status -o json > "$RUNNER_TEMP/supabase.json"
-          read_key() { jq -r "$1" "$RUNNER_TEMP/supabase.json"; }
+          # Key names differ between CLI versions; a missing one is reported, never passed on as "null".
+          read_key() {
+            value=$(jq -r "$1 // empty" "$RUNNER_TEMP/supabase.json")
+            if [ -z "$value" ]; then
+              echo "::error::supabase status has no $1; it has $(jq -c 'keys' "$RUNNER_TEMP/supabase.json")" >&2
+              exit 1
+            fi
+            echo "$value"
+          }
           {
             echo "SUPABASE_URL=$(read_key '.API_URL')"
             echo "SUPABASE_PUBLISHABLE_KEY=$(read_key '.PUBLISHABLE_KEY // .ANON_KEY')"
             echo "SUPABASE_SERVICE_ROLE_KEY=$(read_key '.SERVICE_ROLE_KEY // .SECRET_KEY')"
             echo "E2E_DATABASE_URL=$(read_key '.DB_URL')"
-            echo "E2E_MAILPIT_URL=$(read_key '.MAILPIT_URL // .INBUCKET_URL')"
+            echo "E2E_MAILPIT_URL=$(jq -r '.MAILPIT_URL // .INBUCKET_URL // "http://127.0.0.1:54324"' "$RUNNER_TEMP/supabase.json")"
           } >> "$GITHUB_ENV"
 
       - run: npx playwright install --with-deps chromium
