@@ -14,6 +14,12 @@ Supabase's database backups do **not** contain the stored pictures: those live i
 export is the only layer that holds both. Ask her to download it weekly and keep it off her phone (a computer, a USB
 stick, a cloud drive).
 
+## On the free plan
+
+A project on Supabase's free plan pauses after about a week with no use, and has no daily backups. Daily use keeps it
+awake; after a long break, wake it from the dashboard (Restore project). Her weekly export is then the only backup, so
+it matters more, not less. Moving to a paid plan later needs no change to the app or her data.
+
 ## Restoring her export
 
 Restoring **replaces everything** in one account with the file's contents. Work done after the file was made is lost.

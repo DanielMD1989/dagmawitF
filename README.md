@@ -57,8 +57,15 @@ In this order. Each step says how to check it before going on.
 1. **GitHub.** Push this repository (branch `main`). CI runs the checks, the database tests (with the restore drill)
    and the browser suite against a local Supabase. _Check:_ both CI jobs are green.
 2. **Supabase project.** Create one in the region nearest Addis Ababa that Supabase offers, with a strong database
-   password kept in a password manager. Then `supabase link --project-ref <ref>` and `supabase db push`.
-   _Check:_ Table Editor lists `orders`, `task`, `plan_version`; Storage lists the private bucket `order-files`.
+   password kept in a password manager. Its ref (in the project's address) goes in `.github/workflows/database.yml`.
+   Then, in GitHub, Settings > Secrets and variables > Actions, add two **repository secrets**:
+   - `SUPABASE_ACCESS_TOKEN`: a personal access token from supabase.com/dashboard/account/tokens;
+   - `SUPABASE_DB_PASSWORD`: the database password.
+
+   The **Database** workflow then applies the migrations every time CI passes on `main` (or run it from the Actions
+   tab). _Check:_ the Database run is green; Table Editor lists `orders`, `task`, `plan_version`; Storage lists the
+   private bucket `order-files`.
+
 3. **Email sender (before anything else in Authentication).** Without its own SMTP sender, Supabase delivers sign-in
    codes only to members of the project's organization; anyone else gets "Email address not authorized". Add an SMTP
    provider (Authentication > Emails > SMTP Settings). _Check:_ step 5's code reaches you.

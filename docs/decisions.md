@@ -421,3 +421,11 @@ local tests cannot hide it again. So far: storage buckets are not readable throu
 storage tables is refused unless it comes from the Storage API (Supabase's `storage.protect_delete` guard, which keeps
 a file from being left behind). The app deletes pictures only through the Storage API; the tests that check the delete
 policies say they delete as the Storage API does.
+
+## 0064. Migrations reach her project through a workflow, after CI
+
+The database of the live project changes only by the **Database** workflow: when CI has passed on `main`, it applies
+the migrations CI has just tested, to exactly that commit, one run at a time. Nobody applies them by hand from a
+laptop, so the live database is always at a version that was tested, and no database password is typed anywhere but
+GitHub's encrypted secrets. Sign-in settings stay in the dashboard: `config.toml` describes the local stack (its site
+address is the local one), so it is never pushed to the live project.

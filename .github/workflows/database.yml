@@ -1,0 +1,54 @@
+name: Database
+
+# Applies the migrations to her Supabase project (decision 0064): after CI has passed on main, or by hand from the
+# Actions tab. The same files CI has just tested, in order, each once. Nothing else about the project is changed:
+# sign-in settings are set in the dashboard (README, "Put it online").
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+# One at a time, and never cut short halfway through.
+concurrency:
+  group: database
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # Her project (it is in the project's address, so not a secret).
+      SUPABASE_PROJECT_ID: iowwrmnfeaogocnspgvf
+      # Repository secrets, set by hand: Settings > Secrets and variables > Actions.
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          # After CI: exactly the commit CI tested.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Check the secrets are set
+        run: |
+          missing=""
+          [ -n "$SUPABASE_ACCESS_TOKEN" ] || missing="$missing SUPABASE_ACCESS_TOKEN"
+          [ -n "$SUPABASE_DB_PASSWORD" ] || missing="$missing SUPABASE_DB_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "::error title=Database not updated::Missing repository secrets:$missing (Settings > Secrets and variables > Actions)."
+            exit 1
+          fi
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
+
+      # What will be applied, in the log, before it is.
+      - run: supabase db push --dry-run
+
+      - run: supabase db push
