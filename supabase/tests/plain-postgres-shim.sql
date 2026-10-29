@@ -68,6 +68,8 @@ create table storage.objects (
   constraint objects_bucket_name unique (bucket_id, name)
 );
 alter table storage.objects enable row level security;
+-- As on Supabase: buckets are not readable through the API unless a policy says so (ours adds none).
+alter table storage.buckets enable row level security;
 
 -- Same behaviour as Supabase's: every part of the path except the file name.
 create function storage.foldername(name text) returns text[]

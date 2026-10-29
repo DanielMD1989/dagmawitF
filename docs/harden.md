@@ -56,9 +56,10 @@ npm run restore -- --file dagmawit-2026-10-30.zip --owner <her user id> [--files
 - It refuses a file whose `schema` is not the database's. To restore an older file, restore it into a project at that
   version, then apply the later migrations (docs/operations.md).
 - `app.restore_owner(owner, data)` does the database part in one transaction: it deletes her rows, inserts the file's
-  rows with the owner changed to `--owner` (and the owner part of each picture's path with it), with the triggers off,
-  so history, counters and versions are restored as they were, not re-made (decision 0054). Then it checks every link
-  between rows itself and moves the history counter past the restored rows. Any problem undoes the whole restore.
+  rows with the owner changed to `--owner` (and the owner part of each picture's path with it), with the app's own
+  triggers off, so history, counters and versions are restored as they were, not re-made (decision 0054). The links
+  between tables stay checked by the database: tables go in in the order their links allow. Then it moves the history
+  counter past the restored rows. Any problem undoes the whole restore. It needs no superuser.
 
 ### The drill
 

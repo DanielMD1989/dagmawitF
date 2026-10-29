@@ -30,8 +30,14 @@ async function person(c: PoolClient, email: string): Promise<string> {
   return id;
 }
 
-const restore = (c: PoolClient, owner: string, file: unknown) =>
-  attempt(c, `select app.restore_owner($1, $2::jsonb)`, [owner, JSON.stringify(file)]);
+/**
+ * A real restore is a transaction of its own, after her data was committed. Here everything is one rolled-back
+ * transaction, so the checks the database defers to the end of it are run first, as a commit would have.
+ */
+async function restore(c: PoolClient, owner: string, file: unknown) {
+  await c.query('set constraints all immediate');
+  return attempt(c, `select app.restore_owner($1, $2::jsonb)`, [owner, JSON.stringify(file)]);
+}
 
 const tablesInPublic = async (c: PoolClient) =>
   (
@@ -255,7 +261,7 @@ describe('the restore', () => {
     });
   });
 
-  it('checks every link itself, since the triggers are off, and undoes everything on a broken one', async () => {
+  it('lets the database refuse a row that points at nothing, and undoes everything', async () => {
     await inTransaction(async (c) => {
       const a = await person(c, 'a@example.test');
       const file = await exportAs(c, a);
@@ -266,18 +272,67 @@ describe('the restore', () => {
       expect(await restore(c, a, broken)).toMatchObject({
         ok: false,
         code: FOREIGN_KEY,
-        message: expect.stringMatching(/^1 rows of task in the file point at nothing \(task_\w+\)$/),
+        message: expect.stringMatching(
+          /^insert or update on table "task" violates foreign key constraint "task_\w+"$/,
+        ),
       });
       expect(differences(file, await exportAs(c, a))).toEqual([]);
     });
   });
 
-  it('turns the triggers back on before it returns', async () => {
+  const triggers = async (c: PoolClient) =>
+    (
+      await c.query<{ t: string }>(
+        `select c.relname || '.' || t.tgname || '=' || t.tgenabled::text as t
+         from pg_trigger t join pg_class c on c.oid = t.tgrelid join pg_namespace n on n.oid = c.relnamespace
+         where n.nspname = 'public' and not t.tgisinternal order by 1`,
+      )
+    ).rows.map((r) => r.t);
+
+  it('turns the app’s triggers back on, exactly as they were, before it returns', async () => {
     await inTransaction(async (c) => {
       const a = await person(c, 'a@example.test');
+      const before = await triggers(c);
+      expect(before.length).toBeGreaterThan(20);
+      expect(before.every((t) => t.endsWith('=O'))).toBe(true);
       expect(await restore(c, a, await exportAs(c, a))).toMatchObject({ ok: true });
-      const { rows } = await c.query(`select current_setting('session_replication_role') as r`);
-      expect(rows[0]!.r).toBe('origin');
+      expect(await triggers(c)).toEqual(before);
+      // And they work: a change made after the restore is recorded in her history.
+      await actAs(c, a);
+      const lines = async () =>
+        Number((await c.query(`select count(*) from public.activity_log`)).rows[0]!.count);
+      const history = await lines();
+      await c.query(
+        `update public.orders set status = 'on_hold', hold_reason = 'After the restore' where status = 'active'`,
+      );
+      expect(await lines()).toBe(history + 1);
+      await actAsOwner(c);
+    });
+  });
+
+  it('needs no superuser: it runs as an owner of the tables who is not one, as on Supabase', async () => {
+    await inTransaction(async (c) => {
+      const a = await person(c, 'a@example.test');
+      const file = await exportAs(c, a);
+      const { rows } = await c.query<{ superuser: boolean }>(
+        `select rolsuper as superuser from pg_roles where rolname = current_user`,
+      );
+      if (rows[0]!.superuser) {
+        // On plain PostgreSQL the tests run as a superuser. Make the tables belong to a role like Supabase's
+        // `postgres`: it owns them and bypasses row-level security, and is not a superuser.
+        await c.query(`create role restore_like_supabase nologin nosuperuser bypassrls`);
+        await c.query(`grant usage on schema app, auth to restore_like_supabase`);
+        await c.query(`grant select on auth.users to restore_like_supabase`);
+        await c.query(
+          `grant execute on function app.restore_owner(uuid, jsonb), app.schema_version() to restore_like_supabase`,
+        );
+        for (const t of await tablesInPublic(c))
+          await c.query(`alter table public.${t} owner to restore_like_supabase`);
+        await c.query(`set local role restore_like_supabase`);
+      }
+      expect(await restore(c, a, file)).toMatchObject({ ok: true });
+      await actAsOwner(c);
+      expect(differences(file, await exportAs(c, a))).toEqual([]);
     });
   });
 

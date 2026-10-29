@@ -50,11 +50,9 @@ few months: `npm run drill:restore -- --file <her latest export>`.
 
 ## On the real project
 
-The restore puts rows back with the triggers off by setting `session_replication_role` as the `postgres` role, the
-same way Supabase's own restore guide does
-([Backup and Restore using the CLI](https://supabase.com/docs/guides/platform/migrating-within-supabase/backup-restore)).
-CI's database tests run the drill against the Supabase stack. Still, restore one real export into a scratch Supabase
-project before you ever need to, to know the steps.
+The restore runs as the `postgres` role from the project's connection string: it owns the tables and is not a
+superuser, which is all the restore needs (decision 0054). CI's database tests run the drill against the Supabase
+stack. Still, restore one real export into a scratch Supabase project before you ever need to, to know the steps.
 
 ## Tidy stored pictures
 

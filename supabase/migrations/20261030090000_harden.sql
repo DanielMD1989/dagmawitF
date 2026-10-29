@@ -55,8 +55,9 @@ revoke all on function public.export_my_data() from public, anon;
 grant execute on function public.export_my_data() to authenticated;
 
 -- ---------------------------------------------------------------------------------------------
--- The restore (decisions 0052 to 0054). Run by whoever looks after the app, as the database owner; never reachable
--- from the API. Replaces everything of `p_owner` with the file's rows, in the caller's transaction.
+-- The restore (decisions 0052 to 0054). Run by whoever looks after the app, as the owner of the tables (the
+-- `postgres` role on Supabase, which is not a superuser); never reachable from the API. Replaces everything of
+-- `p_owner` with the file's rows, in the caller's transaction.
 
 create function app.restore_owner(p_owner uuid, p_data jsonb) returns void
 language plpgsql
@@ -69,6 +70,9 @@ declare
   v_columns text[];
   v_rows jsonb;
   v_count bigint;
+  v_order text[] := '{}';
+  v_next text[];
+  v_triggers text[] := '{}';
   t text;
   r record;
 begin
@@ -120,16 +124,54 @@ begin
     end if;
   end loop;
 
-  -- Triggers off for the rest of this transaction: rows go back as they were (decision 0054).
-  perform set_config('session_replication_role', 'replica', true);
+  -- The order the links between tables allow: a table comes after every table it points at. The links stay on, so
+  -- the database itself refuses a row that points at nothing.
+  loop
+    select array_agg(x order by x) into v_next
+    from unnest(v_tables) x
+    where not x = any(v_order)
+      and not exists (
+        select 1 from pg_constraint con
+        where con.contype = 'f'
+          and con.conrelid = format('public.%I', x)::regclass
+          and con.confrelid in (
+            select format('public.%I', y)::regclass from unnest(v_tables) y where not y = any(v_order)));
+    exit when v_next is null;
+    v_order := v_order || v_next;
+  end loop;
+  if cardinality(v_order) <> cardinality(v_tables) then
+    raise exception 'the tables % point at each other in a loop; a restore cannot order them',
+      (select array_agg(x) from unnest(v_tables) x where not x = any(v_order)) using errcode = '0A000';
+  end if;
 
-  foreach t in array v_tables loop
-    execute format('delete from public.%I where owner_id = $1', t) using p_owner;
+  -- The app's own triggers off, so rows go back as they were: history, counters and versions are the file's, not
+  -- re-made (decision 0054). Only the ones that are on, and exactly those are turned back on below. The database's
+  -- own triggers (the links between tables) stay on. As the tables' owner this needs no superuser, and it is undone
+  -- with everything else if the restore fails.
+  for r in
+    select c.relname, t.tgname
+    from pg_trigger t
+    join pg_class c on c.oid = t.tgrelid
+    join pg_namespace n on n.oid = c.relnamespace
+    where n.nspname = 'public' and not t.tgisinternal and t.tgenabled = 'O'
+    order by c.relname, t.tgname
+  loop
+    execute format('alter table public.%I disable trigger %I', r.relname, r.tgname);
+    v_triggers := v_triggers || array[array[r.relname::text, r.tgname::text]];
   end loop;
 
-  foreach t in array v_tables loop
+  for i in reverse cardinality(v_order) .. 1 loop
+    execute format('delete from public.%I where owner_id = $1', v_order[i]) using p_owner;
+  end loop;
+
+  foreach t in array v_order loop
     -- The new owner, and for a picture the owner part of its path (the path starts with the owner: a check on
     -- attachment refuses any other).
+    if t = 'attachment' and exists (
+      select 1 from jsonb_array_elements(p_data->'tables'->t) e
+      where left(e->>'storage_path', char_length(v_old::text) + 1) <> v_old::text || '/') then
+      raise exception 'a picture in the file is stored outside its owner''s folder' using errcode = '22023';
+    end if;
     select coalesce(jsonb_agg(
              e || jsonb_build_object('owner_id', p_owner)
                || case when t = 'attachment'
@@ -138,44 +180,13 @@ begin
                        else '{}'::jsonb end), '[]'::jsonb)
       into v_rows
     from jsonb_array_elements(p_data->'tables'->t) e;
-    if t = 'attachment' and exists (
-      select 1 from jsonb_array_elements(p_data->'tables'->t) e
-      where left(e->>'storage_path', char_length(v_old::text) + 1) <> v_old::text || '/') then
-      raise exception 'a picture in the file is stored outside its owner''s folder' using errcode = '22023';
-    end if;
     execute format(
       'insert into public.%I overriding system value select * from jsonb_populate_recordset(null::public.%I, $1)',
       t, t) using v_rows;
   end loop;
 
-  perform set_config('session_replication_role', 'origin', true);
-
-  -- With the triggers off nothing checked the links between rows. Check every one now.
-  for r in
-    select con.conname,
-           c.relname as child_name,
-           con.conrelid::regclass as child,
-           con.confrelid::regclass as parent,
-           (select string_agg(format('c.%I is not null', a.attname), ' and ')
-              from unnest(con.conkey) k(n) join pg_attribute a on a.attrelid = con.conrelid and a.attnum = k.n)
-             as present,
-           (select string_agg(format('p.%I = c.%I', pa.attname, ca.attname), ' and ')
-              from unnest(con.conkey, con.confkey) k(cn, pn)
-              join pg_attribute ca on ca.attrelid = con.conrelid and ca.attnum = k.cn
-              join pg_attribute pa on pa.attrelid = con.confrelid and pa.attnum = k.pn)
-             as matches
-    from pg_constraint con
-    join pg_class c on c.oid = con.conrelid
-    join pg_namespace n on n.oid = c.relnamespace
-    where con.contype = 'f' and n.nspname = 'public'
-  loop
-    execute format('select count(*) from %s c where c.owner_id = $1 and %s and not exists (select 1 from %s p where %s)',
-                   r.child, r.present, r.parent, r.matches)
-      into v_count using p_owner;
-    if v_count > 0 then
-      raise exception '% rows of % in the file point at nothing (%)', v_count, r.child_name, r.conname
-        using errcode = '23503';
-    end if;
+  for i in 1 .. coalesce(array_length(v_triggers, 1), 0) loop
+    execute format('alter table public.%I enable trigger %I', v_triggers[i][1], v_triggers[i][2]);
   end loop;
 
   -- Counters (the history's) move past the restored rows, never back.

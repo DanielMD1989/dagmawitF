@@ -552,6 +552,8 @@ describe('private storage for order files', () => {
 
   it('is a private bucket for pictures of at most 5 MB', async () => {
     await signedIn(async (c) => {
+      // The bucket's settings, as the database owner: signed-in users cannot read storage.buckets on Supabase.
+      await actAsOwner(c);
       const { rows } = await c.query(
         `select public, file_size_limit, allowed_mime_types from storage.buckets where id = 'order-files'`,
       );

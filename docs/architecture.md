@@ -102,9 +102,8 @@ The rules are in [engine.md](engine.md). The files, in the order a plan is made:
 
 ## Known gaps in Stage 6
 
-- The restore was proven on plain PostgreSQL. On Supabase it sets `session_replication_role` as the `postgres` role,
-  as Supabase's own restore guide does; CI's database tests run the drill against the Supabase stack, and one restore
-  into a scratch project before relying on it is still worth doing (operations.md).
+- The restore runs as the tables' owner, not a superuser (decision 0054), and CI runs the drill against the Supabase
+  stack. One restore into a scratch Supabase project before relying on it is still worth doing (operations.md).
 - Without signal she can start, finish and update tasks; holding, Quick Add and plans need the signal (decision 0057).
 - The offline page appears when a page does not answer in 8 seconds; that path was reasoned about, not driven in a
   browser test (the no-signal path was).

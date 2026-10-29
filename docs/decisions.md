@@ -347,12 +347,17 @@ The file names the last migration of the database it came from. A restore refuse
 old file is restored into a project at its version, then the later migrations are applied, which are tested already.
 Translating old files in code would be a second, untested way to change her data's shape.
 
-## 0054. A restore puts rows back as they were, then checks the links itself
+## 0054. A restore puts rows back as they were, with the links still checked by the database
 
-The rows are inserted with the triggers off, so history, counters, versions and the time a task was started are the
-file's, not re-made as if she had just done everything again. With the triggers off the database does not check links
-between rows either, so the restore checks every link itself afterwards, and moves the history counter past the
-restored rows. Any problem undoes the whole restore.
+The app's own triggers are switched off for the restore, so history, counters, versions and the time a task was
+started are the file's, not re-made as if she had just done everything again. The links between tables stay on: the
+rows go in in the order the links allow, so the database itself refuses a row that points at nothing. Then the
+history counter moves past the restored rows. Any problem undoes the whole restore, triggers included.
+
+It needs only what Supabase's `postgres` role has: it owns the tables, and is not a superuser. A first version turned
+every trigger off for the session (`session_replication_role`), which plain PostgreSQL allowed the tests' superuser
+and Supabase refused; CI's first run against the Supabase stack found it. A database test now runs the restore as a
+non-superuser owner.
 
 ## 0055. Without signal, My Day shows what she last saw, and says from when
 
