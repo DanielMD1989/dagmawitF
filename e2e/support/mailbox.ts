@@ -34,5 +34,13 @@ export async function signInCode(email: string, since: Date, timeoutMs = 15_000)
     }
     await new Promise((r) => setTimeout(r, 250));
   }
-  throw new Error(`No sign-in email reached ${email} in Mailpit (${env.mailpitUrl}).`);
+  // Say what the mailbox did hold: nothing at all points at the auth server, mail for others at the address.
+  const list = (await (await fetch(`${env.mailpitUrl}/api/v1/messages`)).json()) as { messages: Summary[] };
+  const held = list.messages.map((m) => `${m.Created} to ${m.To.map((t) => t.Address).join(', ')}`);
+  throw new Error(
+    `No sign-in email reached ${email} in Mailpit (${env.mailpitUrl}) since ${since.toISOString()}. ` +
+      (held.length === 0
+        ? 'The mailbox is empty: the code was never sent.'
+        : `It holds: ${held.join('; ')}.`),
+  );
 }

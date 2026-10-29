@@ -39,7 +39,10 @@ enable_signup = false
 enable_anonymous_sign_ins = false
 
 [auth.email]
-enable_signup = false
+# Despite its name, this switches signing in by email on or off altogether (the CLI passes it to the auth server as
+# GOTRUE_EXTERNAL_EMAIL_ENABLED; supabase/cli#2053). It must stay true, or no code is ever sent. New accounts are kept
+# out by `enable_signup = false` under [auth] above. A unit test holds both (src/supabase-config.test.ts).
+enable_signup = true
 enable_confirmations = false
 double_confirm_changes = true
 # At most one code per address per minute, valid for an hour. Six digits.

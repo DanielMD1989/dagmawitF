@@ -63,7 +63,8 @@ In this order. Each step says how to check it before going on.
    codes only to members of the project's organization; anyone else gets "Email address not authorized". Add an SMTP
    provider (Authentication > Emails > SMTP Settings). _Check:_ step 5's code reaches you.
 4. **Sign-in settings** (Authentication; menu names change, the settings do not):
-   - turn **off** "Allow new users to sign up";
+   - turn **off** "Allow new users to sign up" (under Sign In / Providers, the general switch);
+   - leave the **Email** provider itself **on**: it is how she signs in. Switching it off stops every code;
    - Email Templates > **Magic Link**: paste `supabase/templates/magic_link.html` (it must contain `{{ .Token }}`);
    - URL Configuration > Site URL: the app's address from step 6 (come back after step 6).
 5. **Her account.** Authentication > Users > Add user, with her email (and one for you, to try it first). Her profile,
