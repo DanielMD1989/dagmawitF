@@ -78,7 +78,9 @@ In this order. Each step says how to check it before going on.
    (and one for you, to try it first). Give her the password in person; she can change it in Settings. Her profile,
    working week and measurement list are created automatically.
 5. **Hosting** (for example Vercel). Import the repository; set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` (Project
-   Settings > API). Never the secret key. Put the functions in the region nearest the Supabase project.
+   Settings > API). Never the secret key. The server functions run beside the database: `vercel.json` pins them to `lhr1` (London), as
+   her project is in `eu-west-2`. For a project elsewhere, run the "Where it runs" workflow (Actions tab) and change
+   `regions` to the Vercel region nearest the one it shows.
    _Check:_ sign in with your own account and its password; the browser's console shows no Content-Security-Policy errors;
    Settings > Download everything gives a zip, and `npm run drill:restore -- --file <zip>` passes on your computer.
 6. **Her phone.** Stage 0's exit test below, then Stage 6's.

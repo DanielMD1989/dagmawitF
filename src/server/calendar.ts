@@ -1,7 +1,7 @@
 import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
-import { todayIn, type IsoDate } from '@/domain/dates';
+import { addDays, todayIn, type IsoDate } from '@/domain/dates';
 import { fromDatabaseTime } from '@/domain/calendar/time';
 import type { CalendarException, Profile, WorkDay } from '@/domain/calendar/types';
 import { fail, isoDay } from './rows';
@@ -36,23 +36,24 @@ export interface CalendarSettings {
 
 /** Everything the calendar screens need, read as the signed-in designer. */
 export async function loadCalendarSettings(supabase: SupabaseClient): Promise<CalendarSettings> {
-  const profileResult = await supabase.from('profile').select('name, timezone').single();
-  if (profileResult.error) fail('her profile', profileResult.error);
-  const p = profileRow.parse(profileResult.data);
-
-  const today = todayIn(p.timezone);
-
-  const [weekResult, exceptionResult] = await Promise.all([
+  // All three at once (decision 0077). Her days off are asked for from the earliest date that can be "today"
+  // anywhere, since her time zone is not known yet, and trimmed to her today once it is.
+  const earliest = addDays(todayIn('UTC'), -1);
+  const [profileResult, weekResult, exceptionResult] = await Promise.all([
+    supabase.from('profile').select('name, timezone').single(),
     supabase.from('work_week').select('weekday, start_time, end_time, breaks').order('weekday'),
     supabase
       .from('calendar_exception')
       .select('id, day, minutes_available, reason')
-      .gte('day', today)
+      .gte('day', earliest)
       .order('day')
       .limit(500),
   ]);
+  if (profileResult.error) fail('her profile', profileResult.error);
   if (weekResult.error) fail('her working week', weekResult.error);
   if (exceptionResult.error) fail('her days off', exceptionResult.error);
+  const p = profileRow.parse(profileResult.data);
+  const today = todayIn(p.timezone);
 
   return {
     profile: {
@@ -71,6 +72,7 @@ export async function loadCalendarSettings(supabase: SupabaseClient): Promise<Ca
     exceptions: z
       .array(exceptionRow)
       .parse(exceptionResult.data)
+      .filter((r) => r.day >= today)
       .map((r) => ({
         id: r.id,
         day: r.day,

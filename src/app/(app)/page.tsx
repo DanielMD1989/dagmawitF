@@ -23,8 +23,10 @@ export const metadata: Metadata = { title: 'Today' };
 export default async function TodayPage() {
   const user = await requireUser();
   const supabase = await createSupabase();
+  // Her jobs need nothing else, so they load while her day is worked out; the steps need her day.
+  const jobsLoading = loadOrders(supabase);
   const { profile, week, exceptions, today } = await loadCalendarSettings(supabase);
-  const [steps, jobs] = await Promise.all([loadCalendarSteps(supabase, today), loadOrders(supabase)]);
+  const [steps, jobs] = await Promise.all([loadCalendarSteps(supabase, today), jobsLoading]);
   const upcoming = comingUp(
     jobs.map((j) => ({ ...j, dueOn: j.deliveryOn })),
     today,

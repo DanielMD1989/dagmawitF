@@ -562,3 +562,13 @@ lines and each step a line of its own for "Change". Now the date boxes share the
 name on a phone; the status chip shows only under All; a job's details are two short lines (when it is due, then its
 steps); a step's "Change" sits in its card's corner; a job's moves fit one line; the page's spacing, quick actions and
 cards are a little tighter; and some help text is shorter.
+
+## 0077. The server beside the database; a tap answers at once
+
+She found the app slow to answer. Her Supabase project is in London (`eu-west-2`, read by the "Where it runs"
+workflow), while Vercel ran the app's server functions in its default region, Washington (`iad1`): every page waited on
+two or three trips across the Atlantic to the database, one after another. `vercel.json` now pins the functions to
+London (`lhr1`), beside the database, which is also nearer Addis Ababa. Sessions were not the cause: the project signs
+them with an asymmetric key (ES256), so the server checks them without asking Supabase. Pages that waited on one read
+before starting the next now start them together (Today, the jobs list, a job, the calendar's settings). And a tap now
+shows the shape of the next page at once (`loading.tsx`) instead of leaving the old page still.

@@ -31,9 +31,9 @@ export default async function OrderLayout({
   await requireUser();
   const { id } = await params;
   if (!isUuid(id)) notFound();
-  const order = await getOrder(id);
+  // Both at once: each is a trip to the database.
+  const [order, prefs] = await Promise.all([getOrder(id), createSupabase().then(loadPreferences)]);
   if (!order) notFound();
-  const prefs = await loadPreferences(await createSupabase());
 
   return (
     <>

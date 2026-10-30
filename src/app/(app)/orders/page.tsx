@@ -26,8 +26,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   await requireUser();
   const filter = readFilter((await searchParams).status);
   const supabase = await createSupabase();
-  const prefs = await loadPreferences(supabase);
-  const orders = await loadOrders(supabase);
+  const [prefs, orders] = await Promise.all([loadPreferences(supabase), loadOrders(supabase)]);
 
   const count = (f: Filter) => (f === 'all' ? orders.length : orders.filter((o) => o.status === f).length);
   const shown = orders.filter((o) => filter === 'all' || o.status === filter);

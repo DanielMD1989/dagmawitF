@@ -1878,3 +1878,42 @@ h4 {
   min-width: 36px;
   padding-inline: 8px;
 }
+
+/* The page's shape while the next one loads (decision 0077). */
+.loading {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.loading__line,
+.loading__card {
+  border-radius: var(--radius);
+  background: var(--track);
+  animation: loading-pulse 1.2s ease-in-out infinite;
+}
+.loading__line {
+  height: 14px;
+  border-radius: 7px;
+}
+.loading__line--short {
+  width: 30%;
+}
+.loading__line--title {
+  width: 65%;
+  height: 26px;
+  margin-bottom: 8px;
+}
+.loading__card {
+  height: 76px;
+}
+@keyframes loading-pulse {
+  50% {
+    opacity: 0.55;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loading__line,
+  .loading__card {
+    animation: none;
+  }
+}
