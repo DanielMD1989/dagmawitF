@@ -123,10 +123,10 @@ textarea {
   width: 100%;
   max-width: 920px;
   margin: 0 auto;
-  padding: 24px 16px 112px;
+  padding: 16px 16px 112px;
   display: flex;
   flex-direction: column;
-  gap: 28px;
+  gap: 22px;
 }
 .nav {
   position: fixed;
@@ -255,12 +255,12 @@ textarea {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  min-height: 48px;
-  padding: 0 20px;
+  min-height: var(--tap);
+  padding: 0 16px;
   border-radius: var(--radius);
   background: var(--solid);
   color: var(--on-solid);
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -296,8 +296,8 @@ textarea {
 /* The light grey circle holding a row's icon. */
 .row-icon {
   flex: none;
-  width: 44px;
-  height: 44px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   background: var(--icon-bg);
   color: var(--muted);
@@ -783,10 +783,13 @@ a.btn {
 }
 /* The job's pictures, one group per kind (a sketch, a fitting photo…), each with its own button. */
 .picture-group + .picture-group {
-  margin-top: 20px;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
 }
 .picture-group h3 {
-  margin: 0 0 8px;
+  margin: 0;
+  font-size: 16px;
 }
 .title-row {
   display: flex;
@@ -829,9 +832,9 @@ a.btn {
   flex: 1;
   display: grid;
   grid-template-columns: 1fr auto;
-  gap: 4px 12px;
+  gap: 2px 12px;
   align-items: center;
-  padding: 14px 16px;
+  padding: 12px 14px;
   min-height: var(--tap);
   text-decoration: none;
   color: inherit;
@@ -849,11 +852,31 @@ a.btn {
 .row-link--icon .row-icon {
   grid-row: 1 / span 2;
 }
-.row-link--icon .row-link__side {
-  grid-column: 3;
+.row-link.row-link--icon > .row-link__title,
+.row-link.row-link--icon > .hint {
+  grid-column: 2;
+}
+/* Days left sits under the title on a phone, so a long name keeps the card's width. */
+.row-link.row-link--icon > .row-link__side {
+  grid-column: 2;
+  grid-row: 3;
+  flex-direction: row;
+  justify-content: flex-start;
+  margin-top: 4px;
+}
+@media (min-width: 720px) {
+  .row-link.row-link--icon > .row-link__side {
+    grid-column: 3;
+    grid-row: 1 / span 2;
+    margin-top: 0;
+  }
+}
+.row-link > .row-link__title,
+.row-link > .hint {
+  grid-column: 1;
 }
 .row-link__side {
-  grid-row: 1 / span 2;
+  grid-row: 1 / -1;
   grid-column: 2;
   display: flex;
   flex-direction: column;
@@ -895,6 +918,20 @@ a.btn {
 }
 .disclosure--link[open] > summary {
   background: none;
+}
+/* A step's "Change" sits at the top right of its card, not on a line of its own (decision 0076). */
+.item > .disclosure--link > summary {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  padding: 0 8px;
+  font-size: 14px;
+}
+.item:has(> .disclosure--link) > .item__head {
+  padding-right: 64px;
+}
+.item > .disclosure--link > .disclosure__panel {
+  margin-top: 0;
 }
 .disclosure__panel {
   margin-top: 12px;
@@ -1037,10 +1074,11 @@ a.btn {
 }
 /* Each step its own white card, as in her design (decision 0071). */
 .item {
+  position: relative;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: 10px;
+  padding: 12px 14px;
   border: 1px solid var(--card-border);
   border-radius: var(--radius);
   background: var(--surface);
@@ -1174,8 +1212,37 @@ a.btn {
 .status-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
+  gap: 8px;
   align-items: flex-start;
+}
+/* On a phone the job's moves are smaller buttons, so the three fit one line. */
+@media (max-width: 719px) {
+  .status-actions > .btn,
+  .status-actions > form .btn,
+  .status-actions > details > summary {
+    min-height: var(--tap);
+    padding: 0 8px;
+    font-size: 13px;
+  }
+  /* Equal widths, so they share one line at any phone width; an opened one takes the full row. */
+  .status-actions {
+    gap: 6px;
+  }
+  .status-actions > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .status-actions > .btn,
+  .status-actions > form .btn,
+  .status-actions > details > summary {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+    line-height: 1.2;
+  }
+  .status-actions > details[open] {
+    flex-basis: 100%;
+  }
 }
 .status-actions > details[open] {
   flex: 1 1 100%;
@@ -1524,7 +1591,13 @@ h4 {
 
 /* ---------- Calendar first (decision 0066): ticks, days, the month ---------- */
 .form-grid--pair {
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+/* A date or time box shrinks with its column instead of pushing past the card. */
+.form-grid--pair .input {
+  width: 100%;
+  min-width: 0;
 }
 .tick-form {
   flex: none;

@@ -56,7 +56,7 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
           )}
           {steps.length > 0 && (
             <p className="hint">
-              {done} of {steps.length} done. Tick a step when it is done; change its day if plans change.
+              {done} of {steps.length} done.
             </p>
           )}
         </div>

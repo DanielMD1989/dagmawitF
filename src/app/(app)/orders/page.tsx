@@ -39,7 +39,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
       <div className="page-head">
         <p className="eyebrow">Jobs</p>
         <h1>Your jobs</h1>
-        <p className="lede">Soonest first. Open a job for its steps, brief and measurements.</p>
+        <p className="lede">Soonest first.</p>
       </div>
 
       <QuickActions
@@ -80,6 +80,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
               <li key={o.id}>
                 <Link href={`/orders/${o.id}`} className="row-link">
                   <span className="row-link__title">{jobHeadline(o)}</span>
+                  {/* Two short lines: when it is due, then how its steps stand. */}
                   <span className="hint">
                     #{o.number} · {o.clientName ? 'Delivery' : 'Event'} {formatDay(o.deliveryOn)}
                     {!isClosed(o.status) && (
@@ -92,17 +93,24 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
                         )
                       </>
                     )}
-                    {o.steps > 0 && ` · ${o.done} of ${o.steps} steps done`}
-                    {!isClosed(o.status) && o.next && (
-                      <span className={o.next.onDay < prefs.today ? 'late' : undefined}>
-                        {' '}
-                        · Next: {o.next.title}, {formatDay(o.next.onDay)}
-                      </span>
-                    )}
                   </span>
-                  <span className="row-link__side">
-                    <StatusChip status={o.status} />
-                  </span>
+                  {o.steps > 0 && (
+                    <span className="hint">
+                      {o.done} of {o.steps} steps done
+                      {!isClosed(o.status) && o.next && (
+                        <span className={o.next.onDay < prefs.today ? 'late' : undefined}>
+                          {' '}
+                          · Next: {o.next.title}, {formatDay(o.next.onDay)}
+                        </span>
+                      )}
+                    </span>
+                  )}
+                  {/* Under one status the chip would say the same on every card; under All it tells them apart. */}
+                  {filter === 'all' && (
+                    <span className="row-link__side">
+                      <StatusChip status={o.status} />
+                    </span>
+                  )}
                 </Link>
               </li>
             );

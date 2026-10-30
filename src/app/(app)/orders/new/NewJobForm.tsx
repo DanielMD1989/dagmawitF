@@ -171,8 +171,7 @@ export function NewJobForm({
         <section className="section" aria-labelledby="steps-heading">
           <h2 id="steps-heading">Steps</h2>
           <p className="hint">
-            Tap the steps this job needs, in order, and give each its day. Add a time to anything with a
-            client, such as an appointment or a fitting. Each step shows on that day of your calendar.
+            Tap the steps this job needs and give each its day. A time is for anything with the client.
           </p>
           <div className="chips" role="group" aria-label="Your usual steps">
             {usual.map((t) => (

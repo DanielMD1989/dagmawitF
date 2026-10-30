@@ -553,3 +553,12 @@ on a job (the common steps, then any of hers used more than once) are how steps 
 `template_task` tables, their triggers and the seeding of new accounts are dropped (migration `20261103090000`);
 no step ever pointed at a list, so every job keeps its steps. History lines saying a list's steps were added are kept
 as written. Clients takes the Library's place in the phone's bottom bar.
+
+## 0076. Less crowded on a phone
+
+Checked screen by screen at 375 px with real-length names: the step's date boxes ran past their card; a long job name
+wrapped to three lines beside its "days left"; every job card on the Active list said "Active"; a job's moves took two
+lines and each step a line of its own for "Change". Now the date boxes share the row evenly; "days left" sits under the
+name on a phone; the status chip shows only under All; a job's details are two short lines (when it is due, then its
+steps); a step's "Change" sits in its card's corner; a job's moves fit one line; the page's spacing, quick actions and
+cards are a little tighter; and some help text is shorter.
