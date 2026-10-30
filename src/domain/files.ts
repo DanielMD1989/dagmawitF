@@ -36,6 +36,18 @@ export const ATTACHMENT_KIND_LABEL: Readonly<Record<AttachmentKind, string>> = {
   other: 'Photo',
 };
 
+/**
+ * How the job's Design brief page groups its pictures: each kind under its own heading with its own button to add
+ * one, so a fitting photo is added under Fittings rather than by picking a kind from a list.
+ */
+export const ATTACHMENT_GROUP: Readonly<Record<AttachmentKind, { heading: string; add: string }>> = {
+  sketch: { heading: 'Sketches', add: 'Add a sketch' },
+  inspiration: { heading: 'Inspiration from the client', add: 'Add an inspiration picture' },
+  fabric: { heading: 'Fabric', add: 'Add a fabric photo' },
+  fitting: { heading: 'Fittings', add: 'Add a fitting photo' },
+  other: { heading: 'Other photos', add: 'Add a photo' },
+};
+
 /** The type a file really is, from its first bytes. Null if it is not a picture we keep. */
 export function sniffImageType(bytes: Uint8Array): ImageType | null {
   const at = (i: number) => bytes[i] ?? -1;

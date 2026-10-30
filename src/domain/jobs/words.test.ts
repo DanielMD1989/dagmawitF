@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { comingUp, daysLeft, jobHeadline, jobLabel } from './words';
+import { byDueDay, comingUp, daysLeft, dueWord, jobHeadline, jobLabel } from './words';
 
 describe('what a job is called', () => {
   it('is who it is for and what it is; an event by its name', () => {
@@ -11,6 +11,25 @@ describe('what a job is called', () => {
     expect(jobLabel({ number: 3, title: 'Bridal gown', clientName: 'Megan' })).toBe(
       '#3 · Megan · Bridal gown',
     );
+  });
+});
+
+describe('a job’s own day', () => {
+  it('groups jobs by the day they are due, keeping their order', () => {
+    const days = byDueDay([
+      { n: 1, dueOn: '2026-11-14' },
+      { n: 2, dueOn: '2026-11-20' },
+      { n: 3, dueOn: '2026-11-14' },
+    ]);
+    expect([...days].map(([day, jobs]) => [day, jobs.map((j) => j.n)])).toEqual([
+      ['2026-11-14', [1, 3]],
+      ['2026-11-20', [2]],
+    ]);
+  });
+
+  it('is a delivery for a client and an event for nobody', () => {
+    expect(dueWord({ clientName: 'Megan' })).toBe('Delivery');
+    expect(dueWord({ clientName: null })).toBe('Event');
   });
 });
 

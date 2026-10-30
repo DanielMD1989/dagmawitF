@@ -33,6 +33,17 @@ export function daysLeft(day: IsoDate, today: IsoDate): string {
   return n > 0 ? `${n} days left` : `${-n} days ago`;
 }
 
+/** Jobs grouped by their own day, in the order given: what the month marks and lists as due. */
+export function byDueDay<J extends { dueOn: IsoDate }>(jobs: readonly J[]): Map<IsoDate, J[]> {
+  const days = new Map<IsoDate, J[]>();
+  for (const job of jobs) days.set(job.dueOn, [...(days.get(job.dueOn) ?? []), job]);
+  return days;
+}
+
+/** "Delivery" for a client's job, "Event" for an event. */
+export const dueWord = (job: { clientName: string | null }): string =>
+  job.clientName ? 'Delivery' : 'Event';
+
 export interface Upcoming<J> {
   job: J;
   /** "Sat 14 Nov" */

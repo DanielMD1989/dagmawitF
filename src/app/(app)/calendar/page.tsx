@@ -3,17 +3,23 @@ import Link from 'next/link';
 import { AddStepForm } from '@/components/steps/AddStepForm';
 import { StepEntry } from '@/components/steps/StepEntry';
 import { formatDayLong, isIsoDate, WEEKDAY_NAMES } from '@/domain/dates';
+import { byDueDay, dueWord, jobHeadline } from '@/domain/jobs/words';
 import { entriesOn, isOverdue, monthCounts } from '@/domain/steps/agenda';
 import { monthGrid } from '@/domain/steps/month';
 import { partLabel } from '@/domain/steps/words';
 import { loadCalendarSettings } from '@/server/calendar';
+import { loadJobDays } from '@/server/orders';
 import { requireUser } from '@/server/session';
 import { loadStepsBetween } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
 
 export const metadata: Metadata = { title: 'Calendar' };
 
-/** The month: how many steps each day holds, and the list of the day she picks (docs/calendar-first.md). */
+/**
+ * The month (docs/calendar-first.md): each day marked with what it holds, the deliveries and events due that day and
+ * how many steps, and the list of the day she picks. A job's own day is marked whether or not it has steps
+ * (decision 0070).
+ */
 export default async function CalendarPage({
   searchParams,
 }: {
@@ -27,8 +33,12 @@ export default async function CalendarPage({
     params.month ?? (params.day && isIsoDate(params.day) ? params.day.slice(0, 7) : undefined),
     today,
   );
-  const steps = await loadStepsBetween(supabase, grid.from, grid.to);
+  const [steps, jobDays] = await Promise.all([
+    loadStepsBetween(supabase, grid.from, grid.to),
+    loadJobDays(supabase, grid.from, grid.to),
+  ]);
   const counts = monthCounts(steps, grid.from, grid.to);
+  const due = byDueDay(jobDays);
   const chosen =
     params.day && isIsoDate(params.day) && params.day >= grid.from && params.day <= grid.to
       ? params.day
@@ -36,6 +46,7 @@ export default async function CalendarPage({
         ? today
         : grid.first;
   const entries = entriesOn(steps, chosen);
+  const dueOnChosen = due.get(chosen) ?? [];
 
   return (
     <>
@@ -66,10 +77,19 @@ export default async function CalendarPage({
           ))}
           {grid.days.map(({ day, inMonth }) => {
             const n = counts.get(day) ?? 0;
+            const jobs = due.get(day) ?? [];
+            const events = jobs.filter((j) => !j.clientName).length;
+            const deliveries = jobs.length - events;
+            const said = [
+              deliveries > 0 && `${deliveries} deliver${deliveries === 1 ? 'y' : 'ies'}`,
+              events > 0 && `${events} event${events === 1 ? '' : 's'}`,
+              n > 0 && `${n} step${n === 1 ? '' : 's'}`,
+            ].filter(Boolean);
             const classes = [
               'month__day',
               inMonth ? '' : 'month__day--other',
               day === today ? 'month__day--today' : '',
+              n > 0 || jobs.length > 0 ? 'month__day--busy' : '',
             ]
               .filter(Boolean)
               .join(' ');
@@ -84,8 +104,14 @@ export default async function CalendarPage({
                   <span className="sr-only">
                     {' '}
                     {formatDayLong(day)}
-                    {day === today ? ', today' : ''}: {n === 0 ? 'nothing' : `${n} step${n === 1 ? '' : 's'}`}
+                    {day === today ? ', today' : ''}: {said.length === 0 ? 'nothing' : said.join(', ')}
                   </span>
+                  {(events > 0 || deliveries > 0) && (
+                    <span className="month__due" aria-hidden="true">
+                      {events > 0 && <span className="month__mark month__mark--event">Event</span>}
+                      {deliveries > 0 && <span className="month__mark">Due</span>}
+                    </span>
+                  )}
                   {n > 0 && (
                     <span className="month__count" aria-hidden="true">
                       {n}
@@ -105,6 +131,20 @@ export default async function CalendarPage({
             {chosen === today ? ' · today' : ''}
           </h2>
         </div>
+        {dueOnChosen.length > 0 && (
+          <ul className="rows rows--links day-list__due" aria-label="Due this day">
+            {dueOnChosen.map((job) => (
+              <li key={job.id}>
+                <Link href={`/orders/${job.id}`} className="row-link">
+                  <span className="row-link__title">{jobHeadline(job)}</span>
+                  <span className="hint">
+                    {dueWord(job)} · #{job.number}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
         {entries.length > 0 ? (
           <ul className="items">
             {entries.map((e) => (
@@ -118,7 +158,7 @@ export default async function CalendarPage({
             ))}
           </ul>
         ) : (
-          <p className="day-list__empty">Nothing on this day.</p>
+          dueOnChosen.length === 0 && <p className="day-list__empty">Nothing on this day.</p>
         )}
         <AddStepForm
           orderId={null}

@@ -1,5 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { fillNewJob, inspect, settled, signedInContext, text, watchErrors } from './support/app';
+import { fillNewJob, inspect, open, settled, signedInContext, text, watchErrors } from './support/app';
 import { sql, value } from './support/db';
 import { env, inDays, today } from './support/env';
 import { bigSketch, noise, notAPicture, smallSwatch } from './support/pictures';
@@ -145,35 +145,73 @@ test('she takes job 1, a bridal gown, building its steps with a tap each and giv
   await inspect(page, 'job steps');
 });
 
+test('from any page of a job, the way back to Jobs is at the top', async () => {
+  for (const path of ['', '/brief', '/measurements', '/history']) {
+    await page.goto(`/orders/${ids.o1}${path}`);
+    const back = page.locator('main .back-link');
+    await expect(back).toHaveText('← Jobs');
+    await expect(back).toBeVisible();
+    // Above the title, and big enough for a finger.
+    const [link, title] = [await back.boundingBox(), await page.locator('h1').boundingBox()];
+    expect(link!.y).toBeLessThan(title!.y);
+    expect(link!.height).toBeGreaterThanOrEqual(44);
+  }
+  await page.locator('main .back-link').click();
+  await page.waitForURL(`${env.baseURL}/orders`);
+});
+
 // ---------------------------------------------------------------- order 1: the brief
 const goBrief = () => page.goto(`/orders/${ids.o1}/brief`);
+/** The pictures of one kind: its heading, its pictures and its own button to add one. */
+const group = (heading: string) => page.getByRole('group', { name: heading });
+/** Opens the add form of a kind of picture ("Add a sketch") and returns it. */
+const adding = (heading: string, button: string) => open(group(heading), button);
 
-test('brief: a second garment on the same order', async () => {
-  await goBrief();
-  await page.getByText('Add another garment').click();
-  await page.locator('#add-garment-type').fill('Bridesmaid dress');
-  await page.locator('#add-garment-brief').fill('Sage green chiffon, knee length');
-  await page.getByRole('button', { name: 'Add garment' }).click();
+test('brief: the tab and the page say the same, and a second piece goes on the same job', async () => {
+  await page.goto(`/orders/${ids.o1}`);
+  await page
+    .getByRole('navigation', { name: 'This job' })
+    .getByRole('link', { name: 'Design brief' })
+    .click();
+  await page.waitForURL(/\/brief$/);
+  await expect(page.getByRole('heading', { level: 2 })).toHaveText(['What is made', 'Pictures']);
+  await expect(page.getByText('Garment', { exact: true })).toHaveCount(0);
+  const add = await open(page.locator('main'), 'Add another piece');
+  await add.getByLabel('What it is').fill('Bridesmaid dress');
+  await add.getByLabel('Design brief (optional)').fill('Sage green chiffon, knee length');
+  await add.getByRole('button', { name: 'Add', exact: true }).click();
   await page.getByRole('heading', { name: 'Bridesmaid dress' }).waitFor();
   await expect(page.locator('h1')).toContainText('Bridal gown');
 });
 
-test('brief: editing a garment keeps the edit', async () => {
+test('brief: editing what is made keeps the edit', async () => {
   const card = page.locator('article', { hasText: 'Bridal gown' }).first();
-  await card.getByText('Edit this garment').click();
+  await card.getByText('Edit').click();
   await card.getByLabel('Design brief').fill('Ivory lace, long sleeves, boat neckline, 2 m train');
-  await card.getByRole('button', { name: 'Save garment' }).click();
+  await card.getByRole('button', { name: 'Save', exact: true }).click();
   await card.locator('.notice--success').waitFor();
   await page.reload();
   expect(await has('2 m train')).toBe(true);
 });
 
+test('brief: every kind of picture has its own button to add one', async () => {
+  for (const [heading, button] of [
+    ['Sketches', 'Add a sketch'],
+    ['Inspiration from the client', 'Add an inspiration picture'],
+    ['Fabric', 'Add a fabric photo'],
+    ['Fittings', 'Add a fitting photo'],
+    ['Other photos', 'Add a photo'],
+  ] as const)
+    await expect(group(heading).locator('summary', { hasText: button })).toBeVisible();
+});
+
 test('brief: a large phone photo of a sketch is shrunk before it is sent', async () => {
   const sketch = await bigSketch(page);
-  await page.getByLabel('Picture').setInputFiles(sketch);
-  await page.getByLabel('Caption (optional)').fill('First sketch, with the lace panel');
-  await page.getByRole('button', { name: 'Add picture' }).click();
-  await pic('Sketch 1').waitFor();
+  const form = await adding('Sketches', 'Add a sketch');
+  await form.getByLabel('Picture').setInputFiles(sketch);
+  await form.getByLabel('Caption (optional)').fill('First sketch, with the lace panel');
+  await form.getByRole('button', { name: 'Add', exact: true }).click();
+  await group('Sketches').locator('.photo', { hasText: 'Sketch 1' }).waitFor();
   const files = await stored();
   expect(files).toHaveLength(1);
   expect(files[0]!.mimetype).toBe('image/jpeg');
@@ -188,45 +226,55 @@ test('brief: a large phone photo of a sketch is shrunk before it is sent', async
   expect(dims[1]! > dims[0]!, `orientation lost: ${dims}`).toBe(true);
 });
 
-test('brief: a small swatch is sent as it is, with a different kind', async () => {
+test('brief: a small swatch, added under Fabric, is sent as it is', async () => {
   const swatch = await smallSwatch(page);
-  await page.getByLabel('Picture').setInputFiles(swatch);
-  await page.getByLabel('What is it?').selectOption('fabric');
-  await page.getByLabel('Caption (optional)').fill('Lace from the market');
-  await page.getByRole('button', { name: 'Add picture' }).click();
-  await pic('Fabric 1').waitFor();
+  const form = await adding('Fabric', 'Add a fabric photo');
+  await form.getByLabel('Picture').setInputFiles(swatch);
+  await form.getByLabel('Caption (optional)').fill('Lace from the market');
+  await form.getByRole('button', { name: 'Add', exact: true }).click();
+  await group('Fabric').locator('.photo', { hasText: 'Fabric 1' }).waitFor();
   const png = (await stored()).find((f) => f.mimetype === 'image/png');
   expect(png?.size).toBe(swatch.buffer.length);
 });
 
+test('brief: a fitting photo goes under Fittings', async () => {
+  const form = await adding('Fittings', 'Add a fitting photo');
+  await form.getByLabel('Picture').setInputFiles(await smallSwatch(page));
+  await form.getByRole('button', { name: 'Add', exact: true }).click();
+  await group('Fittings').locator('.photo', { hasText: 'Fitting photo 1' }).waitFor();
+});
+
 test('brief: a second sketch is kept next to the first', async () => {
-  await page.getByLabel('Picture').setInputFiles(await smallSwatch(page));
-  await page.getByLabel('What is it?').selectOption('sketch');
-  await page.getByRole('button', { name: 'Add picture' }).click();
+  const form = await adding('Sketches', 'Add a sketch');
+  await form.getByLabel('Picture').setInputFiles(await smallSwatch(page));
+  await form.getByRole('button', { name: 'Add', exact: true }).click();
   await pic('Sketch 2').waitFor();
-  await expect(pic('Sketch 1')).toHaveCount(1);
+  await expect(group('Sketches').locator('.photo__name')).toHaveText(['Sketch 1', 'Sketch 2']);
 });
 
 test('brief: a file that is not a picture is refused in plain words, and the form keeps the rest', async () => {
-  await page.getByLabel('Picture').setInputFiles(notAPicture);
-  await page.getByLabel('Caption (optional)').fill('Should survive');
-  await page.getByRole('button', { name: 'Add picture' }).click();
-  await expect(page.locator('#picture-file-error')).toHaveText(/JPEG|PNG|WebP|picture/i);
-  await expect(page.getByLabel('Caption (optional)')).toHaveValue('Should survive');
+  const form = await adding('Sketches', 'Add a sketch');
+  await form.getByLabel('Picture').setInputFiles(notAPicture);
+  await form.getByLabel('Caption (optional)').fill('Should survive');
+  await form.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.locator('#picture-sketch-file-error')).toHaveText(/JPEG|PNG|WebP|picture/i);
+  await expect(form.getByLabel('Caption (optional)')).toHaveValue('Should survive');
 });
 
 test('brief: no file chosen is refused', async () => {
-  await page.getByLabel('Picture').setInputFiles([]);
-  await page.getByRole('button', { name: 'Add picture' }).click();
-  await expect(page.locator('#picture-file-error')).toHaveText(/.{6,}/);
+  const form = await adding('Sketches', 'Add a sketch');
+  await form.getByLabel('Picture').setInputFiles([]);
+  await form.getByRole('button', { name: 'Add', exact: true }).click();
+  await expect(page.locator('#picture-sketch-file-error')).toHaveText(/.{6,}/);
 });
 
 test('brief: a picture over 5 MB is made small enough instead of refused', async () => {
   const big = await noise(page);
   expect(big.buffer.length).toBeGreaterThan(5 * 1024 * 1024);
-  await page.getByLabel('Picture').setInputFiles(big);
-  await page.getByLabel('Caption (optional)').fill('Noise');
-  await page.getByRole('button', { name: 'Add picture' }).click();
+  const form = await adding('Sketches', 'Add a sketch');
+  await form.getByLabel('Picture').setInputFiles(big);
+  await form.getByLabel('Caption (optional)').fill('Noise');
+  await form.getByRole('button', { name: 'Add', exact: true }).click();
   await pic('Sketch 3').waitFor({ timeout: 30_000 });
 });
 
@@ -558,9 +606,9 @@ test('job 3: a finished job is a record: nothing on it can be edited', async () 
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Save notes' })).toHaveCount(1);
   await page.goto(`/orders/${ids.o3}/brief`);
-  await expect(page.getByText('Add another garment')).toHaveCount(0);
-  await expect(page.getByText('Edit this garment')).toHaveCount(0);
-  await expect(page.locator('#picture-file')).toHaveCount(0);
+  await expect(page.getByText('Add another piece')).toHaveCount(0);
+  await expect(page.locator('article').getByText('Edit')).toHaveCount(0);
+  await expect(page.locator('input[type=file]')).toHaveCount(0);
   await page.goto(`/orders/${ids.o3}/measurements`);
   await expect(page.getByRole('button', { name: 'Use this version' })).toHaveCount(0);
 });

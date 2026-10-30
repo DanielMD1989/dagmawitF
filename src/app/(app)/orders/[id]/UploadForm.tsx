@@ -3,14 +3,14 @@
 import { useActionState, useRef, useState } from 'react';
 import { FormNotice } from '@/components/FormNotice';
 import { SubmitButton } from '@/components/SubmitButton';
-import { SelectField, TextField } from '@/components/fields';
+import { TextField } from '@/components/fields';
 import { idle } from '@/lib/action-state';
 import {
-  ATTACHMENT_KINDS,
-  ATTACHMENT_KIND_LABEL,
+  ATTACHMENT_GROUP,
   IMAGE_TYPES,
   MAX_PICTURE_SIDE,
   shrunkSize,
+  type AttachmentKind,
 } from '@/domain/files';
 import { uploadAttachment } from './actions';
 
@@ -50,10 +50,16 @@ async function prepare(file: File): Promise<File> {
   }
 }
 
-export function UploadForm({ orderId }: { orderId: string }) {
+/**
+ * Adds one picture of a given kind (a sketch, a fitting photo…), behind that kind's own button. Ids carry the kind,
+ * as the page has one of these for each.
+ */
+export function UploadForm({ orderId, kind }: { orderId: string; kind: AttachmentKind }) {
   const [state, action] = useActionState(uploadAttachment, idle);
   const [preparing, setPreparing] = useState(false);
   const input = useRef<HTMLInputElement>(null);
+  const id = `picture-${kind}`;
+  const words = ATTACHMENT_GROUP[kind];
 
   async function onPick(event: React.ChangeEvent<HTMLInputElement>) {
     const el = event.currentTarget;
@@ -73,53 +79,50 @@ export function UploadForm({ orderId }: { orderId: string }) {
   }
 
   return (
-    <form action={action} className="form" noValidate>
-      <input type="hidden" name="order-id" value={orderId} />
-      <div className="field">
-        <label htmlFor="picture-file">Picture</label>
-        <input
-          ref={input}
-          id="picture-file"
-          name="file"
-          type="file"
-          accept="image/jpeg,image/png,image/webp"
-          className="input"
-          onChange={onPick}
-          aria-invalid={Boolean(state.errors.file)}
-          aria-describedby={state.errors.file ? 'picture-file-hint picture-file-error' : 'picture-file-hint'}
-        />
-        <p id="picture-file-hint" className="hint">
-          A photo, or a scan of a sketch. JPEG, PNG or WebP, up to 5 MB. Large photos are made smaller first.
-        </p>
-        {state.errors.file && (
-          <p id="picture-file-error" className="error">
-            {state.errors.file}
-          </p>
-        )}
+    <details className="disclosure disclosure--link" open={state.status === 'error' || undefined}>
+      <summary>{words.add}</summary>
+      <div className="disclosure__panel">
+        <form action={action} className="form" noValidate>
+          <input type="hidden" name="order-id" value={orderId} />
+          <input type="hidden" name="kind" value={kind} />
+          <div className="field">
+            <label htmlFor={`${id}-file`}>Picture</label>
+            <input
+              ref={input}
+              id={`${id}-file`}
+              name="file"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="input"
+              onChange={onPick}
+              aria-invalid={Boolean(state.errors.file)}
+              aria-describedby={state.errors.file ? `${id}-file-hint ${id}-file-error` : `${id}-file-hint`}
+            />
+            <p id={`${id}-file-hint`} className="hint">
+              A photo, or a scan of a sketch. JPEG, PNG or WebP, up to 5 MB. Large photos are made smaller
+              first.
+            </p>
+            {state.errors.file && (
+              <p id={`${id}-file-error`} className="error">
+                {state.errors.file}
+              </p>
+            )}
+          </div>
+          <TextField
+            name="caption"
+            id={`${id}-caption`}
+            label="Caption (optional)"
+            state={state}
+            maxLength={200}
+          />
+          <FormNotice state={state} />
+          <div className="btn-row">
+            <SubmitButton pendingText="Adding…" disabled={preparing}>
+              {preparing ? 'Preparing…' : 'Add'}
+            </SubmitButton>
+          </div>
+        </form>
       </div>
-      <div className="form-grid form-grid--2">
-        <SelectField
-          name="kind"
-          id="picture-kind"
-          label="What is it?"
-          state={state}
-          saved="sketch"
-          options={ATTACHMENT_KINDS.map((k) => ({ value: k, label: ATTACHMENT_KIND_LABEL[k] }))}
-        />
-        <TextField
-          name="caption"
-          id="picture-caption"
-          label="Caption (optional)"
-          state={state}
-          maxLength={200}
-        />
-      </div>
-      <FormNotice state={state} />
-      <div className="btn-row">
-        <SubmitButton pendingText="Adding…" disabled={preparing}>
-          {preparing ? 'Preparing…' : 'Add picture'}
-        </SubmitButton>
-      </div>
-    </form>
+    </details>
   );
 }

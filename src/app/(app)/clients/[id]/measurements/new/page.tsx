@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { BackLink } from '@/components/BackLink';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { asId, isUuid } from '@/domain/form-input';
@@ -43,10 +44,7 @@ export default async function RecordMeasurementsPage({
   return (
     <>
       <div className="page-head">
-        <p className="crumbs">
-          <Link href="/clients">Clients</Link> / <Link href={`/clients/${client.id}`}>{client.name}</Link> /
-          Measurements
-        </p>
+        <BackLink href={`/clients/${client.id}`}>{client.name}</BackLink>
         <h1>Measurements for {client.name}</h1>
         <p className="lede">
           {latest === null

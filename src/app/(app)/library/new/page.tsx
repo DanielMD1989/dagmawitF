@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { BackLink } from '@/components/BackLink';
 import { requireUser } from '@/server/session';
 import { TemplateForm } from '../TemplateForm';
 
@@ -10,9 +10,7 @@ export default async function NewTemplatePage() {
   return (
     <>
       <div className="page-head">
-        <p className="crumbs">
-          <Link href="/library">Library</Link> / New
-        </p>
+        <BackLink href="/library">Library</BackLink>
         <h1>New list of steps</h1>
         <p className="lede">Name it first. Its steps are added on the next page.</p>
       </div>

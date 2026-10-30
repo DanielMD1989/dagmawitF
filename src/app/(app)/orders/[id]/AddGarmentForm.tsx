@@ -7,19 +7,20 @@ import { TextArea, TextField } from '@/components/fields';
 import { idle } from '@/lib/action-state';
 import { addGarment } from './actions';
 
-/** Another garment on the same order: a bridal gown and two bridesmaid dresses are one order. */
-export function AddGarmentForm({ orderId }: { orderId: string }) {
+/** Another piece on the same job: a bridal gown and two bridesmaid dresses, or a matching outfit, are one job. */
+export function AddGarmentForm({ orderId, first }: { orderId: string; first: boolean }) {
   const [state, action] = useActionState(addGarment, idle);
   return (
     <details className="disclosure">
-      <summary>Add another garment</summary>
+      <summary>{first ? 'Add what is made' : 'Add another piece'}</summary>
       <div className="disclosure__panel">
         <form action={action} className="form" noValidate>
           <input type="hidden" name="order-id" value={orderId} />
           <TextField
             name="garment-type"
             id="add-garment-type"
-            label="Garment"
+            label="What it is"
+            hint="For example “Matching shirt for the groom”."
             state={state}
             maxLength={80}
             autoComplete="off"
@@ -35,7 +36,7 @@ export function AddGarmentForm({ orderId }: { orderId: string }) {
           />
           <FormNotice state={state} />
           <div className="btn-row">
-            <SubmitButton pendingText="Adding…">Add garment</SubmitButton>
+            <SubmitButton pendingText="Adding…">Add</SubmitButton>
           </div>
         </form>
       </div>

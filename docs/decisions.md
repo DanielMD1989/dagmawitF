@@ -490,3 +490,17 @@ prepares, if she wants it on her calendar, is added under "To prepare" on the da
 "event" there, not "job". The step buttons on a client's job offered every title she had ever typed, including
 one-offs such as "delivery for Kati"; a title of hers is offered once she has used it twice, after the common ones she
 has not used.
+
+## 0070. The month marks a job's own day; pictures by kind; a way back on every inner page
+
+Looking at next month, she saw nothing marked: the month counted only steps, so a job or an event with no step on
+its day did not appear at all, which became common once steps were optional (0068). Each confirmed job's own day is
+now marked on the month ("Due" for a delivery, "Event" for an event), whether or not it has steps; a day holding
+anything is tinted so it stands out; and the chosen day lists what is due on it above its steps.
+
+On a job's Design brief the heading said "Garment" and pictures were added through one form with a "What is it?"
+list, so she did not see how to add a fitting photo. The page now says "What is made", and its pictures are grouped
+by kind (sketches, the client's inspiration, fabric, fittings, other), each with its own button to add one.
+
+Installed on a phone the app has no browser back button, and the small grey breadcrumb was easy to miss. Every inner
+page now starts with a large "← Jobs" (or Clients, Library, Settings, the client) link back to its list.

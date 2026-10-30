@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { BackLink } from '@/components/BackLink';
 import { notFound } from 'next/navigation';
 import { ConfirmAction } from '@/components/ConfirmAction';
 import { MeasurementVersions } from '@/components/MeasurementVersions';
@@ -32,9 +33,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
   return (
     <>
       <div className="page-head">
-        <p className="crumbs">
-          <Link href="/clients">Clients</Link> / {client.name}
-        </p>
+        <BackLink href="/clients">Clients</BackLink>
         <h1>{client.name}</h1>
         {client.phone && (
           <p className="lede">

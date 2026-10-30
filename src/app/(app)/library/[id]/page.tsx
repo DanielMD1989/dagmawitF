@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { BackLink } from '@/components/BackLink';
 import { notFound } from 'next/navigation';
 import { ConfirmAction } from '@/components/ConfirmAction';
 import { isUuid } from '@/domain/form-input';
@@ -23,9 +23,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ id: s
   return (
     <>
       <div className="page-head">
-        <p className="crumbs">
-          <Link href="/library">Library</Link> / {template.name}
-        </p>
+        <BackLink href="/library">Library</BackLink>
         <h1>{template.name}</h1>
         <p className="lede">
           These steps are added to a job in one tap, in this order. You give each its day on the job.

@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { BackLink } from '@/components/BackLink';
 import { requireUser } from '@/server/session';
 import { ClientForm } from '../ClientForm';
 
@@ -10,9 +10,7 @@ export default async function NewClientPage() {
   return (
     <>
       <div className="page-head">
-        <p className="crumbs">
-          <Link href="/clients">Clients</Link> / New
-        </p>
+        <BackLink href="/clients">Clients</BackLink>
         <h1>Add a client</h1>
       </div>
       <ClientForm />

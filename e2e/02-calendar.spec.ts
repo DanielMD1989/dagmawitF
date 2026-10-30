@@ -317,6 +317,26 @@ test('the month: how many steps each day holds, and the list of the day she pick
   await page.waitForURL(`${env.baseURL}/calendar`);
 });
 
+test('the month marks the days jobs and events are due, steps or none, and lists them on the day', async () => {
+  // The fashion show, 70 days ahead, has its own day marked though its only step is weeks earlier.
+  const show = inDays(70);
+  await page.goto(`/calendar?day=${show}`);
+  const cell = page.locator(`a[href$="day=${show}"]`);
+  await expect(cell.locator('.month__mark--event')).toHaveText('Event');
+  await expect(cell).toHaveClass(/month__day--busy/);
+  await expect(cell.locator('.sr-only')).toContainText('1 event');
+  const due = page.getByRole('list', { name: 'Due this day' });
+  await expect(due).toContainText('Fashion show at the Sheraton');
+  await expect(due).toContainText('Event · #');
+  // The party dress, whose steps have no days yet, is still marked on its delivery day.
+  const party = inDays(10);
+  await page.goto(`/calendar?day=${party}`);
+  await expect(page.locator(`a[href$="day=${party}"] .month__mark`).first()).toHaveText('Due');
+  await expect(page.getByRole('list', { name: 'Due this day' })).toContainText('Hanna Tesfaye · Party dress');
+  await expect(page.getByRole('list', { name: 'Due this day' })).toContainText('Delivery');
+  await inspect(page, 'month with due days');
+});
+
 test('desktop and night: every calendar screen', async ({ browser }) => {
   const template = await value(
     `select t.id from public.template t join auth.users u on u.id = t.owner_id where u.email = $1 and t.name = 'Dress'`,

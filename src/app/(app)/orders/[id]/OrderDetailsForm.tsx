@@ -50,7 +50,7 @@ export function OrderDetailsForm({
             hint={
               event
                 ? undefined
-                : 'Changing the client clears the measurements chosen for the garments, because they are hers.'
+                : 'Changing the client clears the measurements chosen on this job, because they are hers.'
             }
           />
           <TextField

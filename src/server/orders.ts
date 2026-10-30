@@ -104,6 +104,54 @@ export interface OrderDetail {
   garments: Garment[];
 }
 
+const dueRow = z.object({
+  id: z.string(),
+  number: z.number(),
+  title: z.string(),
+  delivery_on: isoDay,
+  client: z.object({ name: z.string() }).nullable(),
+});
+
+/** A job by its own day: a delivery, or an event. */
+export interface JobDay {
+  id: string;
+  number: number;
+  title: string;
+  clientName: string | null;
+  dueOn: IsoDate;
+}
+
+/**
+ * Her confirmed jobs whose own day (the delivery, or the event) falls between two days. The calendar marks these
+ * days whether or not the job has steps (decision 0070).
+ */
+export async function loadJobDays(
+  supabase: SupabaseClient,
+  first: IsoDate,
+  last: IsoDate,
+): Promise<JobDay[]> {
+  const { data, error } = await supabase
+    .from('orders')
+    .select('id, number, title, delivery_on, client:client(name)')
+    .eq('status', 'active')
+    .gte('delivery_on', first)
+    .lte('delivery_on', last)
+    .order('delivery_on')
+    .order('number')
+    .limit(2000);
+  if (error) fail('her jobs', error);
+  return z
+    .array(dueRow)
+    .parse(data)
+    .map((o) => ({
+      id: o.id,
+      number: o.number,
+      title: o.title,
+      clientName: o.client?.name ?? null,
+      dueOn: o.delivery_on,
+    }));
+}
+
 const detailRow = z.object({
   id: z.string(),
   number: z.number().int(),

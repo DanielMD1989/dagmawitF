@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { BackLink } from '@/components/BackLink';
 import { asId } from '@/domain/form-input';
 import { NO_CLIENT } from '@/domain/orders/forms';
 import { usualSteps } from '@/domain/steps/usual';
@@ -39,9 +39,7 @@ export default async function NewJobPage({
   return (
     <>
       <div className="page-head">
-        <p className="crumbs">
-          <Link href="/orders">Jobs</Link> / New
-        </p>
+        <BackLink href="/orders">Jobs</BackLink>
         <h1>{event ? 'New event' : 'New job'}</h1>
         <p className="lede">
           {event

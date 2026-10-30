@@ -10,7 +10,7 @@ import { idle } from '@/lib/action-state';
 import type { GarmentMeasurementKind } from '@/domain/measurements/sets';
 import { removeGarment, saveGarment } from './actions';
 
-/** One garment of the order: what it is, the brief for it, and which measurements it is made to. */
+/** One piece made on the job: what it is, its design brief, and which measurements it is made to. */
 export function GarmentCard({
   orderId,
   garment,
@@ -37,14 +37,16 @@ export function GarmentCard({
       </p>
       {editable && (
         <details className="disclosure disclosure--link">
-          <summary>Edit this garment</summary>
+          <summary>
+            Edit<span className="sr-only"> {garment.garmentType}</span>
+          </summary>
           <div className="disclosure__panel">
             <form action={action} className="form" noValidate>
               <input type="hidden" name="id" value={garment.id} />
               <TextField
                 name="garment-type"
                 id={`${id}-type`}
-                label="Garment"
+                label="What it is"
                 state={state}
                 saved={garment.garmentType}
                 maxLength={80}
@@ -61,14 +63,14 @@ export function GarmentCard({
               />
               <FormNotice state={state} />
               <div className="btn-row">
-                <SubmitButton>Save garment</SubmitButton>
+                <SubmitButton>Save</SubmitButton>
               </div>
             </form>
             <ConfirmAction
               action={removeGarment}
               fields={{ id: garment.id }}
-              label="Remove this garment"
-              question={`Remove ${garment.garmentType} from the order? Its brief is lost.`}
+              label={`Remove ${garment.garmentType}`}
+              question={`Remove ${garment.garmentType} from the job? Its brief is lost.`}
               confirmLabel="Yes, remove"
             />
           </div>

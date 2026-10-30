@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { BackLink } from '@/components/BackLink';
 import { loadMeasurementFields } from '@/server/measurements';
 import { requireUser } from '@/server/session';
 import { createSupabase } from '@/server/supabase';
@@ -17,9 +17,7 @@ export default async function MeasurementListPage() {
   return (
     <>
       <div className="page-head">
-        <p className="crumbs">
-          <Link href="/settings">Settings</Link> / Measurements
-        </p>
+        <BackLink href="/settings">Settings</BackLink>
         <h1>Your list of measurements</h1>
         <p className="lede">
           These are the measurements asked for when you record a client. A starter list was set up for you:

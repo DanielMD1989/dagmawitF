@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { BackLink } from '@/components/BackLink';
 import { notFound } from 'next/navigation';
 import { StatusChip } from '@/components/StatusChip';
 import { formatDay } from '@/domain/dates';
@@ -37,9 +38,7 @@ export default async function OrderLayout({
   return (
     <>
       <div className="page-head">
-        <p className="crumbs">
-          <Link href="/orders">Jobs</Link> / #{order.number}
-        </p>
+        <BackLink href="/orders">Jobs</BackLink>
         <div className="title-row">
           <h1>
             {jobHeadline({
