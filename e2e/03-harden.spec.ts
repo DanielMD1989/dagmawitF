@@ -449,7 +449,23 @@ test('the keyboard alone: tick a step done', async () => {
     .waitFor();
 });
 
-test('every screen passes axe with best practices, on a phone and on a night desktop', async ({
+test('a computer in dark mode still shows the light look, and Settings offers no dark mode', async ({
+  browser,
+}) => {
+  const c = await signedInContext(browser, 'desktop-dark');
+  const p = await c.newPage();
+  await p.goto('/');
+  const colours = await p.evaluate(() => ({
+    page: getComputedStyle(document.body).backgroundColor,
+    bar: getComputedStyle(document.querySelector('.nav')!).backgroundColor,
+  }));
+  expect(colours).toEqual({ page: 'rgb(250, 248, 245)', bar: 'rgb(15, 63, 0)' });
+  await p.goto('/settings');
+  await expect(p.getByRole('heading', { name: 'Appearance' })).toHaveCount(0);
+  await c.close();
+});
+
+test('every screen passes axe with best practices, on a phone and on a computer in dark mode', async ({
   browser,
 }) => {
   const screens = [
@@ -468,7 +484,7 @@ test('every screen passes axe with best practices, on a phone and on a night des
     '/settings/measurements',
     '/offline',
   ];
-  for (const look of ['phone', 'desktop-night'] as const) {
+  for (const look of ['phone', 'desktop-dark'] as const) {
     const c = await signedInContext(browser, look);
     const p = await c.newPage();
     const seen = watchErrors(p);

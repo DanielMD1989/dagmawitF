@@ -1,6 +1,7 @@
 # Design tokens
 
-The single source is `src/app/globals.css`. This page only explains it. The numbers below are checked on every test
+The single source is `src/app/globals.css`. This page only explains it. For now the app is always light (decision 0073):
+the Night column is kept, and checked, for when dark mode returns. The numbers below are checked on every test
 run by `src/design/contrast.test.ts`, so they cannot go stale.
 
 | Token                        | Day               | Night             | Used for                              |

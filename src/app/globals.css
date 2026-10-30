@@ -5,11 +5,12 @@
  * light text, never pure black or pure white.
  * Contrast of every text/background pairing is checked in docs/design-tokens.md.
  *
- * html[data-theme] forces a side; with none, the phone's own setting decides.
+ * For now the app is always light (decision 0073): a phone or computer in dark mode does not change it. The night
+ * values are kept, checked and ready; "color-scheme: light dark" here would bring them back.
  * Needs light-dark(): Chrome 123, Safari 17.5, Firefox 120 (all 2024).
  */
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 
   --bg: light-dark(#faf8f5, #131a14);
   --surface: light-dark(#ffffff, #1c261d);
@@ -53,12 +54,6 @@
   --radius: 16px;
   --radius-sm: 12px;
   --tap: 44px;
-}
-:root[data-theme='light'] {
-  color-scheme: light;
-}
-:root[data-theme='night'] {
-  color-scheme: dark;
 }
 
 * {

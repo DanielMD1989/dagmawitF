@@ -1,11 +1,8 @@
 import type { Metadata } from 'next';
-import { cookies } from 'next/headers';
 import Link from 'next/link';
-import { ThemeSwitch } from '@/components/ThemeSwitch';
 import { SignOutForm } from '@/components/offline/SignOutForm';
 import { formatMinutes } from '@/domain/duration';
 import { formatDay } from '@/domain/dates';
-import { THEME_COOKIE, parseTheme } from '@/lib/theme';
 import { loadCalendarSettings } from '@/server/calendar';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
@@ -27,7 +24,6 @@ export default async function SettingsPage() {
     loadCalendarSettings(supabase),
     loadPreferences(supabase),
   ]);
-  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
 
   const zones = Intl.supportedValuesOf('timeZone');
   const timeZones = zones.includes(profile.timezone) ? zones : [profile.timezone, ...zones];
@@ -108,14 +104,6 @@ export default async function SettingsPage() {
             </Link>
           </div>
         </div>
-      </section>
-
-      <section className="section" aria-labelledby="look-heading">
-        <div className="section__head">
-          <h2 id="look-heading">Appearance</h2>
-          <p className="hint">Night is a soft dark made for evenings.</p>
-        </div>
-        <ThemeSwitch current={theme} />
       </section>
 
       <section className="section" aria-labelledby="data-heading">

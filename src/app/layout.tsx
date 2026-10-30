@@ -1,9 +1,8 @@
 import type { Metadata, Viewport } from 'next';
-import { cookies } from 'next/headers';
+import { connection } from 'next/server';
 import '@fontsource-variable/inter';
 import './globals.css';
 import { ServiceWorker } from '@/components/ServiceWorker';
-import { THEME_COLORS, THEME_COOKIE, parseTheme } from '@/lib/theme';
 
 export const metadata: Metadata = {
   title: { default: 'DAGMAWIT', template: '%s · DAGMAWIT' },
@@ -17,27 +16,20 @@ export const metadata: Metadata = {
   formatDetection: { telephone: false },
 };
 
-export async function generateViewport(): Promise<Viewport> {
-  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
-  return {
-    width: 'device-width',
-    initialScale: 1,
-    viewportFit: 'cover',
-    // With "follow my phone" the browser picks by its own setting; otherwise we know the answer.
-    themeColor:
-      theme === 'system'
-        ? [
-            { media: '(prefers-color-scheme: light)', color: THEME_COLORS.light },
-            { media: '(prefers-color-scheme: dark)', color: THEME_COLORS.night },
-          ]
-        : THEME_COLORS[theme === 'night' ? 'night' : 'light'],
-  };
-}
+// Always light for now (decision 0073); the browser's bar takes the page colour, --bg in globals.css.
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#FAF8F5',
+};
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
+  // Every page is rendered for its request, never prebuilt: its scripts must carry this request's nonce, or the
+  // Content-Security-Policy blocks them (decision 0059). A prebuilt page has no nonce to give.
+  await connection();
   return (
-    <html lang="en" data-theme={theme === 'system' ? undefined : theme}>
+    <html lang="en">
       <body>
         {children}
         <ServiceWorker />

@@ -10,21 +10,21 @@ export const PASSWORD_FILE = `${import.meta.dirname}/../.auth/password.txt`;
 const PHONE = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 };
 const DESKTOP = { viewport: { width: 1280, height: 900 } };
 
-export type Look = 'phone' | 'desktop' | 'phone-night' | 'desktop-night';
+/** A phone or a computer; "-dark" is one set to dark mode, where the app still shows its light look (decision 0073). */
+export type Look = 'phone' | 'desktop' | 'phone-dark' | 'desktop-dark';
 
 /** A signed-in browser, the way she uses the app: on her phone by default, in her time zone. */
 export async function signedInContext(browser: Browser, look: Look = 'phone'): Promise<BrowserContext> {
-  const night = look.endsWith('night');
+  const dark = look.endsWith('dark');
   const ctx = await browser.newContext({
     ...(look.startsWith('phone') ? PHONE : DESKTOP),
     baseURL: env.baseURL,
     storageState: STATE,
     timezoneId: ZONE,
     locale: 'en-GB',
-    colorScheme: night ? 'dark' : 'light',
+    colorScheme: dark ? 'dark' : 'light',
     acceptDownloads: true,
   });
-  if (night) await ctx.addCookies([{ name: 'dagmawit-theme', value: 'night', url: env.baseURL }]);
   return ctx;
 }
 

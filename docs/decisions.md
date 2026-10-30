@@ -525,3 +525,14 @@ Seeing 0071, she asked for a darker green, #0F3F00, in place of the forest green
 quick actions, green words, links and the bar. The open page on the bar is white on a lighter shade of it (#2F6420),
 not a bright or lime green. At night green words take a soft light green (#A6D39A) so they stay readable on the dark
 page. White on #0F3F00 is 13:1, so the shades 0071 deepened for readability are no longer needed.
+
+## 0073. Always light, for now
+
+Her computer is set to dark mode and the app followed it, so she saw a dark app beside her light FinTrack design. She
+does not want dark mode for now. The app is always light, whatever the phone or computer is set to, and the Appearance
+choice is gone from Settings. The night values stay in the tokens, still checked, so dark mode can return by one line
+in `globals.css` and a choice in Settings.
+The theme cookie the root layout read was also what kept every page rendered per request; without it Next.js
+prebuilt the sign-in and offline pages, whose scripts then carried no nonce and were blocked by the
+Content-Security-Policy (0059). The root layout now asks for per-request rendering itself (`connection()`), so the
+policy no longer depends on an unrelated read.

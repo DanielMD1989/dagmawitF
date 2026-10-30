@@ -708,7 +708,7 @@ test('clients: a client with orders cannot be deleted; one without can', async (
   await inspect(page, 'clients list');
 });
 
-test('desktop and night: every job screen', async ({ browser }) => {
+test('desktop, and a phone in dark mode: every job screen', async ({ browser }) => {
   const screens = [
     '/orders',
     `/orders/${ids.o1}`,
@@ -720,7 +720,7 @@ test('desktop and night: every job screen', async ({ browser }) => {
     '/settings',
     '/settings/measurements',
   ];
-  for (const look of ['desktop', 'phone-night'] as const) {
+  for (const look of ['desktop', 'phone-dark'] as const) {
     const c = await signedInContext(browser, look);
     const p = await c.newPage();
     const seen = watchErrors(p);

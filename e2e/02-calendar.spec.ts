@@ -337,13 +337,13 @@ test('the month marks the days jobs and events are due, steps or none, and lists
   await inspect(page, 'month with due days');
 });
 
-test('desktop and night: every calendar screen', async ({ browser }) => {
+test('desktop, and a phone in dark mode: every calendar screen', async ({ browser }) => {
   const template = await value(
     `select t.id from public.template t join auth.users u on u.id = t.owner_id where u.email = $1 and t.name = 'Dress'`,
     [env.email],
   );
   const screens = ['/', '/calendar', '/library', `/library/${template}`, '/orders/new', `/orders/${ids.o4}`];
-  for (const look of ['desktop', 'phone-night'] as const) {
+  for (const look of ['desktop', 'phone-dark'] as const) {
     const c = await signedInContext(browser, look);
     const p = await c.newPage();
     const seen = watchErrors(p);

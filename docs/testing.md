@@ -51,7 +51,7 @@ A failed run leaves a trace for each failed step: `npx playwright show-trace tes
 - **Dates from today.** Every day typed or expected is counted from today in her time zone, so the suite keeps
   working as the calendar moves. Every step's day is the one the test gives it; nothing is suggested.
 - **Every screen, every look.** Each spec checks its screens for sideways scrolling and with axe (WCAG 2.2 A and AA)
-  on a phone, on a desktop and at night; `03-harden` adds axe's best practices on every screen. Each spec fails if
+  on a phone, on a desktop and on a device set to dark mode (where the app stays light); `03-harden` adds axe's best practices on every screen. Each spec fails if
   the browser reported an error it did not cause on purpose.
 - **Local only.** It refuses to run unless the app, Supabase and the database are on this machine
   (`E2E_ALLOW_REMOTE=1` overrides, for a throwaway project only).
