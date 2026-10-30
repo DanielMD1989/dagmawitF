@@ -63,6 +63,8 @@ export interface NewJob {
 }
 
 export const NEW_CLIENT = 'new';
+/** The choice of no client: an event, such as a bazaar or a fashion show. */
+export const EVENT_LABEL = 'An event';
 /** The choice of no client: an event. */
 export const NO_CLIENT = 'none';
 

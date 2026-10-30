@@ -11,8 +11,8 @@ const TABS = [
   { path: '/history', label: 'History' },
 ] as const;
 
-/** The pages of one job. */
-export function OrderTabs({ orderId }: { orderId: string }) {
+/** The pages of one job. An event has no garment, so no brief and no measurements. */
+export function OrderTabs({ orderId, event }: { orderId: string; event: boolean }) {
   const pathname = usePathname();
   const base = `/orders/${orderId}`;
   const bar = useRef<HTMLDivElement>(null);
@@ -28,13 +28,13 @@ export function OrderTabs({ orderId }: { orderId: string }) {
   }, [pathname]);
 
   return (
-    <nav aria-label="This job">
+    <nav aria-label={event ? 'This event' : 'This job'}>
       <div className="tabs" ref={bar}>
-        {TABS.map((tab) => {
+        {TABS.filter((tab) => !event || tab.path === '' || tab.path === '/history').map((tab) => {
           const href = `${base}${tab.path}`;
           return (
             <Link key={tab.path} href={href} aria-current={pathname === href ? 'page' : undefined}>
-              {tab.label}
+              {event && tab.path === '' ? 'To prepare' : tab.label}
             </Link>
           );
         })}

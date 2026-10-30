@@ -6,7 +6,7 @@ import { TextArea, TextField } from '@/components/fields';
 import { fieldValue, idle } from '@/lib/action-state';
 import { isIsoDate } from '@/domain/dates';
 import { daysLeft } from '@/domain/jobs/words';
-import { NEW_CLIENT, NO_CLIENT } from '@/domain/orders/forms';
+import { EVENT_LABEL, NEW_CLIENT, NO_CLIENT } from '@/domain/orders/forms';
 import { createJob } from '../actions';
 
 interface Row {
@@ -22,8 +22,9 @@ type RowField = Exclude<keyof Row, 'key'>;
 const blank = (key: number, title = ''): Row => ({ key, title, day: '', until: '', from: '', to: '' });
 
 /**
- * A new job (decision 0068): who it is for, or nobody for an event; what it is; its day; and the steps she builds by
- * tapping her usual ones, or a whole list, giving each its day. Nothing is guessed: the days are hers.
+ * A new job (decision 0068): who it is for; what it is; its day; and the steps she builds by tapping her usual ones,
+ * or a whole list, giving each its day. Nothing is guessed: the days are hers. An event (a bazaar, a fashion show) is
+ * only its name and its day, counted down on Today; the tailoring steps and lists are not for it.
  */
 export function NewJobForm({
   clients,
@@ -74,7 +75,7 @@ export function NewJobForm({
   return (
     <form onSubmit={submit} className="form" noValidate aria-busy={pending}>
       <section className="section" aria-labelledby="who-heading">
-        <h2 id="who-heading">Who it is for</h2>
+        <h2 id="who-heading">{event ? 'A job or an event' : 'Who it is for'}</h2>
         <div className="field">
           <label htmlFor="client">For</label>
           <select
@@ -93,7 +94,7 @@ export function NewJobForm({
               </option>
             ))}
             <option value={NEW_CLIENT}>+ A new client</option>
-            <option value={NO_CLIENT}>Nobody: an event, such as a bazaar</option>
+            <option value={NO_CLIENT}>{EVENT_LABEL}</option>
           </select>
           {state.errors.client && (
             <p id="client-error" className="error">
@@ -124,7 +125,7 @@ export function NewJobForm({
       </section>
 
       <section className="section" aria-labelledby="what-heading">
-        <h2 id="what-heading">{event ? 'The event' : 'What it is'}</h2>
+        <h2 id="what-heading">{event ? 'Its name and day' : 'What it is'}</h2>
         <TextField
           name="title"
           label={event ? 'Name of the event' : 'What it is (optional)'}
@@ -133,7 +134,9 @@ export function NewJobForm({
           autoComplete="off"
           maxLength={120}
           hint={
-            event ? 'For example “Bazaar at the Hyatt”.' : 'For example “Bridal gown” or “Shorten trousers”.'
+            event
+              ? 'For example “Bazaar at the Hyatt” or “Fashion show”.'
+              : 'For example “Bridal gown” or “Shorten trousers”.'
           }
         />
         <datalist id="garment-types">
@@ -162,164 +165,173 @@ export function NewJobForm({
         />
       </section>
 
-      <section className="section" aria-labelledby="steps-heading">
-        <h2 id="steps-heading">Steps</h2>
-        <p className="hint">
-          Tap the steps this job needs, in order, and give each its day. Add a time to anything with a client,
-          such as an appointment or a fitting. Each step shows on that day of your calendar.
-        </p>
-        <div className="chips" role="group" aria-label="Your usual steps">
-          {usual.map((t) => (
-            <button key={t} type="button" className="chip-button" onClick={() => add(t)}>
-              + {t}
-            </button>
-          ))}
-          <button type="button" className="chip-button" onClick={() => add('')}>
-            + Another step
-          </button>
-        </div>
-        {lists.length > 0 && (
-          <div className="field">
-            <label htmlFor="list">Or all the steps of a list</label>
-            <div className="inline-pick">
-              <select id="list" className="select" value={list} onChange={(e) => setList(e.target.value)}>
-                {lists.map((l) => (
-                  <option key={l.id} value={l.id}>
-                    {l.name} ({l.steps.length} steps)
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className="btn btn--quiet"
-                onClick={() => add(...(lists.find((l) => l.id === list)?.steps ?? []))}
-              >
-                Add them
+      {event ? (
+        <>
+          <input type="hidden" name="steps" value={0} />
+          <p className="hint">Today counts the days down to it.</p>
+        </>
+      ) : (
+        <section className="section" aria-labelledby="steps-heading">
+          <h2 id="steps-heading">Steps</h2>
+          <p className="hint">
+            Tap the steps this job needs, in order, and give each its day. Add a time to anything with a
+            client, such as an appointment or a fitting. Each step shows on that day of your calendar.
+          </p>
+          <div className="chips" role="group" aria-label="Your usual steps">
+            {usual.map((t) => (
+              <button key={t} type="button" className="chip-button" onClick={() => add(t)}>
+                + {t}
               </button>
-            </div>
+            ))}
+            <button type="button" className="chip-button" onClick={() => add('')}>
+              + Another step
+            </button>
           </div>
-        )}
+          {lists.length > 0 && (
+            <div className="field">
+              <label htmlFor="list">Or all the steps of a list</label>
+              <div className="inline-pick">
+                <select id="list" className="select" value={list} onChange={(e) => setList(e.target.value)}>
+                  {lists.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name} ({l.steps.length} steps)
+                    </option>
+                  ))}
+                </select>
+                <button
+                  type="button"
+                  className="btn btn--quiet"
+                  onClick={() => add(...(lists.find((l) => l.id === list)?.steps ?? []))}
+                >
+                  Add them
+                </button>
+              </div>
+            </div>
+          )}
 
-        <input type="hidden" name="steps" value={rows.length} />
-        {rows.length === 0 ? (
-          <p className="day-list__empty">No steps yet. Tap one above, or save the job and add them later.</p>
-        ) : (
-          <ol className="step-rows">
-            {rows.map((row, i) => (
-              <li key={row.key} className="step-row">
-                <fieldset>
-                  <legend className="sr-only">Step {i + 1}</legend>
-                  <div className="step-row__head">
-                    <span className="step-row__n" aria-hidden="true">
-                      {i + 1}.
-                    </span>
-                    <div className="step-row__title">
-                      <label htmlFor={`step-${row.key}-title`} className="sr-only">
-                        Step {i + 1}
-                      </label>
-                      <input
-                        id={`step-${row.key}-title`}
-                        name={`step-${i}-title`}
-                        className="input"
-                        value={row.title}
-                        onChange={(e) => change(row.key, 'title', e.target.value)}
-                        placeholder="What is done"
-                        maxLength={120}
-                        list="usual-steps"
-                        autoComplete="off"
-                        aria-invalid={Boolean(err(i, 'title'))}
-                        aria-describedby={err(i, 'title') ? `step-${row.key}-title-error` : undefined}
+          <input type="hidden" name="steps" value={rows.length} />
+          {rows.length === 0 ? (
+            <p className="day-list__empty">
+              No steps yet. Tap one above, or save the job and add them later.
+            </p>
+          ) : (
+            <ol className="step-rows">
+              {rows.map((row, i) => (
+                <li key={row.key} className="step-row">
+                  <fieldset>
+                    <legend className="sr-only">Step {i + 1}</legend>
+                    <div className="step-row__head">
+                      <span className="step-row__n" aria-hidden="true">
+                        {i + 1}.
+                      </span>
+                      <div className="step-row__title">
+                        <label htmlFor={`step-${row.key}-title`} className="sr-only">
+                          Step {i + 1}
+                        </label>
+                        <input
+                          id={`step-${row.key}-title`}
+                          name={`step-${i}-title`}
+                          className="input"
+                          value={row.title}
+                          onChange={(e) => change(row.key, 'title', e.target.value)}
+                          placeholder="What is done"
+                          maxLength={120}
+                          list="usual-steps"
+                          autoComplete="off"
+                          aria-invalid={Boolean(err(i, 'title'))}
+                          aria-describedby={err(i, 'title') ? `step-${row.key}-title-error` : undefined}
+                        />
+                      </div>
+                      <div className="step-row__tools">
+                        <button
+                          type="button"
+                          className="btn btn--quiet btn--small"
+                          disabled={i === 0}
+                          onClick={() => move(i, -1)}
+                          aria-label={`Move step ${i + 1} earlier`}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn--quiet btn--small"
+                          disabled={i === rows.length - 1}
+                          onClick={() => move(i, 1)}
+                          aria-label={`Move step ${i + 1} later`}
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          className="btn btn--quiet btn--small"
+                          onClick={() => remove(row.key)}
+                          aria-label={`Remove step ${i + 1}${row.title ? `, ${row.title}` : ''}`}
+                        >
+                          ×
+                        </button>
+                      </div>
+                    </div>
+                    {err(i, 'title') && (
+                      <p id={`step-${row.key}-title-error`} className="error">
+                        {err(i, 'title')}
+                      </p>
+                    )}
+                    <div className="form-grid form-grid--pair">
+                      <RowInput
+                        row={row}
+                        i={i}
+                        field="day"
+                        label="Day"
+                        type="date"
+                        min={today}
+                        error={err(i, 'day')}
+                        onChange={change}
+                      />
+                      <RowInput
+                        row={row}
+                        i={i}
+                        field="until"
+                        label="Last day (optional)"
+                        type="date"
+                        min={row.day || today}
+                        error={err(i, 'until')}
+                        onChange={change}
+                      />
+                      <RowInput
+                        row={row}
+                        i={i}
+                        field="from"
+                        label="From (optional)"
+                        type="time"
+                        error={err(i, 'from')}
+                        onChange={change}
+                      />
+                      <RowInput
+                        row={row}
+                        i={i}
+                        field="to"
+                        label="To (optional)"
+                        type="time"
+                        error={err(i, 'to')}
+                        onChange={change}
                       />
                     </div>
-                    <div className="step-row__tools">
-                      <button
-                        type="button"
-                        className="btn btn--quiet btn--small"
-                        disabled={i === 0}
-                        onClick={() => move(i, -1)}
-                        aria-label={`Move step ${i + 1} earlier`}
-                      >
-                        ↑
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn--quiet btn--small"
-                        disabled={i === rows.length - 1}
-                        onClick={() => move(i, 1)}
-                        aria-label={`Move step ${i + 1} later`}
-                      >
-                        ↓
-                      </button>
-                      <button
-                        type="button"
-                        className="btn btn--quiet btn--small"
-                        onClick={() => remove(row.key)}
-                        aria-label={`Remove step ${i + 1}${row.title ? `, ${row.title}` : ''}`}
-                      >
-                        ×
-                      </button>
-                    </div>
-                  </div>
-                  {err(i, 'title') && (
-                    <p id={`step-${row.key}-title-error`} className="error">
-                      {err(i, 'title')}
-                    </p>
-                  )}
-                  <div className="form-grid form-grid--pair">
-                    <RowInput
-                      row={row}
-                      i={i}
-                      field="day"
-                      label="Day"
-                      type="date"
-                      min={today}
-                      error={err(i, 'day')}
-                      onChange={change}
-                    />
-                    <RowInput
-                      row={row}
-                      i={i}
-                      field="until"
-                      label="Last day (optional)"
-                      type="date"
-                      min={row.day || today}
-                      error={err(i, 'until')}
-                      onChange={change}
-                    />
-                    <RowInput
-                      row={row}
-                      i={i}
-                      field="from"
-                      label="From (optional)"
-                      type="time"
-                      error={err(i, 'from')}
-                      onChange={change}
-                    />
-                    <RowInput
-                      row={row}
-                      i={i}
-                      field="to"
-                      label="To (optional)"
-                      type="time"
-                      error={err(i, 'to')}
-                      onChange={change}
-                    />
-                  </div>
-                </fieldset>
-              </li>
+                  </fieldset>
+                </li>
+              ))}
+            </ol>
+          )}
+          <datalist id="usual-steps">
+            {usual.map((t) => (
+              <option key={t} value={t} />
             ))}
-          </ol>
-        )}
-        <datalist id="usual-steps">
-          {usual.map((t) => (
-            <option key={t} value={t} />
-          ))}
-        </datalist>
-        {state.errors.steps && <p className="error">{state.errors.steps}</p>}
-      </section>
+          </datalist>
+          {state.errors.steps && <p className="error">{state.errors.steps}</p>}
+        </section>
+      )}
 
       <details className="disclosure disclosure--link">
-        <summary>Notes and job number</summary>
+        <summary>{event ? 'Notes and number' : 'Notes and job number'}</summary>
         <div className="disclosure__panel">
           <TextArea
             name="notes"
@@ -327,7 +339,11 @@ export function NewJobForm({
             state={state}
             rows={3}
             maxLength={4000}
-            hint="For you. For example: pays in two parts, collects with her mother."
+            hint={
+              event
+                ? 'For you. For example: the stand number, what to bring.'
+                : 'For you. For example: pays in two parts, collects with her mother.'
+            }
           />
           <TextField
             name="number"
@@ -345,7 +361,7 @@ export function NewJobForm({
       <FormNotice state={state} />
       <div className="btn-row">
         <button type="submit" className="btn" disabled={pending}>
-          {pending ? 'Saving…' : 'Save the job'}
+          {pending ? 'Saving…' : event ? 'Save the event' : 'Save the job'}
         </button>
       </div>
     </form>

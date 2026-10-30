@@ -1,6 +1,7 @@
 /**
- * The steps offered as buttons when she builds a job (decision 0068): the steps she has used, most used first, then
- * the common ones she has not used yet. Matched without regard to capitals, shown as she first wrote them.
+ * The steps offered as buttons when she builds a job (decision 0068): the steps she uses again and again, most used
+ * first, then the common ones. A step typed once ("delivery for Kati") is a one-off, not a usual step, so it is not
+ * offered. Matched without regard to capitals, shown as she first wrote them.
  */
 export const COMMON_STEPS = [
   'Appointment',
@@ -14,9 +15,14 @@ export const COMMON_STEPS = [
   'Delivery',
 ] as const;
 
+/** A step of hers is usual once she has used it this many times. */
+export const USUAL_AFTER = 2;
+
 export function usualSteps(used: readonly { title: string; times: number }[], most = 16): string[] {
   const seen = new Map<string, string>();
-  for (const u of [...used].sort((a, b) => b.times - a.times || a.title.localeCompare(b.title))) {
+  for (const u of [...used]
+    .filter((u) => u.times >= USUAL_AFTER)
+    .sort((a, b) => b.times - a.times || a.title.localeCompare(b.title))) {
     const key = u.title.trim().toLowerCase();
     if (key && !seen.has(key)) seen.set(key, u.title.trim());
   }

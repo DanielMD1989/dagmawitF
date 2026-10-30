@@ -87,6 +87,8 @@ describe('the buttons', () => {
     expect(moveLabel('active', 'delivered')).toBe('Mark as finished');
     expect(moveLabel('active', 'cancelled')).toBe('Cancel the job');
     expect(moveLabel('cancelled', 'draft')).toBe('Reopen as draft');
+    expect(moveLabel('active', 'cancelled', 'event')).toBe('Cancel the event');
+    expect(moveLabel('on_hold', 'active', 'event')).toBe('Resume the event');
   });
 
   it('give every allowed move its own words', () => {

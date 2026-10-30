@@ -61,6 +61,9 @@ export default async function TodayPage() {
           <Link href="/orders/new" className="btn">
             New job
           </Link>
+          <Link href="/orders/new?event=1" className="btn btn--quiet">
+            New event
+          </Link>
           <Link href="/calendar" className="btn btn--quiet">
             Month
           </Link>

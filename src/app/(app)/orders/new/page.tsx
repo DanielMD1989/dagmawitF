@@ -11,7 +11,7 @@ import { loadTemplates, loadUsedStepTitles } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
 import { NewJobForm } from './NewJobForm';
 
-export const metadata: Metadata = { title: 'New job' };
+export const metadata: Metadata = { title: 'New job or event' };
 
 export default async function NewJobPage({
   searchParams,
@@ -34,6 +34,7 @@ export default async function NewJobPage({
     : params.event === '1'
       ? NO_CLIENT
       : null;
+  const event = initialClient === NO_CLIENT;
 
   return (
     <>
@@ -41,8 +42,12 @@ export default async function NewJobPage({
         <p className="crumbs">
           <Link href="/orders">Jobs</Link> / New
         </p>
-        <h1>New job</h1>
-        <p className="lede">Who it is for, what it is, and the steps you will take, each on its day.</p>
+        <h1>{event ? 'New event' : 'New job'}</h1>
+        <p className="lede">
+          {event
+            ? 'A bazaar, a fashion show: its name and its day.'
+            : 'Who it is for, what it is, and the steps you will take, each on its day.'}
+        </p>
       </div>
       <NewJobForm
         clients={clients.map((c) => ({ id: c.id, name: c.name }))}

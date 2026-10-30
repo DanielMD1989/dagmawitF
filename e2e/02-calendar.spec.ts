@@ -256,26 +256,50 @@ test('library: she makes a list of her own, puts it in order, and a new job take
   ]);
 });
 
-test('an event, such as a bazaar, is a job for nobody: its days are counted down on Today', async () => {
-  await page.goto('/orders/new');
-  await fillNewJob(page, {
-    client: 'event',
-    title: 'Bazaar at the Hyatt',
-    due: inDays(12),
-    steps: [{ title: 'Sew ten scarves', day: inDays(1), until: inDays(8) }],
-  });
-  await expect(page.getByLabel('Design brief (optional)')).toHaveCount(0);
-  await expect(page.getByText('That is 12 days left.')).toBeVisible();
-  await page.getByRole('button', { name: 'Save the job' }).click();
-  await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
-  await expect(page.locator('h1')).toHaveText('Bazaar at the Hyatt');
-  await expect(page.locator('.lede')).toContainText('12 days left');
+test('an event, such as a bazaar or a show, is its name and its day, counted down on Today however far', async () => {
   await page.goto('/');
+  await page.getByRole('link', { name: 'New event' }).click();
+  await page.waitForURL(/\/orders\/new\?event=1$/);
+  await expect(page.locator('h1')).toHaveText('New event');
+  await expect(page.getByLabel('For', { exact: true })).toHaveValue('none');
+  // None of a client's job: no brief, no tailoring steps, no lists.
+  await expect(page.getByLabel('Design brief (optional)')).toHaveCount(0);
+  await expect(page.getByRole('group', { name: 'Your usual steps' })).toHaveCount(0);
+  await expect(page.getByLabel('Or all the steps of a list')).toHaveCount(0);
+  await page.getByLabel('Name of the event').fill('Fashion show at the Sheraton');
+  await page.getByLabel('Event day').fill(inDays(70));
+  await expect(page.getByText('That is 70 days left.')).toBeVisible();
+  await page.getByRole('button', { name: 'Save the event' }).click();
+  await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
+  await expect(page.locator('h1')).toHaveText('Fashion show at the Sheraton');
+  await expect(page.locator('.lede')).toContainText('70 days left');
+  await expect(page.getByRole('navigation', { name: 'This event' }).getByRole('link')).toHaveText([
+    'To prepare',
+    'History',
+  ]);
+  await inspect(page, 'event');
+  // What she prepares, if she wants it on her calendar: on its days.
+  const form = await open(page.locator('main'), 'Add something to prepare');
+  await form.getByLabel('Step').fill('Sew twenty pieces');
+  await form.getByLabel('Day', { exact: true }).fill(inDays(1));
+  await form.getByLabel('Last day (optional)').fill(inDays(30));
+  await form.getByRole('button', { name: 'Add' }).click();
+  await item(page, 'Sew twenty pieces').waitFor();
+  await page.goto('/');
+  // More than 30 days away, still in sight: an event needs her attention long before.
   const coming = section('Coming up');
-  await expect(coming).toContainText('Bazaar at the Hyatt');
-  await expect(coming).toContainText('12 days left');
-  await expect(item(section('Tomorrow'), 'Sew ten scarves', 'Bazaar at the Hyatt')).toBeVisible();
+  await expect(coming).toContainText('Fashion show at the Sheraton');
+  await expect(coming).toContainText('70 days left');
+  await expect(item(section('Tomorrow'), 'Sew twenty pieces', 'Fashion show at the Sheraton')).toBeVisible();
   await inspect(page, 'today with an event coming up');
+});
+
+test('a step she typed once is not offered as a usual one', async () => {
+  await page.goto('/orders/new');
+  const usual = page.getByRole('group', { name: 'Your usual steps' });
+  for (const once of ['Sew twenty pieces', 'Beading', 'Lace work'])
+    await expect(usual.getByRole('button', { name: `+ ${once}` })).toHaveCount(0);
+  await expect(usual.getByRole('button', { name: '+ Fitting', exact: true })).toBeVisible();
 });
 
 test('the month: how many steps each day holds, and the list of the day she picks', async () => {

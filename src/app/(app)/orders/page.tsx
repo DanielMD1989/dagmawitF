@@ -45,6 +45,9 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         <Link href="/orders/new" className="btn">
           New job
         </Link>
+        <Link href="/orders/new?event=1" className="btn btn--quiet">
+          New event
+        </Link>
         <Link href="/clients" className="btn btn--quiet">
           Clients
         </Link>

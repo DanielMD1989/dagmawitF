@@ -47,14 +47,14 @@ export const STATUS_LABEL: Readonly<Record<OrderStatus, string>> = {
   cancelled: 'Cancelled',
 };
 
-/** What a person does to move an order from one status to another, in the words on the button. */
-export function moveLabel(from: OrderStatus, to: OrderStatus): string {
-  if (from === 'draft' && to === 'active') return 'Confirm the job';
-  if (from === 'on_hold' && to === 'active') return 'Resume the job';
-  if (to === 'active') return 'Reopen the job';
+/** What a person does to move a job (or an event) from one status to another, in the words on the button. */
+export function moveLabel(from: OrderStatus, to: OrderStatus, noun: 'job' | 'event' = 'job'): string {
+  if (from === 'draft' && to === 'active') return `Confirm the ${noun}`;
+  if (from === 'on_hold' && to === 'active') return `Resume the ${noun}`;
+  if (to === 'active') return `Reopen the ${noun}`;
   if (to === 'on_hold') return 'Put on hold';
   if (to === 'delivered') return 'Mark as finished';
-  if (to === 'cancelled') return 'Cancel the job';
+  if (to === 'cancelled') return `Cancel the ${noun}`;
   return 'Reopen as draft';
 }
 

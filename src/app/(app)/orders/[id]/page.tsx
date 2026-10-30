@@ -19,7 +19,10 @@ import { TemplateStepsForm } from './TemplateStepsForm';
 import { usualSteps } from '@/domain/steps/usual';
 import { deleteJob } from './actions';
 
-/** A job's steps, each on its day, and the job itself (docs/calendar-first.md). */
+/**
+ * A job's steps, each on its day, and the job itself (docs/calendar-first.md). An event (no client) is its name and
+ * day; what she prepares for it can be noted on its days, without the tailoring steps and lists of a client's job.
+ */
 export default async function JobStepsPage({ params }: { params: Promise<{ id: string }> }) {
   await requireUser();
   const { id } = await params;
@@ -42,12 +45,20 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
     .filter((t) => t.steps.length > 0)
     .map((t) => ({ id: t.id, label: `${t.name}: ${t.steps.map((x) => x.title).join(', ')}` }));
   const usual = usualSteps(used);
+  const event = !order.client;
+  const noun = event ? 'event' : 'job';
 
   return (
     <>
       <section className="section" aria-labelledby="steps-heading">
         <div className="section__head">
-          <h2 id="steps-heading">Steps</h2>
+          <h2 id="steps-heading">{event ? 'To prepare' : 'Steps'}</h2>
+          {event && steps.length === 0 && (
+            <p className="hint">
+              Nothing yet. If it needs work on certain days (sewing stock, packing), add it here and it shows
+              on those days of your calendar.
+            </p>
+          )}
           {steps.length > 0 && (
             <p className="hint">
               {done} of {steps.length} done. Tick a step when it is done; change its day if plans change.
@@ -66,12 +77,14 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
         )}
 
         {steps.length === 0 ? (
-          <div className="card">
-            <p>No steps yet.</p>
-            {!closed && templateOptions.length > 0 && (
-              <TemplateStepsForm orderId={order.id} templates={templateOptions} preferred={null} />
-            )}
-          </div>
+          !event && (
+            <div className="card">
+              <p>No steps yet.</p>
+              {!closed && templateOptions.length > 0 && (
+                <TemplateStepsForm orderId={order.id} templates={templateOptions} preferred={null} />
+              )}
+            </div>
+          )
         ) : (
           <ul className="items">
             {steps.map((s) => {
@@ -113,11 +126,11 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
             <AddStepForm
               orderId={order.id}
               day={prefs.today}
-              summary="Add a step"
+              summary={event ? 'Add something to prepare' : 'Add a step'}
               idPrefix="new-step"
-              usual={usual}
+              usual={event ? [] : usual}
             />
-            {steps.length > 0 && templateOptions.length > 0 && (
+            {!event && steps.length > 0 && templateOptions.length > 0 && (
               <details className="disclosure disclosure--link">
                 <summary>Add the steps of a list</summary>
                 <div className="disclosure__panel">
@@ -131,12 +144,12 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
 
       <section className="section" aria-labelledby="details-heading">
         <div className="section__head">
-          <h2 id="details-heading">About this job</h2>
+          <h2 id="details-heading">About this {noun}</h2>
         </div>
         {closed && (
           <dl className="facts card">
             <dt>For</dt>
-            <dd>{order.client?.name ?? 'Nobody: an event'}</dd>
+            <dd>{order.client?.name ?? 'An event'}</dd>
             <dt>What it is</dt>
             <dd>{order.title || '—'}</dd>
             <dt>{order.client ? 'Delivery day' : 'Event day'}</dt>
@@ -158,17 +171,17 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
 
       <section className="section" aria-labelledby="delete-heading">
         <div className="section__head">
-          <h2 id="delete-heading">Delete this job</h2>
+          <h2 id="delete-heading">Delete this {noun}</h2>
           <p className="hint">
-            For a job added by mistake: it goes completely, with its steps, pictures and history. To keep a
-            record of a job that is called off, cancel it instead.
+            For {event ? 'an event' : 'a job'} added by mistake: it goes completely, with everything on it and
+            its history. To keep a record of one that is called off, cancel it instead.
           </p>
         </div>
         <ConfirmAction
           action={deleteJob}
           fields={{ id: order.id }}
-          label="Delete this job"
-          question={`Delete job #${order.number} completely? This cannot be undone.`}
+          label={`Delete this ${noun}`}
+          question={`Delete ${event ? `“${order.title}”` : `job #${order.number}`} completely? This cannot be undone.`}
           confirmLabel="Yes, delete"
           pendingText="Deleting…"
         />

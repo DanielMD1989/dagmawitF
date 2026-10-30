@@ -90,7 +90,7 @@ export async function fillNewJob(
   // Already on the form (perhaps opened from a client's page, with her chosen): fill it as it is.
   if (new URL(page.url()).pathname !== '/orders/new') await page.goto('/orders/new');
   const forWhom = page.getByLabel('For', { exact: true });
-  if (job.client === 'event') await forWhom.selectOption({ label: 'Nobody: an event, such as a bazaar' });
+  if (job.client === 'event') await forWhom.selectOption({ label: 'An event' });
   else if (typeof job.client === 'object') {
     if ((await forWhom.locator('option').count()) > 0)
       await forWhom.selectOption({ label: '+ A new client' });

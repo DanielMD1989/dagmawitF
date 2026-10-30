@@ -480,3 +480,13 @@ because preparing for one takes weeks, and deliveries within 30 days. The same s
 since adding it twice was how one job appeared twice. Any job can be deleted, whatever its state, with its steps,
 garments, pictures and history; cancelling remains for a job she wants to keep on record. Existing jobs are named after
 their first garment. Cost: a new job gets no days unless she gives them, and deleting is final.
+
+## 0069. An event is its name and its day; usual steps are the ones she repeats
+
+Seeing 0068 in use, she asked that an event just be an event: the new-event form showed the tailoring steps and the
+garment lists, which are not for a bazaar or a fashion show. An event is now made from "New event" (or "An event"
+under For): its name, its day and notes, counted down on Today. Its page has no brief or measurements, and what she
+prepares, if she wants it on her calendar, is added under "To prepare" on the days it takes. Buttons and texts say
+"event" there, not "job". The step buttons on a client's job offered every title she had ever typed, including
+one-offs such as "delivery for Kati"; a title of hers is offered once she has used it twice, after the common ones she
+has not used.

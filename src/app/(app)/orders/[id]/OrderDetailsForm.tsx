@@ -5,7 +5,7 @@ import { FormNotice } from '@/components/FormNotice';
 import { SubmitButton } from '@/components/SubmitButton';
 import { SelectField, TextArea, TextField } from '@/components/fields';
 import { fieldTicked, fieldValue, idle } from '@/lib/action-state';
-import { NO_CLIENT } from '@/domain/orders/forms';
+import { EVENT_LABEL, NO_CLIENT } from '@/domain/orders/forms';
 import { isClosed, type OrderStatus } from '@/domain/orders/status';
 import { saveOrderDetails } from './actions';
 
@@ -44,10 +44,14 @@ export function OrderDetailsForm({
             saved={order.clientId ?? NO_CLIENT}
             options={[
               ...clients.map((c) => ({ value: c.id, label: c.name })),
-              { value: NO_CLIENT, label: 'Nobody: an event, such as a bazaar' },
+              { value: NO_CLIENT, label: EVENT_LABEL },
             ]}
             onChange={setClient}
-            hint="Changing the client clears the measurements chosen for the garments, because they are hers."
+            hint={
+              event
+                ? undefined
+                : 'Changing the client clears the measurements chosen for the garments, because they are hers.'
+            }
           />
           <TextField
             name="title"
@@ -84,8 +88,10 @@ export function OrderDetailsForm({
         maxLength={4000}
         hint={
           closed
-            ? 'Notes can still be added to a finished job.'
-            : 'For you. For example: pays in two parts, collects with her mother.'
+            ? `Notes can still be added to a finished ${event ? 'event' : 'job'}.`
+            : event
+              ? 'For you. For example: the stand number, what to bring.'
+              : 'For you. For example: pays in two parts, collects with her mother.'
         }
       />
       <FormNotice state={state} />

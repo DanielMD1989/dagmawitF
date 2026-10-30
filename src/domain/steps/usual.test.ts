@@ -12,8 +12,13 @@ describe('her usual steps', () => {
         { title: 'Beading', times: 2 },
         { title: 'fitting', times: 5 },
         { title: 'Price tags', times: 2 },
+        { title: 'delivery for Kati', times: 1 },
       ]).slice(0, 5),
     ).toEqual(['fitting', 'Beading', 'Price tags', 'Appointment', 'Sketch']);
+  });
+
+  it('leave out a step she typed only once', () => {
+    expect(usualSteps([{ title: 'delivery for Kati', times: 1 }])).toEqual([...COMMON_STEPS]);
   });
 
   it('offer at most the number asked', () => {

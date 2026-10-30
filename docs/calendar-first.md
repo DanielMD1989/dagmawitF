@@ -95,5 +95,8 @@ no client. Her answers: **she sets each step's day herself**, and Today shows **
   (a day and a last day), shown on each of them.
 - **The work is the headline.** On Today and the calendar an entry reads "Megan · Bridal gown", with the step under it.
 - **Delete any job** made by mistake, whatever its state; cancel one to keep it on record.
+- **An event is just an event** (decision 0069): "New event" asks for its name and day, nothing about clients or
+  garments. Preparation, if she wants it on the calendar, goes under "To prepare" on the event's page.
+- **Usual steps are the ones she repeats**: a title she typed once is not offered as a button.
 - **Times stay hers once** (decision 0067): a step's time that crosses another is refused, including two steps of the
   same new job.
