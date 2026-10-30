@@ -572,3 +572,7 @@ London (`lhr1`), beside the database, which is also nearer Addis Ababa. Sessions
 them with an asymmetric key (ES256), so the server checks them without asking Supabase. Pages that waited on one read
 before starting the next now start them together (Today, the jobs list, a job, the calendar's settings). And a tap now
 shows the shape of the next page at once (`loading.tsx`) instead of leaving the old page still.
+With the loading screen a page starts before its data is read, so a job that is not there shows "Page not found" with
+status 200 rather than 404 (Next.js sends the status before it knows); for a private app the page is what matters.
+The browser tests now wait for the page itself (`ready`, `texts`), not only its address, and pass with every page
+slowed by 0.4 s.

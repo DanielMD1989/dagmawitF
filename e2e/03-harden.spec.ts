@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { expect, test, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 import { strFromU8, unzipSync } from 'fflate';
-import { inspect, signedInContext, text, watchErrors } from './support/app';
+import { inspect, ready, signedInContext, text, texts, watchErrors } from './support/app';
 import { ownerId, orderId, sql, value } from './support/db';
 import { env, inDays, today } from './support/env';
 import { smallSwatch } from './support/pictures';
@@ -84,9 +84,7 @@ test('Today is kept on the phone as she sees it, and nothing else of hers is', a
     days: { heading: string; entries: Kept[] }[];
   };
   expect(snap.days[0]!.heading).toBe('Today');
-  expect(snap.days[0]!.entries.map(headline)).toEqual(
-    await todayList().locator('.item__title').allInnerTexts(),
-  );
+  expect(snap.days[0]!.entries.map(headline)).toEqual(await texts(todayList().locator('.item__title')));
   expect(snap.ownerId).toBe(OWNER);
   expect(snap.firstName).toBe('Dagmawit');
   expect(
@@ -119,7 +117,7 @@ test('with no signal, opening the app shows the day as of when it was kept', asy
   const t = await text(page);
   expect(t).toMatch(/no signal/i);
   expect(t).toContain('What you tick here waits on this phone');
-  expect(await todayList().locator('.item__title').allInnerTexts()).toEqual(kept.map(headline));
+  expect(await texts(todayList().locator('.item__title'))).toEqual(kept.map(headline));
   await inspect(page, 'offline day');
 });
 
@@ -388,6 +386,7 @@ test('the Content-Security-Policy stops a script the app did not send', async ()
 
 test('the keyboard: the skip link comes first and lands on the content', async () => {
   await page.goto('/orders');
+  await ready(page);
   await page.keyboard.press('Tab');
   const first = page.locator('.skip-link');
   await expect(first).toBeFocused();

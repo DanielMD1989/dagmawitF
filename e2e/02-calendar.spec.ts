@@ -1,5 +1,15 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { fillNewJob, inspect, item, open, settled, signedInContext, text, watchErrors } from './support/app';
+import {
+  fillNewJob,
+  inspect,
+  item,
+  open,
+  settled,
+  signedInContext,
+  text,
+  texts,
+  watchErrors,
+} from './support/app';
 import { orderId, value } from './support/db';
 import { env, inDays, today } from './support/env';
 
@@ -110,7 +120,7 @@ test('an appointment is a step at a time on its day; a time already taken is ref
   await expect(appointment.locator('.item__time')).toHaveText('10:30–11:00 AM');
   await expect(page.getByText('Its time crosses another step’s.')).toHaveCount(0);
   // Timed steps come first, in time order; each headed by its work.
-  const titles = await section('Today').locator('.item__title').allInnerTexts();
+  const titles = await texts(section('Today').locator('.item__title'));
   expect(titles.slice(0, 2)).toEqual(['Sharpen the shears', 'Selam Bekele · Wedding guest dress']);
   await inspect(page, 'today with timed steps');
 });

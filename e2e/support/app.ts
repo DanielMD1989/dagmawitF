@@ -45,8 +45,23 @@ export function watchErrors(page: Page): { list: string[]; allow: (pattern: RegE
 }
 
 /** The main content's text, spaces squeezed. */
+/**
+ * Waits until the page she went to is on screen. After a tap the address changes at once and the loading screen
+ * stands in for the page (decision 0077); reading text in that moment would read the loading screen.
+ */
+export async function ready(page: Page): Promise<void> {
+  await expect(page.locator('.loading')).toHaveCount(0);
+}
+
 export async function text(page: Page): Promise<string> {
+  await ready(page);
   return (await page.locator('main').innerText()).replace(/\s+/g, ' ');
+}
+
+/** The texts of a list on the page, once the page is there. */
+export async function texts(list: Locator): Promise<string[]> {
+  await ready(list.page());
+  return list.allInnerTexts();
 }
 
 const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -146,6 +161,7 @@ export async function settled(page: Page): Promise<void> {
 
 /** The checks every screen must pass: no sideways scroll, and no accessibility violations (WCAG 2.2 A and AA). */
 export async function inspect(page: Page, label: string, bestPractice = false): Promise<void> {
+  await ready(page);
   // Next.js streams a dynamic page's <title> after its body; check the page once it has arrived.
   await page.waitForFunction(() => document.title.length > 0, null, { timeout: 5000 }).catch(() => undefined);
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);

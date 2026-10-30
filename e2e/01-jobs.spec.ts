@@ -1,5 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { fillNewJob, inspect, open, settled, signedInContext, text, watchErrors } from './support/app';
+import { fillNewJob, inspect, open, settled, signedInContext, text, texts, watchErrors } from './support/app';
 import { sql, value } from './support/db';
 import { env, inDays, today } from './support/env';
 import { bigSketch, noise, notAPicture, smallSwatch } from './support/pictures';
@@ -17,7 +17,7 @@ const orderOfUrl = () => /\/orders\/([0-9a-f-]{36})/.exec(page.url())?.[1] ?? ''
 const has = async (words: string) => (await text(page)).includes(words);
 const pic = (name: string) =>
   page.locator('.photo').filter({ has: page.locator('.photo__name', { hasText: new RegExp(`^${name}$`) }) });
-const stepTitles = () => page.locator('li.item .item__title').allInnerTexts();
+const stepTitles = () => texts(page.locator('li.item .item__title'));
 /** Her stored pictures, as storage records them. */
 const stored = () =>
   sql<{ name: string; size: number; mimetype: string }>(
@@ -333,7 +333,7 @@ test('measurements: the form asks for her list, in her order, with today and her
   await page.getByRole('link', { name: 'Record measurements' }).click();
   await page.waitForURL(/\/clients\/[0-9a-f-]{36}\/measurements\/new\?order=/);
   ids.client1 = /clients\/([0-9a-f-]{36})/.exec(page.url())![1]!;
-  const labels = await page.locator('.measure-grid label').allInnerTexts();
+  const labels = await texts(page.locator('.measure-grid label'));
   expect(labels).toHaveLength(12);
   expect(labels[0]).toMatch(/^Bust/);
   expect(labels[11]).toMatch(/^Inseam/);
@@ -463,7 +463,7 @@ test('settings: her list of measurements can be renamed, reordered, hidden, show
   await expect.poll(async () => (await labels()).at(-1)).toBe('Knee to hem');
   // The form follows the list.
   await page.goto(`/clients/${ids.client1}/measurements/new`);
-  const names = await page.locator('.measure-grid label').allInnerTexts();
+  const names = await texts(page.locator('.measure-grid label'));
   expect(names[0]).toMatch(/^Bust \(fullest part\)/);
   expect(names[1]).toMatch(/^Waist/);
   expect(names.at(-1)).toMatch(/^Knee to hem/);
@@ -629,10 +629,11 @@ test('job 3: reopened, cancelled with a reason, reopened as a draft and deleted'
   await page.getByRole('button', { name: 'Yes, delete' }).click();
   await page.waitForURL(`${env.baseURL}/orders`);
   expect(await has('Suit alteration')).toBe(false);
-  // The deleted job's page is not found: the 404 is the point.
+  // The deleted job's page says it is not there. (Its status may be 200: the loading screen lets the page start
+  // before the job is looked up, so a not-found comes in the page, not the status; decision 0077.)
   errors.allow(/status of 404/);
-  const gone = await page.goto(`/orders/${ids.o3}`);
-  expect(gone?.status()).toBe(404);
+  await page.goto(`/orders/${ids.o3}`);
+  await expect(page.getByRole('heading', { name: 'Page not found' })).toBeVisible();
   errors.allow(null);
 });
 
@@ -675,7 +676,7 @@ test('history: order 1 tells its story in her words', async () => {
 
 test('jobs list: soonest first, filters count, steps shown', async () => {
   await page.goto('/orders');
-  const titles = await page.locator('.row-link__title').allInnerTexts();
+  const titles = await texts(page.locator('.row-link__title'));
   expect(titles).toEqual([
     'Yonas Alemu · Suit alteration',
     'Hanna Tesfaye · Evening dress',
