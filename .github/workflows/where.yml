@@ -17,3 +17,9 @@ jobs:
           region=$(curl -fsS -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
             https://api.supabase.com/v1/projects/iowwrmnfeaogocnspgvf | jq -r .region)
           echo "::notice title=Supabase region::$region"
+      # Whether a session can be checked on the server without asking Supabase each time: it can when the project
+      # signs sessions with an asymmetric key, which this public list then holds.
+      - name: Her project's session signing keys
+        run: |
+          algs=$(curl -fsS https://iowwrmnfeaogocnspgvf.supabase.co/auth/v1/.well-known/jwks.json | jq -r '[.keys[].alg] | join(",")')
+          echo "::notice title=Session signing keys::${algs:-none (a shared secret: every check asks Supabase)}"
