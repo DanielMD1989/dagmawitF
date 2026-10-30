@@ -16,4 +16,5 @@ jobs:
         with:
           version: latest
       - name: Her project's region
-        run: supabase projects list -o json | jq -r '.[] | select(.id == "iowwrmnfeaogocnspgvf") | "region: \(.region)"'
+        run: |
+          supabase projects list -o json | jq -r '.[] | select(.id == "iowwrmnfeaogocnspgvf") | "region=\(.region)"'
