@@ -45,11 +45,11 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
 
       <section className="section" aria-labelledby="orders-heading">
         <div className="section__head">
-          <h2 id="orders-heading">Orders</h2>
+          <h2 id="orders-heading">Jobs</h2>
         </div>
         {client.orders.length === 0 ? (
           <div className="card">
-            <p>No orders for {client.name} yet.</p>
+            <p>No jobs for {client.name} yet.</p>
           </div>
         ) : (
           <ul className="rows rows--links">
@@ -57,7 +57,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
               <li key={o.id}>
                 <Link href={`/orders/${o.id}`} className="row-link">
                   <span className="row-link__title">{orderLabel(o.number, o.garmentTypes)}</span>
-                  <span className="hint">Handover {formatDay(o.deliveryOn)}</span>
+                  <span className="hint">{formatDay(o.deliveryOn)}</span>
                   <span className="row-link__side">
                     <StatusChip status={o.status} />
                   </span>
@@ -68,7 +68,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
         )}
         <div className="btn-row">
           <Link href={`/orders/new?client=${client.id}`} className="btn">
-            New order for {client.name}
+            New job for {client.name}
           </Link>
         </div>
       </section>
@@ -108,9 +108,9 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
         </div>
         {client.orders.length > 0 ? (
           <p className="hint">
-            {client.name} has {client.orders.length === 1 ? 'an order' : 'orders'} (
+            {client.name} has {client.orders.length === 1 ? 'a job' : 'jobs'} (
             {orderLabel(client.orders[0]!.number, client.orders[0]!.garmentTypes)}
-            {client.orders.length > 1 ? ' and more' : ''}), and orders are kept as a record, so she cannot be
+            {client.orders.length > 1 ? ' and more' : ''}), and jobs are kept as a record, so she cannot be
             removed.
           </p>
         ) : (

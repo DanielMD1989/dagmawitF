@@ -6,7 +6,7 @@ import { z } from 'zod';
 import { failure, success, typedIn, type ActionState } from '@/lib/action-state';
 import { parseException, parseProfile, parseWorkWeek } from '@/domain/calendar/forms';
 import { strayFiles } from '@/domain/files';
-import { parseOrderDefaults } from '@/domain/preferences';
+import { parseMeasurementDefaults } from '@/domain/preferences';
 import { parsePasswordChange } from '@/domain/passwords';
 import { unexpected } from '@/server/action-errors';
 import { requireUser } from '@/server/session';
@@ -44,14 +44,13 @@ export async function saveProfile(_previous: ActionState, formData: FormData): P
     .update({
       name: parsed.value.name,
       timezone: parsed.value.timezone,
-      planning_ratio: parsed.value.planningRatio,
     })
     .eq('owner_id', user.id)
     .select('owner_id');
-  if (error) return unexpected('her details', error, typed);
+  if (error) return unexpected('your details', error, typed);
   if (data.length !== 1)
     return unexpected(
-      'her details',
+      'your details',
       { message: `expected to update 1 profile, updated ${data.length}` },
       typed,
     );
@@ -60,31 +59,27 @@ export async function saveProfile(_previous: ActionState, formData: FormData): P
   return success('Details saved.');
 }
 
-export async function saveOrderDefaults(_previous: ActionState, formData: FormData): Promise<ActionState> {
+export async function saveMeasurementDefaults(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
   const user = await requireUser();
   const typed = typedIn(formData);
-  const parsed = parseOrderDefaults(formData);
+  const parsed = parseMeasurementDefaults(formData);
   if (!parsed.ok) return failure('Check the fields marked below.', parsed.errors, typed);
 
   const supabase = await createSupabase();
   const { data, error } = await supabase
     .from('profile')
-    .update({
-      default_buffer_days: parsed.value.defaultBufferDays,
-      measurement_unit: parsed.value.measurementUnit,
-    })
+    .update({ measurement_unit: parsed.value.measurementUnit })
     .eq('owner_id', user.id)
     .select('owner_id');
-  if (error) return unexpected('her defaults', error, typed);
+  if (error) return unexpected('the unit', error, typed);
   if (data.length !== 1)
-    return unexpected(
-      'her defaults',
-      { message: `expected to update 1 profile, updated ${data.length}` },
-      typed,
-    );
+    return unexpected('the unit', { message: `expected to update 1 profile, updated ${data.length}` }, typed);
 
   revalidatePath('/', 'layout');
-  return success('Defaults saved.');
+  return success('Saved.');
 }
 
 export async function addException(_previous: ActionState, formData: FormData): Promise<ActionState> {

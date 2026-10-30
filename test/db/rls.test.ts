@@ -14,7 +14,7 @@ async function twoDesigners(c: PoolClient) {
   await c.query(
     `insert into public.calendar_exception (day, minutes_available, reason) values ('2026-11-13', 0, 'Holiday')`,
   );
-  await c.query(`update public.profile set planning_ratio = 0.60 where owner_id = $1`, [a]);
+  await c.query(`update public.profile set measurement_unit = 'in' where owner_id = $1`, [a]);
   await actAsOwner(c);
   return { a, b };
 }
@@ -67,7 +67,7 @@ describe('row-level security: one designer cannot reach another', () => {
       const { a, b } = await twoDesigners(c);
       await actAs(c, b);
       const results = [
-        await attempt(c, `update public.profile set planning_ratio = 1.00 where owner_id = $1`, [a]),
+        await attempt(c, `update public.profile set measurement_unit = 'cm' where owner_id = $1`, [a]),
         await attempt(c, `update public.work_week set end_time = '23:00' where owner_id = $1`, [a]),
         await attempt(c, `update public.calendar_exception set minutes_available = 600 where owner_id = $1`, [
           a,
@@ -77,12 +77,12 @@ describe('row-level security: one designer cannot reach another', () => {
 
       await actAsOwner(c);
       const { rows } = await c.query(
-        `select (select planning_ratio from public.profile where owner_id = $1)::float as ratio,
+        `select (select measurement_unit from public.profile where owner_id = $1) as unit,
                 (select end_time::text from public.work_week where owner_id = $1) as end_time,
                 (select minutes_available from public.calendar_exception where owner_id = $1) as minutes`,
         [a],
       );
-      expect(rows[0]).toEqual({ ratio: 0.6, end_time: '17:00:00', minutes: 0 });
+      expect(rows[0]).toEqual({ unit: 'in', end_time: '17:00:00', minutes: 0 });
     });
   });
 

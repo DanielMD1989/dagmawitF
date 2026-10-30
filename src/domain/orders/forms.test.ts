@@ -1,10 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { BUFFER_CASES, GARMENT_CASES } from '../../../test/fixtures/capture-cases';
+import { GARMENT_CASES } from '../../../test/fixtures/capture-cases';
 import {
   NEW_CLIENT,
   garmentProblems,
   parseGarment,
-  parseNewOrder,
+  NO_TEMPLATE,
+  parseNewJob,
   parseOrderDetails,
   parseOrderNotes,
   parseTransition,
@@ -17,15 +18,17 @@ function form(fields: Record<string, string>): FormData {
 }
 
 const today = '2026-10-25';
-const ctx = { today, defaultBufferDays: 2 };
+const ctx = { today };
+const TEMPLATE_ID = '7a1d2c3b-4e5f-4a6b-8c7d-9e0f1a2b3c4d';
 const CLIENT_ID = '3f6c2b0e-9d4a-4c1e-8b7a-5e2f1a9c0d11';
 
-const newOrder = (over: Record<string, string> = {}) =>
+const newJob = (over: Record<string, string> = {}) =>
   form({
+    kind: 'new_order',
     client: CLIENT_ID,
-    'delivery-on': '2026-11-20',
+    'due-on': '2026-11-20',
     'garment-type': 'Bridal gown',
-    intent: 'confirm',
+    template: TEMPLATE_ID,
     ...over,
   });
 
@@ -47,41 +50,80 @@ describe('a garment', () => {
   });
 });
 
-describe('a new order', () => {
-  it('needs a client, a garment and a handover day, and can be confirmed at once', () => {
-    expect(parseNewOrder(newOrder(), ctx)).toEqual({
+describe('a new job', () => {
+  it('a new order: a client, what is being made, a delivery day, and the steps it starts with', () => {
+    expect(parseNewJob(newJob(), ctx)).toEqual({
       ok: true,
       value: {
+        kind: 'new_order',
         client: { kind: 'existing', id: CLIENT_ID },
         number: null,
-        deliveryOn: '2026-11-20',
-        bufferDays: 2,
+        dueOn: '2026-11-20',
+        time: null,
         notes: '',
-        garmentType: 'Bridal gown',
-        brief: '',
-        confirm: true,
+        garment: { garmentType: 'Bridal gown', brief: '' },
+        templateId: TEMPLATE_ID,
       },
     });
   });
 
-  it('can be kept as a draft instead', () => {
-    expect(parseNewOrder(newOrder({ intent: 'draft' }), ctx)).toMatchObject({
+  it('an appointment: no garment needed, and a time', () => {
+    expect(
+      parseNewJob(
+        newJob({ kind: 'appointment', 'garment-type': '', time: '14:30:00', template: NO_TEMPLATE }),
+        ctx,
+      ),
+    ).toMatchObject({
       ok: true,
-      value: { confirm: false },
+      value: { kind: 'appointment', garment: null, time: '14:30', templateId: null },
     });
   });
 
-  it('refuses to guess whether to confirm', () => {
-    expect(parseNewOrder(newOrder({ intent: '' }), ctx)).toMatchObject({
-      ok: false,
-      errors: { form: expect.any(String) },
+  it('a sketch keeps a garment if she names one', () => {
+    expect(parseNewJob(newJob({ kind: 'sketch', 'garment-type': 'Evening dress' }), ctx)).toMatchObject({
+      ok: true,
+      value: { garment: { garmentType: 'Evening dress', brief: '' } },
     });
-    expect(parseNewOrder(newOrder({ intent: 'whatever' }), ctx).ok).toBe(false);
+  });
+
+  it('a new order or a fix needs to say what is being made', () => {
+    for (const kind of ['new_order', 'fix']) {
+      expect(parseNewJob(newJob({ kind, 'garment-type': '' }), ctx), kind).toMatchObject({
+        ok: false,
+        errors: { 'garment-type': expect.any(String) },
+      });
+    }
+  });
+
+  it('ignores a time for a kind that has none, and refuses one that is not a time', () => {
+    expect(parseNewJob(newJob({ time: '10:00' }), ctx)).toMatchObject({ ok: true, value: { time: null } });
+    expect(parseNewJob(newJob({ kind: 'appointment', time: 'ten' }), ctx)).toMatchObject({
+      ok: false,
+      errors: { time: expect.any(String) },
+    });
+  });
+
+  it('refuses a kind it does not know', () => {
+    expect(parseNewJob(newJob({ kind: 'repair' }), ctx)).toMatchObject({
+      ok: false,
+      errors: { kind: expect.any(String) },
+    });
+  });
+
+  it('starts with no steps when she says so, and refuses a template that is not one', () => {
+    expect(parseNewJob(newJob({ template: NO_TEMPLATE }), ctx)).toMatchObject({
+      ok: true,
+      value: { templateId: null },
+    });
+    expect(parseNewJob(newJob({ template: 'x' }), ctx)).toMatchObject({
+      ok: false,
+      errors: { template: expect.any(String) },
+    });
   });
 
   it('can add the client on the spot', () => {
-    const r = parseNewOrder(
-      newOrder({ client: NEW_CLIENT, 'client-name': ' Hana Bekele ', 'client-phone': '0911 22 33 44' }),
+    const r = parseNewJob(
+      newJob({ client: NEW_CLIENT, 'client-name': ' Hana Bekele ', 'client-phone': '0911 22 33 44' }),
       ctx,
     );
     expect(r).toMatchObject({
@@ -91,7 +133,7 @@ describe('a new order', () => {
   });
 
   it('checks the new client as it checks any client', () => {
-    const r = parseNewOrder(newOrder({ client: NEW_CLIENT, 'client-name': '', 'client-phone': 'abc' }), ctx);
+    const r = parseNewJob(newJob({ client: NEW_CLIENT, 'client-name': '', 'client-phone': 'abc' }), ctx);
     expect(r).toMatchObject({
       ok: false,
       errors: { 'client-name': 'Enter her name.', 'client-phone': expect.any(String) },
@@ -99,107 +141,87 @@ describe('a new order', () => {
   });
 
   it('refuses a client that is neither chosen nor new', () => {
-    expect(parseNewOrder(newOrder({ client: '' }), ctx)).toMatchObject({
-      ok: false,
-      errors: { client: expect.any(String) },
-    });
-    expect(parseNewOrder(newOrder({ client: 'not-an-id' }), ctx)).toMatchObject({
-      ok: false,
-      errors: { client: expect.any(String) },
-    });
-  });
-
-  it('uses her usual buffer unless she types one', () => {
-    expect(parseNewOrder(newOrder(), { today, defaultBufferDays: 4 })).toMatchObject({
-      ok: true,
-      value: { bufferDays: 4 },
-    });
-    expect(parseNewOrder(newOrder({ 'buffer-days': '0' }), { today, defaultBufferDays: 4 })).toMatchObject({
-      ok: true,
-      value: { bufferDays: 0 },
-    });
-  });
-
-  it.each(BUFFER_CASES)('agrees with the database on a buffer of $days days', ({ days, valid }) => {
-    expect(parseNewOrder(newOrder({ 'buffer-days': String(days) }), ctx).ok).toBe(valid);
+    for (const client of ['', 'not-an-id']) {
+      expect(parseNewJob(newJob({ client }), ctx)).toMatchObject({
+        ok: false,
+        errors: { client: expect.any(String) },
+      });
+    }
   });
 
   it('keeps the number she types, and ignores an empty one', () => {
-    expect(parseNewOrder(newOrder({ number: '105' }), ctx)).toMatchObject({
-      ok: true,
-      value: { number: 105 },
-    });
-    expect(parseNewOrder(newOrder({ number: '' }), ctx)).toMatchObject({ ok: true, value: { number: null } });
+    expect(parseNewJob(newJob({ number: '105' }), ctx)).toMatchObject({ ok: true, value: { number: 105 } });
+    expect(parseNewJob(newJob({ number: '' }), ctx)).toMatchObject({ ok: true, value: { number: null } });
     for (const bad of ['0', '-3', '1.5', 'abc', '1000000']) {
-      expect(parseNewOrder(newOrder({ number: bad }), ctx), bad).toMatchObject({
+      expect(parseNewJob(newJob({ number: bad }), ctx), bad).toMatchObject({
         ok: false,
         errors: { number: expect.any(String) },
       });
     }
   });
 
-  it('refuses a handover day that has passed, but accepts today', () => {
-    expect(parseNewOrder(newOrder({ 'delivery-on': '2026-10-24' }), ctx)).toMatchObject({
+  it('refuses a day that has passed, but accepts today', () => {
+    expect(parseNewJob(newJob({ 'due-on': '2026-10-24' }), ctx)).toMatchObject({
       ok: false,
-      errors: { 'delivery-on': 'That day has already passed. Choose today or a later day.' },
+      errors: { 'due-on': 'That day has already passed. Choose today or a later day.' },
     });
-    expect(parseNewOrder(newOrder({ 'delivery-on': today }), ctx).ok).toBe(true);
+    expect(parseNewJob(newJob({ 'due-on': today }), ctx).ok).toBe(true);
   });
 
-  it('refuses a handover day that is not a date', () => {
+  it('refuses a day that is not a date', () => {
     for (const bad of ['', 'soon', '2026-02-30', '1999-12-31', '2100-01-01']) {
-      expect(parseNewOrder(newOrder({ 'delivery-on': bad }), ctx), bad).toMatchObject({
+      expect(parseNewJob(newJob({ 'due-on': bad }), ctx), bad).toMatchObject({
         ok: false,
-        errors: { 'delivery-on': 'Choose a day.' },
+        errors: { 'due-on': 'Choose a day.' },
       });
     }
   });
 
   it('reports every problem at once, each next to its field', () => {
-    const r = parseNewOrder(
-      form({ client: '', 'delivery-on': '', 'garment-type': '', intent: 'draft', 'buffer-days': 'x' }),
-      ctx,
-    );
+    const r = parseNewJob(form({ kind: 'new_order', client: '', 'due-on': '', 'garment-type': '' }), ctx);
     expect(r.ok).toBe(false);
-    if (!r.ok)
-      expect(Object.keys(r.errors).sort()).toEqual(['buffer-days', 'client', 'delivery-on', 'garment-type']);
+    if (!r.ok) expect(Object.keys(r.errors).sort()).toEqual(['client', 'due-on', 'garment-type']);
   });
 });
 
-describe('changing an order', () => {
-  const current = (status: 'draft' | 'active' | 'on_hold') => ({ status, deliveryOn: '2026-11-20', today });
+describe('changing a job', () => {
+  const current = (status: 'draft' | 'active' | 'on_hold') => ({ status, dueOn: '2026-11-20', today });
   const details = (over: Record<string, string> = {}) =>
-    form({ client: CLIENT_ID, 'delivery-on': '2026-11-27', 'buffer-days': '3', notes: ' Wedding ', ...over });
+    form({ client: CLIENT_ID, kind: 'fix', 'due-on': '2026-11-27', notes: ' Wedding ', ...over });
 
-  it('reads the new promise', () => {
+  it('reads the new day, the kind, and whether the steps move with the day', () => {
     expect(parseOrderDetails(details(), current('active'))).toEqual({
       ok: true,
-      value: { clientId: CLIENT_ID, deliveryOn: '2026-11-27', bufferDays: 3, notes: 'Wedding' },
+      value: { clientId: CLIENT_ID, kind: 'fix', dueOn: '2026-11-27', moveSteps: false, notes: 'Wedding' },
+    });
+    expect(parseOrderDetails(details({ 'move-steps': 'on' }), current('active'))).toMatchObject({
+      ok: true,
+      value: { moveSteps: true },
     });
   });
 
-  it('will not move an active order to a day that has passed', () => {
-    expect(parseOrderDetails(details({ 'delivery-on': '2026-10-01' }), current('active'))).toMatchObject({
+  it('refuses a kind it does not know', () => {
+    expect(parseOrderDetails(details({ kind: 'x' }), current('active'))).toMatchObject({
       ok: false,
-      errors: { 'delivery-on': expect.any(String) },
+      errors: { kind: expect.any(String) },
     });
   });
 
-  it('lets an active order keep a handover day that has already passed, when it is not the one being changed', () => {
-    const passed = { status: 'active' as const, deliveryOn: '2026-10-01', today };
-    expect(parseOrderDetails(details({ 'delivery-on': '2026-10-01' }), passed).ok).toBe(true);
-  });
-
-  it('lets a draft or paused order be given any day', () => {
-    expect(parseOrderDetails(details({ 'delivery-on': '2026-10-01' }), current('draft')).ok).toBe(true);
-    expect(parseOrderDetails(details({ 'delivery-on': '2026-10-01' }), current('on_hold')).ok).toBe(true);
-  });
-
-  it('needs a buffer here, because there is no "usual" to fall back on', () => {
-    expect(parseOrderDetails(details({ 'buffer-days': '' }), current('draft'))).toMatchObject({
+  it('will not move an active job to a day that has passed', () => {
+    expect(parseOrderDetails(details({ 'due-on': '2026-10-01' }), current('active'))).toMatchObject({
       ok: false,
-      errors: { 'buffer-days': expect.any(String) },
+      errors: { 'due-on': expect.any(String) },
     });
+  });
+
+  it('lets an active job keep a day that has already passed, when it is not the one being changed', () => {
+    const passed = { status: 'active' as const, dueOn: '2026-10-01', today };
+    expect(parseOrderDetails(details({ 'due-on': '2026-10-01' }), passed).ok).toBe(true);
+  });
+
+  it('lets a draft or paused job be given any day', () => {
+    expect(parseOrderDetails(details({ 'due-on': '2026-10-01' }), current('draft')).ok).toBe(true);
+    expect(parseOrderDetails(details({ 'due-on': '2026-10-01' }), current('on_hold')).ok).toBe(true);
   });
 });
 
@@ -224,7 +246,7 @@ describe('moving an order between statuses', () => {
     const stale = { today, deliveryOn: '2026-10-01' };
     expect(parseTransition(move('active'), 'delivered', stale)).toMatchObject({
       ok: false,
-      errors: { 'delivery-on': 'The old handover day has passed. Choose a new one.' },
+      errors: { 'delivery-on': 'The old day has passed. Choose a new one.' },
     });
     expect(parseTransition(move('active', { 'delivery-on': '2026-11-05' }), 'delivered', stale)).toEqual({
       ok: true,

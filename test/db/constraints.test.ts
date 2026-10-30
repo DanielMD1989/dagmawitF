@@ -11,6 +11,8 @@ async function signedIn<T>(fn: (c: PoolClient, userId: string) => Promise<T>) {
   return inTransaction(async (c) => {
     const id = await createUser(c, 'a@example.test');
     await actAs(c, id);
+    // A new account starts with Monday to Saturday (decision 0066); these tests write days of their own.
+    await c.query(`delete from public.work_week`);
     return fn(c, id);
   });
 }
@@ -100,41 +102,25 @@ describe('calendar_exception', () => {
 });
 
 describe('profile', () => {
-  const setRatio = (c: PoolClient, id: string, ratio: number) =>
-    attempt(c, `update public.profile set planning_ratio = $2 where owner_id = $1`, [id, ratio]);
-
   it('starts with the agreed defaults', async () => {
     await signedIn(async (c, id) => {
       const { rows } = await c.query(
-        `select timezone, planning_ratio::float as ratio from public.profile where owner_id = $1`,
+        `select timezone, measurement_unit from public.profile where owner_id = $1`,
         [id],
       );
-      expect(rows[0]).toEqual({
-        timezone: 'Africa/Addis_Ababa',
-        ratio: 0.7,
-      });
+      expect(rows[0]).toEqual({ timezone: 'Africa/Addis_Ababa', measurement_unit: 'cm' });
     });
   });
 
-  it('has no language or calendar setting: English and Gregorian dates (decision 0061)', async () => {
+  it('has no language, calendar or planning settings any more (decisions 0061 and 0066)', async () => {
     await signedIn(async (c) => {
       const { rows } = await c.query(
         `select column_name from information_schema.columns
-         where table_schema = 'public' and table_name = 'profile' and column_name in ('locale', 'calendar')`,
+         where table_schema = 'public' and table_name = 'profile'
+           and column_name in ('locale', 'calendar', 'planning_ratio', 'default_buffer_days', 'plan_epoch',
+                               'progress_epoch')`,
       );
       expect(rows).toEqual([]);
-    });
-  });
-
-  it.each([0.29, 1.01, 0])('rejects a planning ratio of %f', async (ratio) => {
-    await signedIn(async (c, id) => {
-      expect(await setRatio(c, id, ratio)).toMatchObject({ ok: false, code: CHECK });
-    });
-  });
-
-  it.each([0.3, 0.7, 1])('accepts a planning ratio of %f', async (ratio) => {
-    await signedIn(async (c, id) => {
-      expect((await setRatio(c, id, ratio)).ok).toBe(true);
     });
   });
 

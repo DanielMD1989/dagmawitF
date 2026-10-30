@@ -1,8 +1,8 @@
 import { daysBetween, type IsoDate } from '../dates';
 
-/** "Order #105, bridal gown": what an order is called in sentences (and, later, in the engine's messages). */
+/** "Job #105, bridal gown": what a job is called in sentences. */
 export function orderLabel(number: number, garmentTypes: readonly string[]): string {
-  const base = `Order #${number}`;
+  const base = `Job #${number}`;
   if (garmentTypes.length === 0) return base;
   const first = garmentTypes[0]!;
   const lower = first.charAt(0).toLowerCase() + first.slice(1);

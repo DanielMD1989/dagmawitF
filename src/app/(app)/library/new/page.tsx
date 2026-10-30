@@ -14,7 +14,7 @@ export default async function NewTemplatePage() {
           <Link href="/library">Library</Link> / New
         </p>
         <h1>New template</h1>
-        <p className="lede">Name it first. Its tasks, and what it waits for, are added on the next page.</p>
+        <p className="lede">Name it first. Its steps are added on the next page.</p>
       </div>
       <TemplateForm />
     </>

@@ -51,9 +51,10 @@ export async function text(page: Page): Promise<string> {
 
 const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** The list item whose title is exactly `title`. */
-export function item(page: Page, title: string): Locator {
-  return page
+/** The list item whose title is exactly `title`, on the page or inside one part of it. */
+export function item(scope: Page | Locator, title: string): Locator {
+  const page = 'goto' in scope ? scope : scope.page();
+  return scope
     .locator('li.item')
     .filter({ has: page.locator('.item__title', { hasText: new RegExp(`^${esc(title)}$`) }) })
     .first();
@@ -99,11 +100,6 @@ export async function inspect(page: Page, label: string, bestPractice = false): 
     result.violations.map((v) => `${v.id}(${v.nodes.length}): ${v.nodes[0]?.html.slice(0, 120)}`),
     `${label}: accessibility`,
   ).toEqual([]);
-}
-
-/** A task on My Day: its chip. */
-export async function chipOf(page: Page, title: string): Promise<string> {
-  return item(page, title).locator('.item__head > .chip').innerText();
 }
 
 /** Waits until the list item titled `title` shows `words`. */

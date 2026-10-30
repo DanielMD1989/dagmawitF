@@ -1,6 +1,6 @@
 # Harden: her data is safe, and the day works without signal
 
-Stage 6. The agreed contract for the export, the restore drill, My Day without signal, the security headers and the
+Stage 6. The agreed contract for the export, the restore drill, Today without signal, the security headers and the
 accessibility pass. The reasons are in decisions 0051 to 0060. If code and this page disagree, one of them is a bug.
 
 ## The idea in one paragraph
@@ -8,7 +8,7 @@ accessibility pass. The reasons are in decisions 0051 to 0060. If code and this 
 Everything of hers can leave the app as **one file**: Settings → Data → **Download everything**. The file is a zip
 with her data as it was at one moment, and her pictures. That file can be **restored** into an empty project by
 whoever looks after the app, and a **drill** proves it on every check: export, restore into a fresh database, compare.
-On her phone, **My Day opens with no signal**: it shows the day as it was when she last opened it, says from when, and
+On her phone, **Today opens with no signal**: it shows the day as it was when she last opened it, says from when, and
 lets her start a task, mark it done or say how long is left. Those taps wait on the phone and are sent when the signal
 comes back; anything that can no longer be applied is reported, never forced.
 
@@ -70,16 +70,16 @@ npm run restore -- --file dagmawit-2026-10-30.zip --owner <her user id> [--files
    pictures) — or takes the given file;
 3. exports it, restores it as a **different** person into a **second** fresh database, exports again;
 4. compares the two exports row by row (owner and picture paths aside), checks every picture arrived, and checks the
-   restored person can carry on: a new order, a new history line, a new proposal;
+   restored person can carry on: a new job, a new history line, a step ticked done;
 5. drops both databases.
 
 It also runs inside the database tests, so `npm run check` makes the drill every time.
 
-## My Day without signal
+## Today without signal
 
 ### What is kept on the phone
 
-When My Day opens online, it keeps a **snapshot** of what it shows (`src/domain/day/offline.ts`): the day, the
+When Today opens online, it keeps a **snapshot** of what it shows (`src/domain/steps/offline.ts`): the day, the
 greeting's name, the time planned and usable, and each entry (title, order, garment, minutes today, time, status,
 what is left, what it waits for, hold). With it: when it was made, her time zone, and whose it is. Nothing else of hers
 is kept on the phone, and signing out removes it.
@@ -153,7 +153,7 @@ never taken.
    the restore refuses a broken link, a wrong schema, a path outside her folder; the history counter after a restore;
    compare-and-set progress.
 3. **Drill**: `npm run drill:restore`.
-4. **Browser**: My Day opened, the network cut, the app reopened: the offline page shows the day; taps made, the
+4. **Browser**: Today opened, the network cut, the app reopened: the offline page shows the day; taps made, the
    network back, the taps saved and reported; a stale tap reported; the export downloaded and opened; axe on every
    screen with no violations and no CSP reports in the console.
 

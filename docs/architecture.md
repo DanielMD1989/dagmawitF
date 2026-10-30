@@ -61,7 +61,7 @@ browser as well as on the server.
 - Accounts are created by hand. Sign-up is off, and the sign-in form cannot create a user.
 - Every page carries a Content-Security-Policy with a fresh nonce (decision 0059): scripts only from the app.
 - Restoring data is a command, never a button (decision 0052); `app.restore_owner` is not reachable from the API.
-- The phone keeps only today's My Day and the taps waiting for the signal, in the browser's storage; signing out
+- The phone keeps only the Today page and the ticks waiting for the signal, in the browser's storage; signing out
   removes them. The service worker keeps no data (docs/harden.md).
 
 ## The engine
@@ -99,6 +99,7 @@ The rules are in [engine.md](engine.md). The files, in the order a plan is made:
 | 4 My Day                 | Built. Today's list from the approved plan, start / done with actual time / still going / hold, computed blocked, Quick Add, end-of-day review into tomorrow's proposal; see [my-day.md](my-day.md). Exit test (a week run from it) is manual.                                                                                                                                    |
 | 5 Change                 | Built. Save and see impact on preparation items and tasks, What moves on the review, work pinned to a day, the Planner's week board; see [change.md](change.md). Exit test (the lace delay on her real data) is manual.                                                                                                                                                           |
 | 6 Harden                 | Built. Export of everything (Settings → Data), the restore command and its drill, My Day without signal with waiting taps, a nonce Content-Security-Policy, the accessibility pass; English and Gregorian dates only (decision 0061); see [harden.md](harden.md) and [operations.md](operations.md). Exit test (a restore succeeds; her day opens with no signal) is half manual. |
+| Calendar first           | Built. Jobs of a kind with steps on days, Today and the month, templates that suggest days, no planning engine; replaces stages 3 to 5 (decision 0066, [calendar-first.md](calendar-first.md)). Exit test (a week of her real jobs) is manual.                                                                                                                                    |
 
 ## Known gaps in Stage 6
 
@@ -124,7 +125,6 @@ The rules are in [engine.md](engine.md). The files, in the order a plan is made:
 ## Known gaps in Stage 3
 
 - The starter templates were written without her: every duration is a guess until she replaces it.
-- A fitting whose day has passed stops every proposal until it is moved or marked done (Stage 4 added done).
 
 ## Known gaps in Stage 2
 
@@ -143,7 +143,7 @@ The rules are in [engine.md](engine.md). The files, in the order a plan is made:
 
 - The bridal gown sample is a reconstruction. The PRD section 13 text was not available, so the sample follows its
   outline. It should be replaced with the real text and with fixtures from her actual orders.
-- The planner is greedy (decision 0014). On some crowded weeks it can plan an order late that a cleverer search would
+- (Before decision 0066) The planner was greedy (decision 0014). On some crowded weeks it can plan an order late that a cleverer search would
   have finished in time. It says `at_risk`, never `infeasible`, in those cases.
 
 ## Known gaps in Stage 0

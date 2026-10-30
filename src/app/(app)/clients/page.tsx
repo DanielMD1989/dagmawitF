@@ -14,8 +14,8 @@ export default async function ClientsPage() {
     <>
       <div className="page-head">
         <p className="eyebrow">Clients</p>
-        <h1>The people she makes for</h1>
-        <p className="lede">Name, phone and her measurements over time. Open one to see her orders.</p>
+        <h1>Your clients</h1>
+        <p className="lede">Name, phone and measurements over time. Open one to see her jobs.</p>
       </div>
 
       <div className="btn-row">
@@ -26,7 +26,7 @@ export default async function ClientsPage() {
 
       {clients.length === 0 ? (
         <div className="card">
-          <p>No clients yet. A client is added here, or while entering her first order.</p>
+          <p>No clients yet. A client is added here, or while taking her first job.</p>
         </div>
       ) : (
         <ul className="rows rows--links">
@@ -39,9 +39,9 @@ export default async function ClientsPage() {
                   <span className={c.openOrders > 0 ? 'chip' : 'chip chip--muted'}>
                     {c.openOrders === 0
                       ? c.orders === 0
-                        ? 'No orders'
-                        : 'All delivered'
-                      : `${c.openOrders} open ${c.openOrders === 1 ? 'order' : 'orders'}`}
+                        ? 'No jobs'
+                        : 'All finished'
+                      : `${c.openOrders} open ${c.openOrders === 1 ? 'job' : 'jobs'}`}
                   </span>
                 </span>
               </Link>

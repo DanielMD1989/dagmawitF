@@ -1,43 +1,27 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { AddTaskForm } from '@/components/AddTaskForm';
 import { ConfirmAction } from '@/components/ConfirmAction';
-import { TaskList } from '@/components/TaskList';
-import { formatMinutes } from '@/domain/duration';
 import { isUuid } from '@/domain/form-input';
-import { loadTemplate } from '@/server/planning';
+import { KIND_WORDS } from '@/domain/jobs/kinds';
+import { whenLabel } from '@/domain/library/forms';
 import { requireUser } from '@/server/session';
+import { loadTemplate } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
 import { TemplateForm } from '../TemplateForm';
-import {
-  addTemplateLink,
-  addTemplateTask,
-  deleteTemplate,
-  removeTemplateLink,
-  removeTemplateTask,
-  saveTemplateNeeds,
-  saveTemplateTask,
-} from '../actions';
-import { AddTemplateItem, TemplateItemRow } from './TemplateItems';
+import { deleteTemplate } from '../actions';
+import { AddTemplateStep, TemplateStepEditor } from './TemplateSteps';
 
 export const metadata: Metadata = { title: 'Template' };
 
+/** One template: its steps, each some days before the job's day, as a new job's steps are suggested from it. */
 export default async function TemplatePage({ params }: { params: Promise<{ id: string }> }) {
   await requireUser();
   const { id } = await params;
   if (!isUuid(id)) notFound();
   const template = await loadTemplate(await createSupabase(), id);
   if (!template) notFound();
-
-  const work = template.tasks.reduce((sum, t) => sum + (t.minutes ?? 0), 0);
-  const actions = {
-    save: saveTemplateTask,
-    remove: removeTemplateTask,
-    addLink: addTemplateLink,
-    removeLink: removeTemplateLink,
-    saveNeeds: saveTemplateNeeds,
-  };
+  const steps = [...template.steps].sort((a, b) => b.daysBefore - a.daysBefore || a.sort - b.sort);
 
   return (
     <>
@@ -47,72 +31,52 @@ export default async function TemplatePage({ params }: { params: Promise<{ id: s
         </p>
         <h1>{template.name}</h1>
         <p className="lede">
-          {template.tasks.length} task{template.tasks.length === 1 ? '' : 's'}
-          {work > 0 && `, ${formatMinutes(work)} of her time`} · version {template.version}
+          For a {KIND_WORDS[template.kind].label.toLowerCase()}. A new job with these steps gets their days
+          counted back from its day. When the day is nearer than the first step, every step is drawn in to
+          fit.
         </p>
-        {template.notes && <p className="hint">{template.notes}</p>}
       </div>
 
-      <section className="section" aria-labelledby="tasks-heading">
+      <section className="section" aria-labelledby="steps-heading">
         <div className="section__head">
-          <h2 id="tasks-heading">Tasks</h2>
-          <p className="hint">
-            In the order the work is done. A task follows the tasks it comes after; one that comes after
-            nothing can start as soon as there is time.
-          </p>
+          <h2 id="steps-heading">Steps</h2>
         </div>
-        {template.tasks.length === 0 && (
+        {steps.length === 0 ? (
           <div className="card">
-            <p>No tasks yet. Add the first step of making this garment.</p>
+            <p>No steps yet.</p>
           </div>
-        )}
-        <TaskList
-          tasks={template.tasks}
-          links={template.links}
-          items={template.items}
-          needs={template.needs}
-          scope="template"
-          owner={{ name: 'template-id', id: template.id }}
-          actions={actions}
-          editable
-        />
-        <AddTaskForm
-          action={addTemplateTask}
-          hidden={{ 'template-id': template.id }}
-          scope="template"
-          idPrefix="new-task"
-        />
-      </section>
-
-      <section className="section" aria-labelledby="items-heading">
-        <div className="section__head">
-          <h2 id="items-heading">What it waits for</h2>
-          <p className="hint">
-            Added to an order’s preparation when the template is applied, unless the order already lists it
-            under the same name.
-          </p>
-        </div>
-        {template.items.length > 0 && (
+        ) : (
           <ul className="items">
-            {template.items.map((i) => (
-              <TemplateItemRow key={i.id} item={i} />
+            {steps.map((s) => (
+              <li key={s.id} className="item">
+                <div className="item__main">
+                  <span className="item__title">{s.title}</span>
+                  <span className="hint">
+                    {whenLabel(s.daysBefore, s.spanDays)}
+                    {s.withClient && ' · with the client'}
+                  </span>
+                </div>
+                <TemplateStepEditor step={s} />
+              </li>
             ))}
           </ul>
         )}
-        <AddTemplateItem templateId={template.id} />
+        <AddTemplateStep templateId={template.id} />
       </section>
 
-      <section className="section" aria-labelledby="details-heading">
+      <section className="section" aria-labelledby="about-heading">
         <div className="section__head">
-          <h2 id="details-heading">Details</h2>
+          <h2 id="about-heading">About this template</h2>
         </div>
-        <TemplateForm template={template} />
+        <TemplateForm
+          template={{ id: template.id, name: template.name, kind: template.kind, notes: template.notes }}
+        />
       </section>
 
       <section className="section" aria-labelledby="delete-heading">
         <div className="section__head">
           <h2 id="delete-heading">Delete this template</h2>
-          <p className="hint">Orders already planned from it keep their own copy.</p>
+          <p className="hint">Jobs that took its steps keep them.</p>
         </div>
         <ConfirmAction
           action={deleteTemplate}

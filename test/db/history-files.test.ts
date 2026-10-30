@@ -62,7 +62,7 @@ describe('history', () => {
     await signedIn(async (c) => {
       const delivery = await inDays(c, 20);
       const { rows } = await c.query<{ id: string }>(
-        `select public.create_order(null, 'Hana', '', 105, $1::date, 2, '', 'Evening dress', '', true) as id`,
+        `select public.create_job('new_order', null, 'Hana', '', 105, $1::date, '', 'Evening dress', '', '[]', true) as id`,
         [delivery],
       );
       expect(await history(c, rows[0]!.id)).toEqual([
@@ -84,10 +84,7 @@ describe('history', () => {
         ])
       ).rows[0]!.d;
 
-      await c.query(`update public.orders set delivery_on = $2, buffer_days = 5 where id = $1`, [
-        orderId,
-        newDay,
-      ]);
+      await c.query(`update public.orders set delivery_on = $2 where id = $1`, [orderId, newDay]);
       await c.query(`update public.orders set status = 'active' where id = $1`, [orderId]);
       await c.query(
         `update public.orders set status = 'on_hold', hold_reason = 'Client abroad' where id = $1`,
@@ -107,7 +104,6 @@ describe('history', () => {
       const events = (await history(c, orderId)).slice(before);
       expect(events).toEqual([
         { action: 'delivery_changed', details: { from: old, to: newDay } },
-        { action: 'buffer_changed', details: { from: 2, to: 5 } },
         { action: 'status_changed', details: { from: 'draft', to: 'active' } },
         { action: 'status_changed', details: { from: 'active', to: 'on_hold', reason: 'Client abroad' } },
         { action: 'status_changed', details: { from: 'on_hold', to: 'active' } },
@@ -129,7 +125,9 @@ describe('history', () => {
       const { orderId } = await addOrder(c);
       const before = (await history(c, orderId)).length;
       await c.query(`update public.orders set notes = 'Client likes ivory' where id = $1`, [orderId]);
-      await c.query(`update public.orders set buffer_days = buffer_days where id = $1`, [orderId]);
+      await c.query(`update public.orders set kind = kind, delivery_on = delivery_on where id = $1`, [
+        orderId,
+      ]);
       expect((await history(c, orderId)).length).toBe(before);
     });
   });
@@ -175,42 +173,6 @@ describe('history', () => {
     });
   });
 
-  it('records what an order waits for: added, the state, the date, blocking, removed', async () => {
-    await signedIn(async (c) => {
-      const { orderId } = await addOrder(c);
-      const before = (await history(c, orderId)).length;
-      const id = (
-        await c.query(
-          `insert into public.prerequisite (order_id, kind, label) values ($1, 'material', 'Lace') returning id`,
-          [orderId],
-        )
-      ).rows[0]!.id;
-      await c.query(
-        `update public.prerequisite set state = 'ordered', expected_on = '2026-11-04' where id = $1`,
-        [id],
-      );
-      await c.query(`update public.prerequisite set expected_on = '2026-11-09' where id = $1`, [id]);
-      await c.query(`update public.prerequisite set blocking = false, note = 'Maybe later' where id = $1`, [
-        id,
-      ]);
-      await c.query(`update public.prerequisite set expected_on = null where id = $1`, [id]);
-      await c.query(`delete from public.prerequisite where id = $1`, [id]);
-
-      expect((await history(c, orderId)).slice(before)).toEqual([
-        { action: 'prerequisite_added', details: { label: 'Lace', kind: 'material' } },
-        {
-          action: 'prerequisite_state',
-          details: { label: 'Lace', kind: 'material', from: 'needed', to: 'ordered' },
-        },
-        { action: 'prerequisite_date', details: { label: 'Lace', to: '2026-11-04' } },
-        { action: 'prerequisite_date', details: { label: 'Lace', from: '2026-11-04', to: '2026-11-09' } },
-        { action: 'prerequisite_blocking', details: { label: 'Lace', blocking: false } },
-        { action: 'prerequisite_date', details: { label: 'Lace', from: '2026-11-09' } },
-        { action: 'prerequisite_removed', details: { label: 'Lace' } },
-      ]);
-    });
-  });
-
   it('records new measurements against the client, not an order', async () => {
     await signedIn(async (c) => {
       const clientId = await addClient(c);
@@ -237,17 +199,14 @@ describe('history', () => {
     await signedIn(async (c) => {
       const { orderId } = await addOrder(c);
       for (let i = 0; i < 5; i++) {
-        await c.query(`insert into public.prerequisite (order_id, kind, label) values ($1, 'other', $2)`, [
-          orderId,
-          `Item ${i}`,
-        ]);
+        await c.query(`select public.add_garment($1, $2, '')`, [orderId, `Item ${i}`]);
       }
       const { rows } = await c.query(
-        `select details ->> 'label' as label from public.activity_log
-         where order_id = $1 and action = 'prerequisite_added' order by seq desc`,
+        `select details ->> 'garment_type' as garment from public.activity_log
+         where order_id = $1 and action = 'garment_added' and details ->> 'garment_type' like 'Item %' order by seq desc`,
         [orderId],
       );
-      expect(rows.map((r) => r.label)).toEqual(['Item 4', 'Item 3', 'Item 2', 'Item 1', 'Item 0']);
+      expect(rows.map((r) => r.garment)).toEqual(['Item 4', 'Item 3', 'Item 2', 'Item 1', 'Item 0']);
     });
   });
 
@@ -304,10 +263,7 @@ describe('history', () => {
   it('goes with a draft that is deleted, without any trouble from the removals that follow', async () => {
     await signedIn(async (c) => {
       const { orderId } = await addOrder(c);
-      await c.query(
-        `insert into public.prerequisite (order_id, kind, label) values ($1, 'material', 'Fabric')`,
-        [orderId],
-      );
+      await c.query(`insert into public.task (order_id, title) values ($1, 'Buy fabric')`, [orderId]);
       await insertAttachment(c, orderId, { id: randomUUID() });
       expect((await attempt(c, `select public.delete_draft_order($1)`, [orderId])).ok).toBe(true);
       const { rows } = await c.query(
@@ -323,14 +279,11 @@ describe('history', () => {
       const id = await createUser(c, 'leaving@example.test');
       await actAs(c, id);
       const { orderId } = await addOrder(c);
-      await c.query(
-        `insert into public.prerequisite (order_id, kind, label) values ($1, 'material', 'Fabric')`,
-        [orderId],
-      );
+      await c.query(`insert into public.task (order_id, title) values ($1, 'Buy fabric')`, [orderId]);
       await insertAttachment(c, orderId, { id: randomUUID() });
       await actAsOwner(c);
       await c.query(`delete from auth.users where id = $1`, [id]);
-      for (const t of ['orders', 'order_item', 'prerequisite', 'attachment', 'activity_log', 'client']) {
+      for (const t of ['orders', 'order_item', 'task', 'attachment', 'activity_log', 'client']) {
         const { rows } = await c.query(`select count(*)::int as n from public.${t}`);
         expect(rows[0]!.n, t).toBe(0);
       }

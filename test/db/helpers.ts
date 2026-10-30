@@ -77,3 +77,9 @@ export const MONDAY = {
   end: '17:00',
   breaks: [{ start: '12:30', end: '13:30' }],
 };
+
+/** The id an insert returned, or the reason it failed. */
+export function idOf(a: Attempt): string {
+  if (!a.ok) throw new Error(`expected it to work: ${a.message}`);
+  return String(a.rows[0]!.id);
+}

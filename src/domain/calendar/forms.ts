@@ -84,23 +84,12 @@ export function parseException(data: FormData): Result<ParsedException> {
   return { ok: true, value: { day, minutesAvailable: total, reason } };
 }
 
-const percentSchema = z.coerce.number().int().min(30).max(100);
-
-/** Reads the planning share as a whole percent, 30 to 100, and returns it as a ratio. */
-export function parsePlanningPercent(data: FormData): Result<number> {
-  const parsed = percentSchema.safeParse(text(data, 'planning-percent'));
-  if (!parsed.success)
-    return { ok: false, errors: { 'planning-percent': 'Enter a whole number from 30 to 100.' } };
-  return { ok: true, value: parsed.data / 100 };
-}
-
 export interface ParsedProfile {
   name: string;
   timezone: string;
-  planningRatio: number;
 }
 
-/** Reads her name, time zone and planning share from the settings form. */
+/** Reads her name and time zone from the settings form. */
 export function parseProfile(data: FormData): Result<ParsedProfile> {
   const errors: FieldErrors = {};
   const name = text(data, 'name');
@@ -109,9 +98,6 @@ export function parseProfile(data: FormData): Result<ParsedProfile> {
   const timezone = text(data, 'timezone');
   if (!isValidTimeZone(timezone)) errors.timezone = 'Choose a time zone from the list.';
 
-  const percent = parsePlanningPercent(data);
-  if (!percent.ok) Object.assign(errors, percent.errors);
-
-  if (Object.keys(errors).length > 0 || !percent.ok) return { ok: false, errors };
-  return { ok: true, value: { name, timezone, planningRatio: percent.value } };
+  if (Object.keys(errors).length > 0) return { ok: false, errors };
+  return { ok: true, value: { name, timezone } };
 }

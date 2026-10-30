@@ -1,10 +1,11 @@
 import { isIsoDate, type IsoDate } from '../dates';
-import { chars, isUuid, parseWholeNumber, text, type FieldErrors, type Result } from '../form-input';
+import { chars, isUuid, parseWholeNumber, text, ticked, type FieldErrors, type Result } from '../form-input';
 import { clientProblems } from '../clients/forms';
+import { KIND_WORDS, isJobKind, type JobKind } from '../jobs/kinds';
 import { canMove, isOrderStatus, type OrderStatus } from './status';
 
 /**
- * What she types to make and change orders. One place for the rules, so each message sits next to its
+ * What she types to make and change jobs (the table is still called orders). One place for the rules, so each message sits next to its
  * field. The database enforces the same limits (and test/fixtures/capture-cases.ts runs against both).
  */
 
@@ -28,28 +29,7 @@ export function parseGarment(data: FormData): Result<GarmentFields> {
   return Object.keys(errors).length > 0 ? { ok: false, errors } : { ok: true, value: fields };
 }
 
-export const MAX_BUFFER_DAYS = 30;
 const NOTES_TOO_LONG = 'Keep the notes under 4000 characters.';
-
-/**
- * Reads a number of buffer days. An empty field means "her usual" when a fallback is given, and is an error
- * when not. Used for an order's buffer and for her default.
- */
-export function readBuffer(
-  data: FormData,
-  name: string,
-  fallback: number | null,
-  errors: FieldErrors,
-): number {
-  const raw = text(data, name);
-  if (raw === '' && fallback !== null) return fallback;
-  const n = parseWholeNumber(raw);
-  if (n === null || n > MAX_BUFFER_DAYS) {
-    errors[name] = `Enter a whole number of days from 0 to ${MAX_BUFFER_DAYS}.`;
-    return 0;
-  }
-  return n;
-}
 
 function readDay(data: FormData, name: string, errors: FieldErrors): IsoDate {
   const raw = text(data, name);
@@ -64,31 +44,35 @@ const PAST_DAY = 'That day has already passed. Choose today or a later day.';
 
 export type ClientChoice = { kind: 'existing'; id: string } | { kind: 'new'; name: string; phone: string };
 
-export interface NewOrder {
+export interface NewJob {
+  kind: JobKind;
   client: ClientChoice;
   /** Empty means "her next number". */
   number: number | null;
-  deliveryOn: IsoDate;
-  bufferDays: number;
+  dueOn: IsoDate;
+  /** A time on the due day, for an appointment or a delivery. */
+  time: string | null;
   notes: string;
-  garmentType: string;
-  brief: string;
-  /** Confirm the order now, or keep it as a draft. */
-  confirm: boolean;
+  /** Null when the job has no garment (an appointment, a sketch). */
+  garment: GarmentFields | null;
+  /** The template whose steps it starts with, or null for none. */
+  templateId: string | null;
 }
 
 export const NEW_CLIENT = 'new';
+export const NO_TEMPLATE = 'none';
 
 /**
- * Reads the new-order form. The client is one she has (`client` holds its id) or a new one
- * (`client` is "new", with `client-name` and `client-phone`). The button that was pressed
- * (`intent`) says whether to confirm the order or keep it as a draft.
+ * Reads the new-job form. The kind decides which fields matter: a new order and a fix ask what is being made; an
+ * appointment and a delivery may have a time. The client is one she has (`client` holds its id) or a new one
+ * (`client` is "new", with `client-name` and `client-phone`).
  */
-export function parseNewOrder(
-  data: FormData,
-  context: { today: IsoDate; defaultBufferDays: number },
-): Result<NewOrder> {
+export function parseNewJob(data: FormData, context: { today: IsoDate }): Result<NewJob> {
   const errors: FieldErrors = {};
+
+  const kind = text(data, 'kind');
+  if (!isJobKind(kind)) return { ok: false, errors: { kind: 'Choose what kind of job it is.' } };
+  const words = KIND_WORDS[kind];
 
   const chosen = text(data, 'client');
   let client: ClientChoice = { kind: 'existing', id: '' };
@@ -112,26 +96,36 @@ export function parseNewOrder(
       errors.number = 'Use a whole number from 1 up, or leave it empty for the next number.';
   }
 
-  const deliveryOn = readDay(data, 'delivery-on', errors);
-  if (!errors['delivery-on'] && deliveryOn < context.today) errors['delivery-on'] = PAST_DAY;
+  const dueOn = readDay(data, 'due-on', errors);
+  if (!errors['due-on'] && dueOn < context.today) errors['due-on'] = PAST_DAY;
 
-  const bufferDays = readBuffer(data, 'buffer-days', context.defaultBufferDays, errors);
+  let time: string | null = null;
+  const rawTime = text(data, 'time');
+  if (words.atTime && rawTime !== '') {
+    const hhmm = rawTime.length === 8 && rawTime.endsWith(':00') ? rawTime.slice(0, 5) : rawTime;
+    if (/^([01]\d|2[0-3]):[0-5]\d$/.test(hhmm)) time = hhmm;
+    else errors.time = 'Use a time such as 10:30.';
+  }
 
   const notes = text(data, 'notes');
   if (chars(notes) > 4000) errors.notes = NOTES_TOO_LONG;
 
-  const garment = { garmentType: text(data, 'garment-type'), brief: text(data, 'brief') };
-  Object.assign(errors, garmentProblems(garment));
+  const typed = { garmentType: text(data, 'garment-type'), brief: text(data, 'brief') };
+  let garment: GarmentFields | null = null;
+  if (words.garment || typed.garmentType !== '') {
+    Object.assign(errors, garmentProblems(typed));
+    garment = typed;
+  } else if (chars(typed.brief) > 4000) errors.brief = 'Keep the brief under 4000 characters.';
 
-  const intent = text(data, 'intent');
-  if (intent !== 'confirm' && intent !== 'draft')
-    errors.form = 'Choose whether to confirm the order or keep it as a draft.';
+  const rawTemplate = text(data, 'template');
+  let templateId: string | null = null;
+  if (rawTemplate !== '' && rawTemplate !== NO_TEMPLATE) {
+    if (isUuid(rawTemplate)) templateId = rawTemplate;
+    else errors.template = 'Choose the steps it starts with.';
+  }
 
   if (Object.keys(errors).length > 0) return { ok: false, errors };
-  return {
-    ok: true,
-    value: { client, number, deliveryOn, bufferDays, notes, ...garment, confirm: intent === 'confirm' },
-  };
+  return { ok: true, value: { kind, client, number, dueOn, time, notes, garment, templateId } };
 }
 
 /** An order's notes. The one thing that can still be changed on a delivered or cancelled order. */
@@ -142,40 +136,41 @@ export function parseOrderNotes(data: FormData): Result<string> {
 
 export interface OrderDetails {
   clientId: string;
-  deliveryOn: IsoDate;
-  bufferDays: number;
+  kind: JobKind;
+  dueOn: IsoDate;
+  /** Move the steps not done yet by as many days as the due day moved. */
+  moveSteps: boolean;
   notes: string;
 }
 
 /**
- * Reads the form that changes an order's promise. For an active order a new handover day cannot be in the
- * past (the database says the same); a draft or paused order may keep an old one until it is confirmed.
+ * Reads the form that changes a job. For an active job a new due day cannot be in the past (the database says the
+ * same); a draft or paused one may keep an old one until it is confirmed.
  */
 export function parseOrderDetails(
   data: FormData,
-  current: { status: OrderStatus; deliveryOn: IsoDate; today: IsoDate },
+  current: { status: OrderStatus; dueOn: IsoDate; today: IsoDate },
 ): Result<OrderDetails> {
   const errors: FieldErrors = {};
   const clientId = text(data, 'client');
   if (!isUuid(clientId)) errors.client = 'Choose a client.';
 
-  const deliveryOn = readDay(data, 'delivery-on', errors);
-  if (
-    !errors['delivery-on'] &&
-    current.status === 'active' &&
-    deliveryOn !== current.deliveryOn &&
-    deliveryOn < current.today
-  )
-    errors['delivery-on'] = PAST_DAY;
+  const kind = text(data, 'kind');
+  if (!isJobKind(kind)) errors.kind = 'Choose what kind of job it is.';
 
-  const bufferDays = readBuffer(data, 'buffer-days', null, errors);
+  const dueOn = readDay(data, 'due-on', errors);
+  if (!errors['due-on'] && current.status === 'active' && dueOn !== current.dueOn && dueOn < current.today)
+    errors['due-on'] = PAST_DAY;
 
   const notes = text(data, 'notes');
   if (chars(notes) > 4000) errors.notes = NOTES_TOO_LONG;
 
   return Object.keys(errors).length > 0
     ? { ok: false, errors }
-    : { ok: true, value: { clientId, deliveryOn, bufferDays, notes } };
+    : {
+        ok: true,
+        value: { clientId, kind: kind as JobKind, dueOn, moveSteps: ticked(data, 'move-steps'), notes },
+      };
 }
 
 /** The changes to make for one move between statuses. Only the fields the move needs are present. */
@@ -210,7 +205,7 @@ export function parseTransition(
       change.deliveryOn = readDay(data, 'delivery-on', errors);
       if (!errors['delivery-on'] && change.deliveryOn < context.today) errors['delivery-on'] = PAST_DAY;
     } else if (context.deliveryOn < context.today) {
-      errors['delivery-on'] = 'The old handover day has passed. Choose a new one.';
+      errors['delivery-on'] = 'The old day has passed. Choose a new one.';
     }
   }
 

@@ -2,8 +2,8 @@ import { defineConfig } from '@playwright/test';
 import { env } from './support/env';
 
 /**
- * The browser suite (docs/testing.md). The specs are one story, in order: she takes orders, plans them, lives the
- * day, changes the plan, works without signal, and signs out. So they run one after another in one worker.
+ * The browser suite (docs/testing.md). The specs are one story, in order: she takes jobs, lives her calendar, works
+ * without signal, and signs out. So they run one after another in one worker.
  */
 export default defineConfig({
   testDir: '.',

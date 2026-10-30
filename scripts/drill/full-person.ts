@@ -41,41 +41,45 @@ export async function fillPerson(c: Queryable): Promise<{ pictures: string[] }> 
     [await day(3)],
   );
 
-  // A client, her measurements, an active order made from a template, with progress on it.
+  // A client, her measurements, and a new order with its steps: one done, one over several days, one with a time.
   const order = await id(
     c,
-    `select public.create_order(null, 'Selam Tesfaye', '0911 000 000', null, $1::date, null, 'Church wedding',
-                                'Evening dress', 'Emerald silk, long sleeves', true) as id`,
-    [await day(40)],
+    `select public.create_job('new_order', null, 'Selam Tesfaye', '0911 000 000', null, $1::date, 'Church wedding',
+                              'Evening dress', 'Emerald silk, long sleeves', $2::jsonb, true) as id`,
+    [
+      await day(40),
+      JSON.stringify([
+        { title: 'Buy fabric', on_day: today },
+        {
+          title: 'Sewing',
+          on_day: await day(10),
+          until_day: await day(16),
+          starts_at: '09:00',
+          ends_at: '13:00',
+        },
+        { title: 'First fitting', on_day: await day(20), starts_at: '10:30', ends_at: '11:30' },
+        { title: 'Delivery', on_day: await day(40) },
+        { title: 'Pressing' },
+      ]),
+    ],
   );
   const client = await id(c, `select client_id as id from public.orders where id = $1`, [order]);
   await c.query(
     `insert into public.measurement_set (client_id, taken_on, unit, measures) values ($1, $2, 'cm', $3::jsonb)`,
     [client, today, JSON.stringify({ bust: 92, waist: 74, hip: 100 })],
   );
-  const garment = await id(c, `select id from public.order_item where order_id = $1`, [order]);
-  const template = await id(c, `select id from public.template where name = 'Evening dress'`);
-  await c.query(`select public.apply_template($1, $2)`, [garment, template]);
-
-  const work = (
-    await c.query(`select id from public.task where order_id = $1 and kind = 'work' order by sort`, [order])
-  ).rows.map((r) => String(r.id));
-  await c.query(`update public.task set status = 'done', done_on = $2, actual_minutes = 50 where id = $1`, [
-    work[0],
+  await c.query(`update public.task set done_on = $2 where order_id = $1 and title = 'Buy fabric'`, [
+    order,
     today,
   ]);
-  await c.query(`update public.task set status = 'in_progress', remaining_minutes = 30 where id = $1`, [
-    work[1],
-  ]);
-  await c.query(`update public.task set hold_reason = 'Client is away' where id = $1`, [work[2]]);
-  await c.query(`update public.task set pinned_on = $2 where id = $1`, [work[3], await day(2)]);
+
+  // Her own template, changed.
   await c.query(
-    `update public.prerequisite set state = 'ordered', expected_on = $2
-     where id = (select id from public.prerequisite where order_id = $1 order by label limit 1)`,
-    [order, await day(5)],
+    `update public.template_task set days_before = 30 where title = 'Buy fabric'
+       and template_id = (select id from public.template where name = 'Dress')`,
   );
 
-  // A picture, and studio work with no order.
+  // A picture, and studio work with no job.
   const picture = await id(c, `select gen_random_uuid() as id`);
   const path = `${owner}/${order}/${picture}.jpg`;
   await c.query(
@@ -83,43 +87,25 @@ export async function fillPerson(c: Queryable): Promise<{ pictures: string[] }> 
      values ($1, $2, 'sketch', 'Front view', $3, 'image/jpeg', 2048)`,
     [picture, order, path],
   );
-  await c.query(
-    `insert into public.task (title, kind, minutes, sort) values ('Sharpen the shears', 'work', 45, 100000)`,
-  );
+  await c.query(`insert into public.task (title, on_day, sort) values ('Sharpen the shears', $1, 100000)`, [
+    await day(1),
+  ]);
 
-  // A draft order for a second client.
+  // An appointment with a second client, no garment; and a draft fix.
   await c.query(
-    `select public.create_order(null, 'Hanna Bekele', '', null, $1::date, 3, '', 'Suit alteration', '', false)`,
-    [await day(20)],
+    `select public.create_job('appointment', null, 'Hanna Bekele', '', null, $1::date, '', null, '', $2::jsonb, true)`,
+    [await day(2), JSON.stringify([{ title: 'Appointment', on_day: await day(2), starts_at: '14:00' }])],
   );
-
-  // An approved plan with a slot, and a rejected one.
-  const counters = await one(c, `select plan_epoch as e, progress_epoch as p from public.profile`);
-  const slots = JSON.stringify([{ task_id: work[1], day: today, minutes: 30, rank: 1, at_time: null }]);
-  const first = Number(
-    (
-      await one(c, `select public.save_proposal($1, $2, $3::date, $4::jsonb, $5::jsonb) as n`, [
-        counters.e,
-        counters.p,
-        today,
-        JSON.stringify({ drill: true }),
-        slots,
-      ])
-    ).n,
+  await c.query(
+    `select public.create_job('fix', null, 'Mimi Alemu', '', null, $1::date, '', 'Trousers', 'Shorten', $2::jsonb, false)`,
+    [
+      await day(5),
+      JSON.stringify([
+        { title: 'Fix', on_day: await day(3) },
+        { title: 'Delivery', on_day: await day(5) },
+      ]),
+    ],
   );
-  await c.query(`select public.approve_plan($1)`, [first]);
-  const second = Number(
-    (
-      await one(c, `select public.save_proposal($1, $2, $3::date, $4::jsonb, $5::jsonb) as n`, [
-        counters.e,
-        counters.p,
-        today,
-        JSON.stringify({ drill: 'second' }),
-        '[]',
-      ])
-    ).n,
-  );
-  await c.query(`select public.reject_plan($1)`, [second]);
 
   return { pictures: [path] };
 }

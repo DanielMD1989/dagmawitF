@@ -1,5 +1,7 @@
 # My Day: living the approved plan
 
+> **Replaced by [calendar-first.md](calendar-first.md) (decision 0066).** This page describes My Day from an approved plan, which the app no longer has. It is kept as the record of what was built and why it was taken out.
+
 Stage 4. The agreed contract for today's list, recording progress, quick-added work and the end-of-day review. Plans are
 in [planning.md](planning.md); the engine in [engine.md](engine.md). The reasons are in decisions 0040 to 0045. If code
 and this page disagree, one of them is a bug.

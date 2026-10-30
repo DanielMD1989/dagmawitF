@@ -39,21 +39,19 @@ A failed run leaves a trace for each failed step: `npx playwright show-trace tes
   it and signs in again.
 - **Her story, in order.** The specs run one after another in one worker, each on what the one before left:
 
-  | Spec                  | Stage | What she does                                                                     |
-  | --------------------- | ----- | --------------------------------------------------------------------------------- |
-  | `01-capture.spec.ts`  | 2     | Sets her week; takes three orders with pictures, measurements and preparation.    |
-  | `02-plan.spec.ts`     | 3     | Edits her library; plans an order; reviews, approves and rejects proposals.       |
-  | `03-day.spec.ts`      | 4     | Lives the day: blocked, start, done, still going, hold, Quick Add, the review.    |
-  | `04-change.spec.ts`   | 5     | The lace is late: sees what moves, approves; pins work; the week board.           |
-  | `05-harden.spec.ts`   | 6     | No signal and waiting taps; export and the restore drill; tidying; CSP; keyboard. |
-  | `06-sign-out.spec.ts` | 6     | Signs out (last: it ends every session of hers, the shared one too).              |
+  | Spec                  | What she does                                                                            |
+  | --------------------- | ---------------------------------------------------------------------------------------- |
+  | `01-jobs.spec.ts`     | Her week; takes jobs of each kind with their steps, pictures and measurements; statuses. |
+  | `02-calendar.spec.ts` | Today and the month; ticks steps; her own work; times and clashes; moving days; library. |
+  | `03-harden.spec.ts`   | No signal and waiting ticks; export and the restore drill; tidying; CSP; keyboard.       |
+  | `04-sign-out.spec.ts` | Changes her password, signs out (last: it ends every session of hers).                   |
 
 - **Through the screens.** Data changes only through the app. The database is read to check what was stored; the
   one write is ageing a stored file for the tidy-up test.
 - **Dates from today.** Every day typed or expected is counted from today in her time zone, so the suite keeps
-  working as the calendar moves. Her week is set to every day, so whatever day it runs, today has work.
+  working as the calendar moves. Her week is set to every day, so suggested days fall where the suite expects them.
 - **Every screen, every look.** Each spec checks its screens for sideways scrolling and with axe (WCAG 2.2 A and AA)
-  on a phone, on a desktop and at night; `05-harden` adds axe's best practices on every screen. Each spec fails if
+  on a phone, on a desktop and at night; `03-harden` adds axe's best practices on every screen. Each spec fails if
   the browser reported an error it did not cause on purpose.
 - **Local only.** It refuses to run unless the app, Supabase and the database are on this machine
   (`E2E_ALLOW_REMOTE=1` overrides, for a throwaway project only).

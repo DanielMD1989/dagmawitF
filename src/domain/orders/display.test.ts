@@ -3,9 +3,9 @@ import { describeHandover, orderLabel, orderTitle } from './display';
 
 describe('what an order is called', () => {
   it('uses its number and what is being made', () => {
-    expect(orderLabel(105, ['Bridal gown'])).toBe('Order #105, bridal gown');
-    expect(orderLabel(105, [])).toBe('Order #105');
-    expect(orderLabel(105, ['Bridal gown', 'Veil', 'Bolero'])).toBe('Order #105, bridal gown and 2 more');
+    expect(orderLabel(105, ['Bridal gown'])).toBe('Job #105, bridal gown');
+    expect(orderLabel(105, [])).toBe('Job #105');
+    expect(orderLabel(105, ['Bridal gown', 'Veil', 'Bolero'])).toBe('Job #105, bridal gown and 2 more');
     expect(orderTitle(105, ['Bridal gown'])).toBe('#105 · Bridal gown');
     expect(orderTitle(105, ['Bridal gown', 'Veil'])).toBe('#105 · Bridal gown + 1 more');
     expect(orderTitle(7, [])).toBe('#7');

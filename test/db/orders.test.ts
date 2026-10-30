@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import type { PoolClient } from 'pg';
 import { ORDER_STATUSES, canMove, type OrderStatus } from '../../src/domain/orders/status';
-import { BUFFER_CASES, GARMENT_CASES, PREREQUISITE_CASES } from '../fixtures/capture-cases';
-import { actAs, actAsOwner, attempt, createUser, inTransaction } from './helpers';
+import { GARMENT_CASES } from '../fixtures/capture-cases';
+import { actAs, actAsOwner, attempt, createUser, idOf, inTransaction } from './helpers';
 
 const CHECK = '23514';
 const UNIQUE = '23505';
@@ -135,14 +135,26 @@ describe('what each status needs', () => {
     });
   });
 
-  it('will not confirm an order with no garment', async () => {
+  it('confirms a job with no garment: an appointment or a sketch has none (decision 0066)', async () => {
     await signedIn(async (c) => {
       const client = await addClient(c);
       const { rows } = await c.query(
-        `insert into public.orders (client_id, delivery_on) values ($1, $2) returning id`,
+        `insert into public.orders (client_id, delivery_on, kind) values ($1, $2, 'appointment') returning id`,
         [client, await inDays(c, 30)],
       );
-      expect(await setStatus(c, rows[0]!.id, `status = 'active'`)).toMatchObject({ ok: false, code: CHECK });
+      expect(await setStatus(c, rows[0]!.id, `status = 'active'`)).toMatchObject({ ok: true });
+    });
+  });
+
+  it('is a new order unless she says which kind, and knows only the five kinds', async () => {
+    await signedIn(async (c) => {
+      const { orderId } = await addOrder(c);
+      const { rows } = await c.query(`select kind from public.orders where id = $1`, [orderId]);
+      expect(rows[0]!.kind).toBe('new_order');
+      for (const kind of ['fix', 'appointment', 'sketch', 'delivery', 'new_order']) {
+        expect((await setStatus(c, orderId, `kind = $2`, [kind])).ok, kind).toBe(true);
+      }
+      expect(await setStatus(c, orderId, `kind = 'repair'`)).toMatchObject({ ok: false, code: CHECK });
     });
   });
 
@@ -272,7 +284,7 @@ describe('a delivered or cancelled order is a record', () => {
         ok: false,
         code: CHECK,
       });
-      expect(await setStatus(c, orderId, `buffer_days = 9`)).toMatchObject({ ok: false, code: CHECK });
+      expect(await setStatus(c, orderId, `kind = 'fix'`)).toMatchObject({ ok: false, code: CHECK });
       expect(
         await setStatus(c, orderId, `client_id = $2`, [await addClient(c, 'Someone else')]),
       ).toMatchObject({
@@ -284,8 +296,8 @@ describe('a delivered or cancelled order is a record', () => {
 });
 
 describe('what hangs from a delivered or cancelled order is a record too', () => {
-  const addPrerequisite = (c: PoolClient) => async (orderId: string) => {
-    await c.query(`insert into public.prerequisite (order_id, kind, label) values ($1, 'material', 'Lace')`, [
+  const addStep = (c: PoolClient) => async (orderId: string) => {
+    await c.query(`insert into public.task (order_id, title, on_day) values ($1, 'Buy lace', '2026-01-05')`, [
       orderId,
     ]);
   };
@@ -322,39 +334,31 @@ describe('what hangs from a delivered or cancelled order is a record too', () =>
   );
 
   it.each(['delivered', 'cancelled'] as const)(
-    'keeps the preparation of a %s order as it is',
+    'keeps the steps of a %s order as they are',
     async (status) => {
       await signedIn(async (c) => {
-        const { orderId } = await orderIn(c, status, addPrerequisite(c));
+        const { orderId } = await orderIn(c, status, addStep(c));
         expect(
-          await attempt(
-            c,
-            `insert into public.prerequisite (order_id, kind, label) values ($1, 'approval', 'Design')`,
-            [orderId],
-          ),
+          await attempt(c, `insert into public.task (order_id, title) values ($1, 'Press')`, [orderId]),
         ).toMatchObject({ ok: false, code: CHECK });
         expect(
-          await attempt(c, `update public.prerequisite set state = 'received' where order_id = $1`, [
-            orderId,
-          ]),
+          await attempt(c, `update public.task set on_day = '2026-01-06' where order_id = $1`, [orderId]),
         ).toMatchObject({ ok: false, code: CHECK });
-        expect(
-          await attempt(c, `delete from public.prerequisite where order_id = $1`, [orderId]),
-        ).toMatchObject({
+        expect(await attempt(c, `delete from public.task where order_id = $1`, [orderId])).toMatchObject({
           ok: false,
           code: CHECK,
         });
-        const { rows } = await c.query(`select label, state from public.prerequisite where order_id = $1`, [
+        const { rows } = await c.query(`select title, on_day::text from public.task where order_id = $1`, [
           orderId,
         ]);
-        expect(rows).toEqual([{ label: 'Lace', state: 'needed' }]);
+        expect(rows).toEqual([{ title: 'Buy lace', on_day: '2026-01-05' }]);
       });
     },
   );
 
   it('can be changed again once the order is reopened', async () => {
     await signedIn(async (c) => {
-      const { orderId } = await orderIn(c, 'delivered', addPrerequisite(c));
+      const { orderId } = await orderIn(c, 'delivered', addStep(c));
       expect(await setStatus(c, orderId, `status = 'active'`)).toMatchObject({ ok: true });
       expect(
         await attempt(c, `update public.order_item set brief = 'Longer' where order_id = $1`, [orderId]),
@@ -362,7 +366,7 @@ describe('what hangs from a delivered or cancelled order is a record too', () =>
         ok: true,
       });
       expect(
-        await attempt(c, `update public.prerequisite set state = 'received' where order_id = $1`, [orderId]),
+        await attempt(c, `update public.task set on_day = '2026-01-07' where order_id = $1`, [orderId]),
       ).toMatchObject({ ok: true });
     });
   });
@@ -371,10 +375,10 @@ describe('what hangs from a delivered or cancelled order is a record too', () =>
     await inTransaction(async (c) => {
       const id = await createUser(c, 'leaving@example.test');
       await actAs(c, id);
-      await orderIn(c, 'delivered', addPrerequisite(c));
+      await orderIn(c, 'delivered', addStep(c));
       await actAsOwner(c);
       await c.query(`delete from auth.users where id = $1`, [id]);
-      for (const t of ['orders', 'order_item', 'prerequisite']) {
+      for (const t of ['orders', 'order_item', 'task']) {
         const { rows } = await c.query(`select count(*)::int as n from public.${t}`);
         expect(rows[0]!.n, t).toBe(0);
       }
@@ -449,30 +453,11 @@ describe('order numbers', () => {
   });
 });
 
-describe('buffer days', () => {
-  it.each(BUFFER_CASES)('agrees with the screen on $days days', async ({ days, valid }) => {
+describe('her settings for jobs', () => {
+  it('keep the unit for new measurements, within its choices', async () => {
     await signedIn(async (c) => {
-      const client = await addClient(c);
-      const r = await attempt(
-        c,
-        `insert into public.orders (client_id, delivery_on, buffer_days) values ($1, '2030-01-01', $2)`,
-        [client, days],
-      );
-      if (valid) expect(r.ok).toBe(true);
-      else expect(r).toMatchObject({ ok: false, code: CHECK });
-    });
-  });
-
-  it('has a default in her profile, within the same limits', async () => {
-    await signedIn(async (c) => {
-      const { rows } = await c.query(
-        `select default_buffer_days as d, measurement_unit as u from public.profile`,
-      );
-      expect(rows[0]).toEqual({ d: 2, u: 'cm' });
-      expect(await attempt(c, `update public.profile set default_buffer_days = 31`)).toMatchObject({
-        ok: false,
-        code: CHECK,
-      });
+      const { rows } = await c.query(`select measurement_unit as u from public.profile`);
+      expect(rows[0]).toEqual({ u: 'cm' });
       expect(await attempt(c, `update public.profile set measurement_unit = 'ft'`)).toMatchObject({
         ok: false,
         code: CHECK,
@@ -492,15 +477,12 @@ describe('deleting', () => {
     });
   });
 
-  it('is done for a draft by its own function, taking its garments and preparation with it', async () => {
+  it('is done for a draft by its own function, taking its garments and steps with it', async () => {
     await signedIn(async (c) => {
       const { orderId } = await addOrder(c);
-      await c.query(
-        `insert into public.prerequisite (order_id, kind, label) values ($1, 'material', 'Fabric')`,
-        [orderId],
-      );
+      await c.query(`insert into public.task (order_id, title) values ($1, 'Buy fabric')`, [orderId]);
       expect((await attempt(c, `select public.delete_draft_order($1)`, [orderId])).ok).toBe(true);
-      for (const t of ['orders', 'order_item', 'prerequisite']) {
+      for (const t of ['orders', 'order_item', 'task']) {
         const { rows } = await c.query(`select count(*)::int as n from public.${t}`);
         expect(rows[0]!.n, t).toBe(0);
       }
@@ -647,178 +629,92 @@ describe('garments', () => {
     });
   });
 
-  describe('a confirmed order always has one', () => {
-    it('refuses to remove the last garment of an active order', async () => {
-      await signedIn(async (c) => {
-        const { orderId } = await orderIn(c, 'active');
-        await c.query(`delete from public.order_item where order_id = $1`, [orderId]);
-        expect(await attempt(c, `set constraints all immediate`)).toMatchObject({ ok: false, code: CHECK });
-      });
-    });
-
-    it('refuses the same for an order on hold', async () => {
-      await signedIn(async (c) => {
-        const { orderId } = await orderIn(c, 'on_hold');
-        await c.query(`delete from public.order_item where order_id = $1`, [orderId]);
-        expect(await attempt(c, `set constraints all immediate`)).toMatchObject({ ok: false, code: CHECK });
-      });
-    });
-
-    it('allows removing one of two, or swapping one for another in the same step', async () => {
-      await signedIn(async (c) => {
-        const { orderId } = await orderIn(c, 'active');
-        await c.query(`insert into public.order_item (order_id, garment_type) values ($1, 'Veil')`, [
-          orderId,
-        ]);
-        await c.query(`delete from public.order_item where order_id = $1 and garment_type = 'Veil'`, [
-          orderId,
-        ]);
-        expect((await attempt(c, `set constraints all immediate`)).ok).toBe(true);
-
-        // Back to waiting until the end of the transaction, as it does for every request.
-        await c.query(`set constraints all deferred`);
-        await c.query(`delete from public.order_item where order_id = $1`, [orderId]);
-        await c.query(`insert into public.order_item (order_id, garment_type) values ($1, 'Evening dress')`, [
-          orderId,
-        ]);
-        expect((await attempt(c, `set constraints all immediate`)).ok).toBe(true);
-      });
-    });
-
-    it('does not apply to a draft', async () => {
-      await signedIn(async (c) => {
-        const { orderId } = await orderIn(c, 'draft');
-        await c.query(`delete from public.order_item where order_id = $1`, [orderId]);
-        expect((await attempt(c, `set constraints all immediate`)).ok).toBe(true);
-      });
-    });
-
-    it('does not stop a whole account from being removed', async () => {
-      await inTransaction(async (c) => {
-        const id = await createUser(c, 'leaving@example.test');
-        await actAs(c, id);
-        await orderIn(c, 'active');
-        await actAsOwner(c);
-        await c.query(`delete from auth.users where id = $1`, [id]);
-        expect((await attempt(c, `set constraints all immediate`)).ok).toBe(true);
-        const { rows } = await c.query(`select count(*)::int as n from public.orders`);
-        expect(rows[0]!.n).toBe(0);
-      });
-    });
-  });
-});
-
-describe('prerequisite', () => {
-  it.each(PREREQUISITE_CASES)('agrees with the screen on $label', async ({ prerequisite: p, valid }) => {
+  it('can be removed, the job keeping its steps', async () => {
     await signedIn(async (c) => {
-      const { orderId } = await addOrder(c);
-      const r = await attempt(
-        c,
-        `insert into public.prerequisite (order_id, kind, label, state, expected_on, blocking, note)
-         values ($1, $2, $3, $4, $5, $6, $7)`,
-        [orderId, p.kind, p.label, p.state, p.expectedOn, p.blocking, p.note],
+      const { orderId } = await orderIn(c, 'active');
+      const garment = (await c.query(`select id from public.order_item where order_id = $1`, [orderId]))
+        .rows[0]!.id;
+      await c.query(`insert into public.task (order_id, order_item_id, title) values ($1, $2, 'Sewing')`, [
+        orderId,
+        garment,
+      ]);
+      expect((await attempt(c, `delete from public.order_item where order_id = $1`, [orderId])).ok).toBe(
+        true,
       );
-      if (valid) expect(r.ok).toBe(true);
-      else expect(r).toMatchObject({ ok: false, code: CHECK });
-    });
-  });
-
-  it('refuses a kind or a state it does not know', async () => {
-    await signedIn(async (c) => {
-      const { orderId } = await addOrder(c);
-      const insert = (kind: string, state: string) =>
-        attempt(
-          c,
-          `insert into public.prerequisite (order_id, kind, label, state) values ($1, $2, 'X', $3)`,
-          [orderId, kind, state],
-        );
-      expect(await insert('fabric', 'needed')).toMatchObject({ ok: false, code: CHECK });
-      expect(await insert('material', 'arrived')).toMatchObject({ ok: false, code: CHECK });
-    });
-  });
-
-  it('is blocking and needed unless she says otherwise', async () => {
-    await signedIn(async (c) => {
-      const { orderId } = await addOrder(c);
-      const { rows } = await c.query(
-        `insert into public.prerequisite (order_id, kind, label) values ($1, 'material', 'Fabric') returning state, blocking, expected_on`,
-        [orderId],
-      );
-      expect(rows[0]).toEqual({ state: 'needed', blocking: true, expected_on: null });
-    });
-  });
-
-  it('can change state and date, but never move to another order', async () => {
-    await signedIn(async (c) => {
-      const one = await addOrder(c);
-      const two = await addOrder(c);
-      const id = (
-        await c.query(
-          `insert into public.prerequisite (order_id, kind, label) values ($1, 'material', 'Lace') returning id`,
-          [one.orderId],
-        )
-      ).rows[0]!.id;
-      expect(
-        (
-          await attempt(
-            c,
-            `update public.prerequisite set state = 'ordered', expected_on = '2026-11-04' where id = $1`,
-            [id],
-          )
-        ).ok,
-      ).toBe(true);
-      expect(
-        await attempt(c, `update public.prerequisite set order_id = $2 where id = $1`, [id, two.orderId]),
-      ).toMatchObject({
-        ok: false,
-        code: NO_RIGHT,
-      });
+      const { rows } = await c.query(`select title, order_item_id from public.task where order_id = $1`, [
+        orderId,
+      ]);
+      expect(rows).toEqual([{ title: 'Sewing', order_item_id: null }]);
     });
   });
 });
 
 describe('the functions the screens call', () => {
+  type Step = {
+    title: string;
+    on_day?: string | null;
+    until_day?: string | null;
+    starts_at?: string | null;
+    ends_at?: string | null;
+  };
   const create = (c: PoolClient, over: Record<string, unknown> = {}) => {
     const a = {
+      kind: 'new_order',
       client: null as string | null,
       name: 'New Client',
       phone: '0911 11 22 33',
       number: null as number | null,
-      delivery: '2030-01-01',
-      buffer: 3,
+      due: '2030-01-01',
       notes: 'Wedding in January',
-      garment: 'Bridal gown',
+      garment: 'Bridal gown' as string | null,
       brief: 'Lace sleeves',
+      steps: [
+        { title: 'Buy fabric', on_day: '2029-12-01' },
+        { title: 'Sewing', on_day: '2029-12-10', until_day: '2029-12-17' },
+        { title: 'Fitting', on_day: '2029-12-20', starts_at: '10:30', ends_at: '11:30' },
+      ] as Step[] | unknown,
       confirm: false,
       ...over,
     };
-    return attempt(c, `select public.create_order($1, $2, $3, $4, $5::date, $6, $7, $8, $9, $10) as id`, [
-      a.client,
-      a.name,
-      a.phone,
-      a.number,
-      a.delivery,
-      a.buffer,
-      a.notes,
-      a.garment,
-      a.brief,
-      a.confirm,
-    ]);
+    return attempt(
+      c,
+      `select public.create_job($1, $2, $3, $4, $5, $6::date, $7, $8, $9, $10::jsonb, $11) as id`,
+      [
+        a.kind,
+        a.client,
+        a.name,
+        a.phone,
+        a.number,
+        a.due,
+        a.notes,
+        a.garment,
+        a.brief,
+        JSON.stringify(a.steps),
+        a.confirm,
+      ],
+    );
   };
+  const steps = async (c: PoolClient) =>
+    (
+      await c.query(
+        `select title, sort, on_day::text, until_day::text, starts_at::text, ends_at::text,
+                order_item_id is not null as for_garment
+         from public.task order by sort`,
+      )
+    ).rows;
 
-  it('create an order, its first garment and a new client in one step', async () => {
+  it('create a job, its garment, its steps and a new client in one step', async () => {
     await signedIn(async (c) => {
-      const r = await create(c);
-      expect(r.ok).toBe(true);
+      expect((await create(c)).ok).toBe(true);
       const { rows } = await c.query(
-        `select o.number, o.status, o.buffer_days, o.notes, c.name, c.phone, i.garment_type, i.brief
+        `select o.number, o.kind, o.status, o.notes, c.name, c.phone, i.garment_type, i.brief
          from public.orders o join public.client c on c.id = o.client_id join public.order_item i on i.order_id = o.id`,
       );
       expect(rows).toEqual([
         {
           number: 1,
+          kind: 'new_order',
           status: 'draft',
-          buffer_days: 3,
           notes: 'Wedding in January',
           name: 'New Client',
           phone: '0911 11 22 33',
@@ -826,6 +722,54 @@ describe('the functions the screens call', () => {
           brief: 'Lace sleeves',
         },
       ]);
+      expect(await steps(c)).toEqual([
+        {
+          title: 'Buy fabric',
+          sort: 10,
+          on_day: '2029-12-01',
+          until_day: null,
+          starts_at: null,
+          ends_at: null,
+          for_garment: true,
+        },
+        {
+          title: 'Sewing',
+          sort: 20,
+          on_day: '2029-12-10',
+          until_day: '2029-12-17',
+          starts_at: null,
+          ends_at: null,
+          for_garment: true,
+        },
+        {
+          title: 'Fitting',
+          sort: 30,
+          on_day: '2029-12-20',
+          until_day: null,
+          starts_at: '10:30:00',
+          ends_at: '11:30:00',
+          for_garment: true,
+        },
+      ]);
+    });
+  });
+
+  it('make an appointment with no garment', async () => {
+    await signedIn(async (c) => {
+      const r = await create(c, {
+        kind: 'appointment',
+        garment: null,
+        brief: '',
+        steps: [{ title: 'Appointment', on_day: '2030-01-01', starts_at: '14:00' }],
+        confirm: true,
+        due: await inDays(c, 3),
+      });
+      expect(r.ok).toBe(true);
+      const { rows } = await c.query(
+        `select kind, status, (select count(*)::int from public.order_item) as garments from public.orders`,
+      );
+      expect(rows).toEqual([{ kind: 'appointment', status: 'active', garments: 0 }]);
+      expect((await steps(c)).map((s) => [s.title, s.for_garment])).toEqual([['Appointment', false]]);
     });
   });
 
@@ -842,8 +786,7 @@ describe('the functions the screens call', () => {
           [clientId],
         )
       ).rows[0]!.id;
-      const r = await create(c, { client: clientId });
-      expect(r.ok).toBe(true);
+      expect((await create(c, { client: clientId })).ok).toBe(true);
       const { rows } = await c.query(
         `select measurement_set_id, (select count(*)::int from public.client) as clients from public.order_item`,
       );
@@ -851,29 +794,29 @@ describe('the functions the screens call', () => {
     });
   });
 
-  it('confirm the order at once when asked', async () => {
+  it('confirm the job at once when asked', async () => {
     await signedIn(async (c) => {
-      const r = await create(c, { confirm: true, delivery: await inDays(c, 20) });
-      expect(r.ok).toBe(true);
+      expect((await create(c, { confirm: true, due: await inDays(c, 20) })).ok).toBe(true);
       const { rows } = await c.query(`select status from public.orders`);
       expect(rows).toEqual([{ status: 'active' }]);
     });
   });
 
-  it('use her default buffer when none is given', async () => {
+  it.each([
+    ['a step with no title', [{ title: '' }]],
+    ['a last day before the first', [{ title: 'Sewing', on_day: '2029-12-10', until_day: '2029-12-09' }]],
+    ['a time with no day', [{ title: 'Fitting', starts_at: '10:00' }]],
+    [
+      'an end before the start',
+      [{ title: 'Fitting', on_day: '2029-12-10', starts_at: '10:00', ends_at: '09:00' }],
+    ],
+    ['steps that are not a list', { title: 'Sewing' }],
+    ['more than 100 steps', Array.from({ length: 101 }, (_, n) => ({ title: `Step ${n}` }))],
+  ])('leave nothing behind when given %s', async (_, given) => {
     await signedIn(async (c) => {
-      await c.query(`update public.profile set default_buffer_days = 4`);
-      await create(c, { buffer: null });
-      const { rows } = await c.query(`select buffer_days from public.orders`);
-      expect(rows).toEqual([{ buffer_days: 4 }]);
-    });
-  });
-
-  it('leave nothing behind when a later step fails', async () => {
-    await signedIn(async (c) => {
-      const r = await create(c, { garment: '' });
-      expect(r).toMatchObject({ ok: false, code: CHECK });
-      for (const t of ['client', 'orders', 'order_item']) {
+      const r = await create(c, { steps: given });
+      expect(r.ok).toBe(false);
+      for (const t of ['client', 'orders', 'order_item', 'task']) {
         const { rows } = await c.query(`select count(*)::int as n from public.${t}`);
         expect(rows[0]!.n, t).toBe(0);
       }
@@ -882,12 +825,31 @@ describe('the functions the screens call', () => {
 
   it('leave nothing behind when the confirmation fails', async () => {
     await signedIn(async (c) => {
-      const r = await create(c, { confirm: true, delivery: await inDays(c, -5) });
+      const r = await create(c, { confirm: true, due: await inDays(c, -5) });
       expect(r).toMatchObject({ ok: false, code: CHECK });
       const { rows } = await c.query(
         `select (select count(*)::int from public.orders) as orders, (select count(*)::int from public.client) as clients`,
       );
       expect(rows[0]).toEqual({ orders: 0, clients: 0 });
+    });
+  });
+
+  it('move the due day, and the steps still to do with it when she asks', async () => {
+    await signedIn(async (c) => {
+      const id = idOf(await create(c));
+      await c.query(`update public.task set done_on = $1 where title = 'Buy fabric'`, [await today(c)]);
+      const moved = await attempt(c, `select public.move_due_day($1, '2030-01-08', true) as n`, [id]);
+      expect(moved).toMatchObject({ ok: true, rows: [{ n: 2 }] });
+      expect((await steps(c)).map((s) => [s.title, s.on_day, s.until_day])).toEqual([
+        ['Buy fabric', '2029-12-01', null],
+        ['Sewing', '2029-12-17', '2029-12-24'],
+        ['Fitting', '2029-12-27', null],
+      ]);
+      const alone = await attempt(c, `select public.move_due_day($1, '2030-01-10', false) as n`, [id]);
+      expect(alone).toMatchObject({ ok: true, rows: [{ n: 0 }] });
+      const { rows } = await c.query(`select delivery_on::text as d from public.orders`);
+      expect(rows[0]!.d).toBe('2030-01-10');
+      expect((await steps(c))[2]!.on_day).toBe('2029-12-27');
     });
   });
 
@@ -910,20 +872,24 @@ describe('the functions the screens call', () => {
     });
   });
 
-  it('refuse to add a garment to an order that is not hers or does not exist', async () => {
+  it('refuse to add a garment to, or move the day of, a job that is not hers or does not exist', async () => {
     await inTransaction(async (c) => {
       const a = await createUser(c, 'a@example.test');
       const b = await createUser(c, 'b@example.test');
       await actAs(c, a);
       const { orderId } = await addOrder(c);
       await actAs(c, b);
-      const theirs = await attempt(c, `select public.add_garment($1, 'Veil', '')`, [orderId]);
-      const nothing = await attempt(
-        c,
-        `select public.add_garment('00000000-0000-0000-0000-000000000000', 'Veil', '')`,
-      );
-      expect(theirs).toMatchObject({ ok: false, code: 'P0002' });
-      expect(nothing).toMatchObject({ ok: false, code: 'P0002' });
+      const nobody = '00000000-0000-0000-0000-000000000000';
+      for (const id of [orderId, nobody]) {
+        expect(await attempt(c, `select public.add_garment($1, 'Veil', '')`, [id])).toMatchObject({
+          ok: false,
+          code: 'P0002',
+        });
+        expect(await attempt(c, `select public.move_due_day($1, '2030-02-01', true)`, [id])).toMatchObject({
+          ok: false,
+          code: 'P0002',
+        });
+      }
     });
   });
 
@@ -932,7 +898,8 @@ describe('the functions the screens call', () => {
       await c.query(`reset role`);
       await c.query(`set local role anon`);
       for (const call of [
-        `select public.create_order(null, 'X', '', null, '2030-01-01', 2, '', 'Gown', '', false)`,
+        `select public.create_job('new_order', null, 'X', '', null, '2030-01-01', '', 'Gown', '', '[]', false)`,
+        `select public.move_due_day('00000000-0000-0000-0000-000000000000', '2030-01-01', true)`,
         `select public.add_garment('00000000-0000-0000-0000-000000000000', 'Veil', '')`,
         `select public.delete_draft_order('00000000-0000-0000-0000-000000000000')`,
       ]) {
@@ -948,16 +915,15 @@ describe('another designer cannot reach orders', () => {
     const b = await createUser(c, 'b@example.test');
     await actAs(c, a);
     const o = await addOrder(c);
-    const prereq = (
-      await c.query(
-        `insert into public.prerequisite (order_id, kind, label) values ($1, 'material', 'Fabric') returning id`,
-        [o.orderId],
-      )
+    const step = (
+      await c.query(`insert into public.task (order_id, title) values ($1, 'Buy fabric') returning id`, [
+        o.orderId,
+      ])
     ).rows[0]!.id;
-    return { a, b, ...o, prereq };
+    return { a, b, ...o, step };
   }
 
-  it.each(['orders', 'order_item', 'prerequisite'])('hides %s rows', async (table) => {
+  it.each(['orders', 'order_item', 'task'])('hides %s rows', async (table) => {
     await inTransaction(async (c) => {
       const { b } = await twoDesigners(c);
       await actAs(c, b);
@@ -968,22 +934,22 @@ describe('another designer cannot reach orders', () => {
 
   it('leaves her order alone when someone else tries to change it', async () => {
     await inTransaction(async (c) => {
-      const { b, orderId, prereq } = await twoDesigners(c);
+      const { b, orderId, step } = await twoDesigners(c);
       await actAs(c, b);
       expect(await setStatus(c, orderId, `notes = 'Hacked'`)).toMatchObject({ ok: true, rowCount: 0 });
       expect(
-        await attempt(c, `update public.prerequisite set state = 'received' where id = $1`, [prereq]),
+        await attempt(c, `update public.task set done_on = '2026-01-01' where id = $1`, [step]),
       ).toMatchObject({
         ok: true,
         rowCount: 0,
       });
       await actAsOwner(c);
-      const { rows } = await c.query(`select o.notes, p.state from public.orders o, public.prerequisite p`);
-      expect(rows).toEqual([{ notes: '', state: 'needed' }]);
+      const { rows } = await c.query(`select o.notes, k.done_on from public.orders o, public.task k`);
+      expect(rows).toEqual([{ notes: '', done_on: null }]);
     });
   });
 
-  it("refuses to hang an order, garment or preparation on someone else's rows, saying nothing about whether they exist", async () => {
+  it("refuses to hang a job, garment or step on someone else's rows, saying nothing about whether they exist", async () => {
     await inTransaction(async (c) => {
       const { b, orderId, clientId } = await twoDesigners(c);
       await actAs(c, b);
@@ -992,15 +958,13 @@ describe('another designer cannot reach orders', () => {
         attempt(c, `insert into public.orders (client_id, delivery_on) values ($1, '2030-01-01')`, [client]);
       const forGarment = (order: string) =>
         attempt(c, `insert into public.order_item (order_id, garment_type) values ($1, 'Gown')`, [order]);
-      const forPrereq = (order: string) =>
-        attempt(c, `insert into public.prerequisite (order_id, kind, label) values ($1, 'other', 'X')`, [
-          order,
-        ]);
+      const forStep = (order: string) =>
+        attempt(c, `insert into public.task (order_id, title) values ($1, 'X')`, [order]);
 
       for (const [make, real] of [
         [forOrder, clientId],
         [forGarment, orderId],
-        [forPrereq, orderId],
+        [forStep, orderId],
       ] as const) {
         const r1 = await make(real);
         const r2 = await make(nobody);
@@ -1018,7 +982,7 @@ describe('another designer cannot reach orders', () => {
       await actAs(c, b);
       const r = await attempt(
         c,
-        `select public.create_order($1, '', '', null, '2030-01-01', 2, '', 'Gown', '', false)`,
+        `select public.create_job('new_order', $1, '', '', null, '2030-01-01', '', 'Gown', '', '[]', false)`,
         [clientId],
       );
       expect(r).toMatchObject({ ok: false, code: FOREIGN_KEY });

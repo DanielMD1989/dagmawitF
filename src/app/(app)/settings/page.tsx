@@ -5,14 +5,13 @@ import { ThemeSwitch } from '@/components/ThemeSwitch';
 import { SignOutForm } from '@/components/offline/SignOutForm';
 import { formatMinutes } from '@/domain/duration';
 import { formatDay } from '@/domain/dates';
-import { usableMinutes, workingMinutes } from '@/domain/calendar/capacity';
 import { THEME_COOKIE, parseTheme } from '@/lib/theme';
 import { loadCalendarSettings } from '@/server/calendar';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
 import { createSupabase } from '@/server/supabase';
 import { ExceptionForm } from './ExceptionForm';
-import { OrderDefaultsForm } from './OrderDefaultsForm';
+import { MeasurementUnitForm } from './MeasurementUnitForm';
 import { PasswordForm } from './PasswordForm';
 import { ProfileForm } from './ProfileForm';
 import { TidyForm } from './TidyForm';
@@ -30,11 +29,6 @@ export default async function SettingsPage() {
   ]);
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
 
-  const weeklyWorking = week.reduce((sum, d) => sum + workingMinutes(d), 0);
-  const weeklyUsable = week.reduce(
-    (sum, d) => sum + usableMinutes(workingMinutes(d), profile.planningRatio),
-    0,
-  );
   const zones = Intl.supportedValuesOf('timeZone');
   const timeZones = zones.includes(profile.timezone) ? zones : [profile.timezone, ...zones];
 
@@ -42,36 +36,32 @@ export default async function SettingsPage() {
     <>
       <div className="page-head">
         <p className="eyebrow">Settings</p>
-        <h1>Her week and her days off</h1>
+        <h1>Your week and your days off</h1>
         <p className="lede">
-          The planner only ever uses the time set here. Change it and every plan follows.
+          When a new job’s steps are given their days, they go on the days you work. Nothing else depends on
+          it.
         </p>
       </div>
 
       <section className="section" aria-labelledby="week-heading">
         <div className="section__head">
           <h2 id="week-heading">Working week</h2>
-          <p className="hint">Tick the days she works, then set her hours and her usual break.</p>
-        </div>
-        <WorkWeekForm week={week} />
-        <div className="card" role="status">
-          <p>
-            {week.length === 0 ? (
-              <>No working days saved yet. Until some are, nothing can be planned.</>
-            ) : (
-              <>
-                <strong>{formatMinutes(weeklyWorking)}</strong> of work a week, of which the planner will fill{' '}
-                <strong>{formatMinutes(weeklyUsable)}</strong> ({Math.round(profile.planningRatio * 100)}%).
-              </>
-            )}
+          <p className="hint">
+            Tick the days you work. The hours are for you to see; nothing is planned by the hour.
           </p>
         </div>
+        <WorkWeekForm week={week} />
+        {week.length === 0 && (
+          <div className="card" role="status">
+            <p>No working days saved. Steps are then suggested on any day of the week.</p>
+          </div>
+        )}
       </section>
 
       <section className="section" aria-labelledby="off-heading">
         <div className="section__head">
           <h2 id="off-heading">Days off and shorter days</h2>
-          <p className="hint">Holidays, leave and half days. These replace her usual week for that date.</p>
+          <p className="hint">Holidays and leave. No step is suggested on a day off.</p>
         </div>
         {exceptions.length > 0 && (
           <ul className="rows">
@@ -104,16 +94,11 @@ export default async function SettingsPage() {
         <ProfileForm profile={profile} timeZones={timeZones} />
       </section>
 
-      <section className="section" aria-labelledby="orders-heading">
+      <section className="section" aria-labelledby="measure-heading">
         <div className="section__head">
-          <h2 id="orders-heading">Orders and measurements</h2>
+          <h2 id="measure-heading">Measurements</h2>
         </div>
-        <OrderDefaultsForm
-          defaults={{
-            defaultBufferDays: preferences.defaultBufferDays,
-            measurementUnit: preferences.measurementUnit,
-          }}
-        />
+        <MeasurementUnitForm unit={preferences.measurementUnit} />
         <div className="card">
           <h3>Your list of measurements</h3>
           <p className="hint">The measurements you take from every client, in your words and your order.</p>
@@ -135,10 +120,10 @@ export default async function SettingsPage() {
 
       <section className="section" aria-labelledby="data-heading">
         <div className="section__head">
-          <h2 id="data-heading">Her data</h2>
+          <h2 id="data-heading">Your data</h2>
           <p className="hint">
-            Everything she has entered, and her pictures, in one file. Keep a copy somewhere safe, away from
-            her phone; whoever looks after the app can bring it back from that file.
+            Everything you have entered, and your pictures, in one file. Keep a copy somewhere safe, away from
+            your phone; whoever looks after the app can bring it back from that file.
           </p>
         </div>
         <div className="btn-row">
@@ -148,7 +133,7 @@ export default async function SettingsPage() {
         </div>
         <p className="hint">
           Pictures can be left stored with nothing pointing at them if a save was cut off halfway. Tidying
-          removes them; nothing she can see changes.
+          removes them; nothing you can see changes.
         </p>
         <TidyForm />
       </section>

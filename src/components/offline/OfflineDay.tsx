@@ -1,46 +1,23 @@
 'use client';
 
-import { useState, useSyncExternalStore, type FormEvent } from 'react';
+import { useState, useSyncExternalStore } from 'react';
 import { formatDayLong, wallClockOf } from '@/domain/dates';
-import { parseDone, parseRemaining } from '@/domain/day/forms';
 import {
   addTap,
   isForToday,
   returnPath,
-  offlineTaps,
   undoTap,
   withWaiting,
   type DaySnapshot,
-  type OfflineChange,
   type OfflineEntry,
-  type Section,
   type WaitingTap,
-} from '@/domain/day/offline';
-import { takesHerTime } from '@/domain/day/progress';
-import type { TodayState } from '@/domain/day/today';
-import { formatMinutes } from '@/domain/duration';
-import { estimateFields } from '@/domain/planning/forms';
-import { HoursMinutes } from '@/components/HoursMinutes';
+} from '@/domain/steps/offline';
 import { readSnapshot, readWaiting, saveWaiting, subscribeOffline } from '@/lib/offline-store';
 
 /**
- * My Day with no signal (docs/harden.md): the day as it was when she last opened it, with her waiting taps applied.
- * Everything here comes from the phone; nothing is fetched.
+ * Today with no signal (docs/harden.md): the calendar as it was when she last opened it, with her waiting ticks
+ * applied. Everything here comes from the phone; nothing is fetched.
  */
-
-const CHIP: Record<TodayState, { text: string; className: string }> = {
-  ready: { text: 'Ready', className: 'chip chip--line' },
-  started: { text: 'Started', className: 'chip chip--sand' },
-  done: { text: 'Done', className: 'chip' },
-  blocked: { text: 'Blocked', className: 'chip chip--warn' },
-  held: { text: 'On hold', className: 'chip chip--warn' },
-};
-
-const SECTIONS: { section: Section; heading: string }[] = [
-  { section: 'fixed', heading: 'Fixed' },
-  { section: 'work', heading: 'Planned, in suggested order' },
-  { section: 'started', heading: 'Also started' },
-];
 
 const noSnapshot = () => null;
 const noWaiting = (): WaitingTap[] => [];
@@ -49,10 +26,10 @@ const assumeOffline = () => false;
 // The page is kept once and opened for any address, so where she was going is read from the address bar.
 const noEvents = () => () => undefined;
 const fromAddress = () => returnPath(new URLSearchParams(window.location.search).get('from') ?? undefined);
-const toMyDay = () => '/';
+const toToday = () => '/';
 
 export function OfflineDay() {
-  const from = useSyncExternalStore(noEvents, fromAddress, toMyDay);
+  const from = useSyncExternalStore(noEvents, fromAddress, toToday);
   const snapshot = useSyncExternalStore(subscribeOffline, readSnapshot, noSnapshot);
   const waiting = useSyncExternalStore(subscribeOffline, readWaiting, noWaiting);
   const signal = useSyncExternalStore(subscribeOffline, online, assumeOffline);
@@ -66,7 +43,7 @@ export function OfflineDay() {
           <p className="eyebrow">No signal</p>
           <h1>Nothing is kept on this phone yet</h1>
           <p className="lede">
-            Open My Day once with signal, and it will be here the next time there is none.
+            Open Today once with signal, and it will be here the next time there is none.
           </p>
         </div>
         <TryAgain from={from} signal={signal} />
@@ -76,8 +53,9 @@ export function OfflineDay() {
 
   const today = isForToday(snapshot, openedAt);
   const madeAt = wallClockOf(snapshot.madeAt, snapshot.timezone);
-  const entries = withWaiting(snapshot, waiting);
+  const view = withWaiting(snapshot, waiting);
   const mine = waiting.filter((t) => t.ownerId === snapshot.ownerId);
+  const days = view.days.filter((d, i) => i === 0 || d.entries.length > 0);
 
   return (
     <>
@@ -88,8 +66,8 @@ export function OfflineDay() {
         </h1>
         <p className="lede">
           {today
-            ? 'This is My Day as it was when you last opened it. What you mark here waits on this phone and is sent when the signal is back.'
-            : `This is the list from ${formatDayLong(snapshot.day)}, the last time My Day was opened with signal. It is a reminder, not today’s plan, so nothing can be marked here.`}
+            ? 'This is your calendar as it was when you last opened it. What you tick here waits on this phone and is sent when the signal is back.'
+            : `This is the calendar from ${formatDayLong(snapshot.day)}, the last time it was opened with signal. It is a reminder, so nothing can be ticked here.`}
         </p>
       </div>
 
@@ -97,42 +75,43 @@ export function OfflineDay() {
 
       {mine.length > 0 && (
         <p className="card" role="status">
-          {mine.length} {mine.length === 1 ? 'change waits' : 'changes wait'} to be sent.
+          {mine.length} {mine.length === 1 ? 'tick waits' : 'ticks wait'} to be sent.
         </p>
       )}
 
-      <section className="card" aria-label="Time that day">
-        <div className="big-number">
-          {formatMinutes(snapshot.plannedMinutes)} planned{' '}
-          <small>of {formatMinutes(snapshot.usableMinutes)} usable</small>
-        </div>
-        {snapshot.planNumber !== null && <p className="hint">From plan {snapshot.planNumber}.</p>}
-      </section>
-
-      {entries.length === 0 && (
-        <div className="card">
-          <p>Nothing was planned for that day.</p>
-        </div>
+      {view.overdue.length > 0 && (
+        <section className="section" aria-labelledby="offline-overdue">
+          <div className="section__head">
+            <h2 id="offline-overdue" className="eyebrow">
+              Not done yet
+            </h2>
+          </div>
+          <ul className="items">
+            {view.overdue.map((e) => (
+              <Entry key={e.id} entry={e} snapshot={snapshot} waiting={waiting} canTap={today} late />
+            ))}
+          </ul>
+        </section>
       )}
 
-      {SECTIONS.map(({ section, heading }) => {
-        const list = entries.filter((e) => e.section === section);
-        if (list.length === 0) return null;
-        return (
-          <section key={section} className="section" aria-labelledby={`offline-${section}`}>
-            <div className="section__head">
-              <h2 id={`offline-${section}`} className="eyebrow">
-                {heading}
-              </h2>
-            </div>
+      {days.map((d) => (
+        <section key={d.day} className="section day-list" aria-labelledby={`offline-${d.day}`}>
+          <div className="day-list__head">
+            <h2 id={`offline-${d.day}`} className="h3">
+              {d.heading}
+            </h2>
+          </div>
+          {d.entries.length > 0 ? (
             <ul className="items">
-              {list.map((e) => (
+              {d.entries.map((e) => (
                 <Entry key={e.id} entry={e} snapshot={snapshot} waiting={waiting} canTap={today} />
               ))}
             </ul>
-          </section>
-        );
-      })}
+          ) : (
+            <p className="day-list__empty">Nothing on that day.</p>
+          )}
+        </section>
+      ))}
     </>
   );
 }
@@ -156,152 +135,60 @@ function Entry({
   snapshot,
   waiting,
   canTap,
+  late = false,
 }: {
   entry: OfflineEntry;
   snapshot: DaySnapshot;
   waiting: WaitingTap[];
   canTap: boolean;
+  late?: boolean;
 }) {
-  const taps = canTap ? offlineTaps(entry) : [];
-  const length = entry.minutesToday > 0 ? formatMinutes(entry.minutesToday) : null;
-  const tap = (change: OfflineChange) => {
-    const next = addTap(waiting, entry, snapshot.ownerId, change, crypto.randomUUID(), new Date());
-    if (next) saveWaiting(next);
-  };
-
+  const tap = () => saveWaiting(addTap(waiting, entry, snapshot.ownerId, crypto.randomUUID(), new Date()));
   return (
-    <li className={entry.state === 'blocked' || entry.state === 'held' ? 'item item--undated' : 'item'}>
+    <li className={late ? 'item item--late' : 'item'}>
       <div className="item__head">
+        {canTap ? (
+          <div className="tick-form">
+            <button
+              type="button"
+              className={entry.done ? 'tick tick--done' : 'tick'}
+              aria-label={
+                entry.done ? `${entry.title}: done. Mark as not done` : `Mark ${entry.title} as done`
+              }
+              onClick={tap}
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" aria-hidden="true">
+                <path d="M5 12.5l4.5 4.5L19 7.5" />
+              </svg>
+            </button>
+          </div>
+        ) : (
+          <span className={entry.done ? 'item__mark item__mark--done' : 'item__mark'} aria-hidden="true" />
+        )}
         {entry.time && <span className="today__time">{entry.time}</span>}
         <div className="item__main">
-          <span className={entry.state === 'done' ? 'item__title today__done' : 'item__title'}>
-            {entry.title}
-          </span>
+          <span className={entry.done ? 'item__title today__done' : 'item__title'}>{entry.title}</span>
           <span className="hint">
-            {entry.orderLabel ?? 'Studio work'}
-            {length && ` · ${length}`}
-            {entry.state === 'done' &&
-              entry.actualMinutes !== null &&
-              ` · took ${formatMinutes(entry.actualMinutes)}`}
-            {entry.state === 'started' &&
-              entry.remainingMinutes !== null &&
-              ` · about ${formatMinutes(entry.remainingMinutes)} left`}
+            {[entry.part, entry.jobLabel ?? 'Your own'].filter(Boolean).join(' · ')}
           </span>
-          {entry.reason && <span className="item__note">{entry.reason}</span>}
+          {entry.clash && (
+            <span className="item__note item__note--warn">Another appointment overlaps this time.</span>
+          )}
           {entry.waiting > 0 && <span className="item__note">Waiting to be sent.</span>}
         </div>
-        <span className={CHIP[entry.state].className}>{CHIP[entry.state].text}</span>
       </div>
-      {(taps.includes('start') || entry.undoKey) && (
+      {canTap && entry.undoKey && (
         <div className="today__actions">
-          {taps.includes('start') && (
-            <button
-              type="button"
-              className="btn btn--quiet btn--small"
-              aria-label={`Start ${entry.title}`}
-              onClick={() => tap({ kind: 'start' })}
-            >
-              Start
-            </button>
-          )}
-          {canTap && entry.undoKey && (
-            <button
-              type="button"
-              className="btn btn--quiet btn--small"
-              aria-label={`Undo the last change to ${entry.title}`}
-              onClick={() => saveWaiting(undoTap(waiting, entry.undoKey!))}
-            >
-              Undo
-            </button>
-          )}
-        </div>
-      )}
-      {(taps.includes('done') || taps.includes('remaining')) && (
-        <div className="today__forms">
-          {taps.includes('done') && <DoneForm entry={entry} day={snapshot.day} onTap={tap} />}
-          {taps.includes('remaining') && <StillGoingForm entry={entry} onTap={tap} />}
+          <button
+            type="button"
+            className="btn btn--quiet btn--small"
+            aria-label={`Undo the last change to ${entry.title}`}
+            onClick={() => saveWaiting(undoTap(waiting, entry.undoKey!))}
+          >
+            Undo
+          </button>
         </div>
       )}
     </li>
-  );
-}
-
-function DoneForm({
-  entry,
-  day,
-  onTap,
-}: {
-  entry: OfflineEntry;
-  day: string;
-  onTap: (change: OfflineChange) => void;
-}) {
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const needsTime = takesHerTime(entry.kind);
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    // The same reading as the form on My Day; the day is the list's day.
-    const parsed = parseDone(new FormData(event.currentTarget), day, needsTime);
-    if (!parsed.ok) return setErrors(parsed.errors);
-    setErrors({});
-    onTap({ kind: 'done', ...parsed.value });
-  };
-  return (
-    <details className="disclosure disclosure--link">
-      <summary>
-        Done<span className="sr-only">: {entry.title}</span>
-      </summary>
-      <div className="disclosure__panel">
-        <form className="form" noValidate onSubmit={submit}>
-          {needsTime && (
-            <HoursMinutes
-              prefix="actual"
-              id={entry.id}
-              legend="How long it took, in total"
-              error={errors['actual-hours']}
-              {...estimateFields(entry.minutes)}
-            />
-          )}
-          <div className="btn-row">
-            <button type="submit" className="btn">
-              Mark as done
-            </button>
-          </div>
-        </form>
-      </div>
-    </details>
-  );
-}
-
-function StillGoingForm({ entry, onTap }: { entry: OfflineEntry; onTap: (change: OfflineChange) => void }) {
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const submit = (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const parsed = parseRemaining(new FormData(event.currentTarget));
-    if (!parsed.ok) return setErrors(parsed.errors);
-    setErrors({});
-    onTap({ kind: 'remaining', minutes: parsed.value });
-  };
-  return (
-    <details className="disclosure disclosure--link">
-      <summary>
-        Still going<span className="sr-only">: {entry.title}</span>
-      </summary>
-      <div className="disclosure__panel">
-        <form className="form" noValidate onSubmit={submit}>
-          <HoursMinutes
-            prefix="remaining"
-            id={entry.id}
-            legend="About how long is left"
-            error={errors['remaining-hours']}
-            {...estimateFields(entry.remainingMinutes)}
-          />
-          <div className="btn-row">
-            <button type="submit" className="btn">
-              Save what is left
-            </button>
-          </div>
-        </form>
-      </div>
-    </details>
   );
 }

@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { formatMinutes } from '@/domain/duration';
-import { loadTemplates } from '@/server/planning';
+import { JOB_KINDS, KIND_WORDS } from '@/domain/jobs/kinds';
 import { requireUser } from '@/server/session';
+import { loadTemplates } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
 
 export const metadata: Metadata = { title: 'Library' };
 
-/** Her templates: one for each kind of garment she makes, copied into an order when she plans it. */
+/** Her templates: the steps a new job starts with, by kind of job (decision 0066). */
 export default async function LibraryPage() {
   await requireUser();
   const templates = await loadTemplates(await createSupabase());
@@ -16,10 +16,10 @@ export default async function LibraryPage() {
     <>
       <div className="page-head">
         <p className="eyebrow">Library</p>
-        <h1>How she makes things</h1>
+        <h1>Your steps</h1>
         <p className="lede">
-          A template is the steps of one kind of garment and how long each takes in her hands. Applying it to
-          an order copies it there, where anything can be changed for that order.
+          A template is the steps a job starts with, each some days before the job’s day. A new job copies
+          them, and you change anything there.
         </p>
       </div>
 
@@ -31,23 +31,36 @@ export default async function LibraryPage() {
 
       {templates.length === 0 ? (
         <div className="card">
-          <p>No templates yet. Make one for the garment she makes most often.</p>
+          <p>No templates yet. Make one for the kind of job you take most often.</p>
         </div>
       ) : (
-        <ul className="rows rows--links">
-          {templates.map((t) => (
-            <li key={t.id}>
-              <Link href={`/library/${t.id}`} className="row-link">
-                <span className="row-link__title">{t.name}</span>
-                <span className="hint">
-                  {t.garmentType} · {t.tasks} task{t.tasks === 1 ? '' : 's'}
-                  {t.workMinutes > 0 && ` · ${formatMinutes(t.workMinutes)} of her time`}
-                </span>
-                <span className="row-link__side hint">Version {t.version}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        JOB_KINDS.filter((k) => templates.some((t) => t.kind === k)).map((k) => (
+          <section key={k} className="section" aria-labelledby={`kind-${k}`}>
+            <div className="section__head">
+              <h2 id={`kind-${k}`} className="eyebrow">
+                {KIND_WORDS[k].plural}
+              </h2>
+            </div>
+            <ul className="rows rows--links">
+              {templates
+                .filter((t) => t.kind === k)
+                .map((t) => {
+                  const longest = Math.max(0, ...t.steps.map((s) => s.daysBefore));
+                  return (
+                    <li key={t.id}>
+                      <Link href={`/library/${t.id}`} className="row-link">
+                        <span className="row-link__title">{t.name}</span>
+                        <span className="hint">
+                          {t.steps.length} step{t.steps.length === 1 ? '' : 's'}
+                          {longest > 0 && ` · starts ${longest} days before`}
+                        </span>
+                      </Link>
+                    </li>
+                  );
+                })}
+            </ul>
+          </section>
+        ))
       )}
     </>
   );

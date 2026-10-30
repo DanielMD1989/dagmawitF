@@ -4,97 +4,84 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import type { IsoDate } from '@/domain/dates';
 import { compareAttachments, isAttachmentKind, type AttachmentKind } from '@/domain/files';
+import { isJobKind, type JobKind } from '@/domain/jobs/kinds';
 import { isHistoryAction, type HistoryAction } from '@/domain/orders/history';
-import {
-  isPrerequisiteKind,
-  isPrerequisiteState,
-  readiness,
-  type Prerequisite,
-  type Readiness,
-} from '@/domain/orders/prerequisites';
 import { isOrderStatus, type OrderStatus } from '@/domain/orders/status';
 import { fail, isoDay, timestamp } from './rows';
 import { createSupabase } from './supabase';
 
 const status = z.string().refine(isOrderStatus);
 
-const prerequisiteRow = z.object({
-  id: z.string(),
-  kind: z.string().refine(isPrerequisiteKind),
-  label: z.string(),
-  state: z.string().refine(isPrerequisiteState),
-  expected_on: isoDay.nullable(),
-  blocking: z.boolean(),
-  note: z.string(),
-});
-
-const PREREQUISITE_COLUMNS = 'id, kind, label, state, expected_on, blocking, note';
-
-function toPrerequisite(r: z.infer<typeof prerequisiteRow>): Prerequisite {
-  return {
-    id: r.id,
-    kind: r.kind as Prerequisite['kind'],
-    label: r.label,
-    state: r.state as Prerequisite['state'],
-    expectedOn: r.expected_on,
-    blocking: r.blocking,
-    note: r.note,
-  };
-}
+const kind = z.string().refine(isJobKind);
 
 // ---------------------------------------------------------------------------------------------
-// The list of orders
+// The list of jobs
 
 export interface OrderListItem {
   id: string;
   number: number;
+  kind: JobKind;
   status: OrderStatus;
   deliveryOn: IsoDate;
   clientId: string;
   clientName: string;
   garmentTypes: string[];
-  readiness: Readiness;
+  /** Steps done, of all its steps. */
+  done: number;
+  steps: number;
+  /** The first step not done yet that has a day, if any. */
+  next: { title: string; onDay: IsoDate } | null;
 }
 
 const listRow = z.object({
   id: z.string(),
   number: z.number().int(),
+  kind,
   status,
   delivery_on: isoDay,
   client: z.object({ id: z.string(), name: z.string() }),
   order_item: z.array(z.object({ garment_type: z.string() })),
-  prerequisite: z.array(prerequisiteRow),
+  task: z.array(z.object({ title: z.string(), on_day: isoDay.nullable(), done_on: isoDay.nullable() })),
 });
 
-/** All of her orders, soonest handover first, with what each is made of and how ready it is. */
-export async function loadOrders(supabase: SupabaseClient, today: IsoDate): Promise<OrderListItem[]> {
+/** All of her jobs, soonest day first, with what each is made of and how far its steps are. */
+export async function loadOrders(supabase: SupabaseClient): Promise<OrderListItem[]> {
   const { data, error } = await supabase
     .from('orders')
     .select(
-      `id, number, status, delivery_on, client:client(id, name), order_item(garment_type), prerequisite(${PREREQUISITE_COLUMNS})`,
+      `id, number, kind, status, delivery_on, client:client(id, name), order_item(garment_type),
+       task(title, on_day, done_on)`,
     )
     .order('delivery_on')
     .order('number')
     .order('created_at', { referencedTable: 'order_item' })
     .limit(2000);
-  if (error) fail('her orders', error);
+  if (error) fail('her jobs', error);
   return z
     .array(listRow)
     .parse(data)
-    .map((o) => ({
-      id: o.id,
-      number: o.number,
-      status: o.status as OrderStatus,
-      deliveryOn: o.delivery_on,
-      clientId: o.client.id,
-      clientName: o.client.name,
-      garmentTypes: o.order_item.map((g) => g.garment_type),
-      readiness: readiness(o.prerequisite.map(toPrerequisite), today),
-    }));
+    .map((o) => {
+      const open = o.task
+        .filter((t) => t.done_on === null && t.on_day !== null)
+        .sort((a, b) => (a.on_day! < b.on_day! ? -1 : a.on_day! > b.on_day! ? 1 : 0));
+      return {
+        id: o.id,
+        number: o.number,
+        kind: o.kind as JobKind,
+        status: o.status as OrderStatus,
+        deliveryOn: o.delivery_on,
+        clientId: o.client.id,
+        clientName: o.client.name,
+        garmentTypes: o.order_item.map((g) => g.garment_type),
+        done: o.task.filter((t) => t.done_on !== null).length,
+        steps: o.task.length,
+        next: open[0] ? { title: open[0].title, onDay: open[0].on_day! } : null,
+      };
+    });
 }
 
 // ---------------------------------------------------------------------------------------------
-// One order
+// One job
 
 export interface Garment {
   id: string;
@@ -107,9 +94,9 @@ export interface Garment {
 export interface OrderDetail {
   id: string;
   number: number;
+  kind: JobKind;
   status: OrderStatus;
   deliveryOn: IsoDate;
-  bufferDays: number;
   holdReason: string;
   cancelReason: string;
   deliveredOn: IsoDate | null;
@@ -121,9 +108,9 @@ export interface OrderDetail {
 const detailRow = z.object({
   id: z.string(),
   number: z.number().int(),
+  kind,
   status,
   delivery_on: isoDay,
-  buffer_days: z.number().int(),
   hold_reason: z.string(),
   cancel_reason: z.string(),
   delivered_on: isoDay.nullable(),
@@ -144,21 +131,21 @@ export async function loadOrder(supabase: SupabaseClient, id: string): Promise<O
   const { data, error } = await supabase
     .from('orders')
     .select(
-      `id, number, status, delivery_on, buffer_days, hold_reason, cancel_reason, delivered_on, notes,
+      `id, number, kind, status, delivery_on, hold_reason, cancel_reason, delivered_on, notes,
        client:client(id, name, phone), order_item(id, garment_type, brief, measurement_set_id)`,
     )
     .eq('id', id)
     .order('created_at', { referencedTable: 'order_item' })
     .maybeSingle();
-  if (error) fail('the order', error);
+  if (error) fail('the job', error);
   if (!data) return null;
   const o = detailRow.parse(data);
   return {
     id: o.id,
     number: o.number,
+    kind: o.kind as JobKind,
     status: o.status as OrderStatus,
     deliveryOn: o.delivery_on,
-    bufferDays: o.buffer_days,
     holdReason: o.hold_reason,
     cancelReason: o.cancel_reason,
     deliveredOn: o.delivered_on,
@@ -181,19 +168,6 @@ export const getOrder = cache(async (id: string) => loadOrder(await createSupaba
 
 // ---------------------------------------------------------------------------------------------
 // What hangs from an order
-
-/** What the order is waiting for, in the order it was added. */
-export async function loadPrerequisites(supabase: SupabaseClient, orderId: string): Promise<Prerequisite[]> {
-  const { data, error } = await supabase
-    .from('prerequisite')
-    .select(PREREQUISITE_COLUMNS)
-    .eq('order_id', orderId)
-    .order('created_at')
-    .order('id')
-    .limit(500);
-  if (error) fail('what the order is waiting for', error);
-  return z.array(prerequisiteRow).parse(data).map(toPrerequisite);
-}
 
 export interface Attachment {
   id: string;

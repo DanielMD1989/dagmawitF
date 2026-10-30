@@ -3,15 +3,16 @@
 import { useActionState } from 'react';
 import { FormNotice } from '@/components/FormNotice';
 import { SubmitButton } from '@/components/SubmitButton';
-import { TextArea, TextField } from '@/components/fields';
+import { SelectField, TextArea, TextField } from '@/components/fields';
 import { idle } from '@/lib/action-state';
+import { JOB_KINDS, KIND_WORDS, type JobKind } from '@/domain/jobs/kinds';
 import { createTemplate, saveTemplate } from './actions';
 
-/** A template's own words. New, or saved. */
+/** A template's own words: its name, the kind of job it is for, notes. New, or saved. */
 export function TemplateForm({
   template,
 }: {
-  template?: { id: string; name: string; garmentType: string; notes: string };
+  template?: { id: string; name: string; kind: JobKind; notes: string };
 }) {
   const [state, action] = useActionState(template ? saveTemplate : createTemplate, idle);
   return (
@@ -26,17 +27,14 @@ export function TemplateForm({
           maxLength={80}
           autoComplete="off"
           required
-          hint="For example: Bridal gown, Bridal gown with train, Habesha kemis."
+          hint="For example: Bridal gown, Habesha kemis. A new job for a garment of this name starts with it."
         />
-        <TextField
-          name="garment-type"
-          label="For which garment"
+        <SelectField
+          name="kind"
+          label="For which kind of job"
           state={state}
-          saved={template?.garmentType ?? ''}
-          maxLength={80}
-          autoComplete="off"
-          required
-          hint="Offered first when an order has this garment."
+          saved={template?.kind ?? 'new_order'}
+          options={JOB_KINDS.map((k) => ({ value: k, label: KIND_WORDS[k].label }))}
         />
       </div>
       <TextArea

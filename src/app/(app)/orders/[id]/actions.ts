@@ -24,18 +24,22 @@ const BUCKET = 'order-files';
 // ---------------------------------------------------------------------------------------------
 // The order itself
 
-/** Client, handover day, buffer and notes. A delivered or cancelled order can only have its notes changed. */
+/**
+ * The kind, the client, the day and the notes. When the day moves and she asked for it, the steps not done yet move
+ * by as many days, with the day itself, in one step. A delivered or cancelled job can only have its notes changed.
+ */
 export async function saveOrderDetails(_previous: ActionState, formData: FormData): Promise<ActionState> {
   await requireUser();
   const typed = typedIn(formData);
   const id = idField(formData, 'id');
-  if (!id) return missing('order', typed);
+  if (!id) return missing('job', typed);
 
   const supabase = await createSupabase();
   const [order, prefs] = await Promise.all([loadOrder(supabase, id), loadPreferences(supabase)]);
-  if (!order) return missing('order', typed);
+  if (!order) return missing('job', typed);
 
   let patch: Record<string, unknown>;
+  let moved: number | null = null;
   if (isClosed(order.status)) {
     const notes = parseOrderNotes(formData);
     if (!notes.ok) return failure(CHECK_FIELDS, notes.errors, typed);
@@ -43,19 +47,29 @@ export async function saveOrderDetails(_previous: ActionState, formData: FormDat
   } else {
     const parsed = parseOrderDetails(formData, {
       status: order.status,
-      deliveryOn: order.deliveryOn,
+      dueOn: order.deliveryOn,
       today: prefs.today,
     });
     if (!parsed.ok) return failure(CHECK_FIELDS, parsed.errors, typed);
+    const details = parsed.value;
+    if (details.dueOn !== order.deliveryOn && details.moveSteps) {
+      const r = await supabase.rpc('move_due_day', {
+        p_order_id: id,
+        p_due_on: details.dueOn,
+        p_move_steps: true,
+      });
+      if (r.error) return saveFailed('the job', r.error, typed);
+      moved = Number(r.data);
+    }
     patch = {
-      client_id: parsed.value.clientId,
-      delivery_on: parsed.value.deliveryOn,
-      buffer_days: parsed.value.bufferDays,
-      notes: parsed.value.notes,
+      client_id: details.clientId,
+      kind: details.kind,
+      delivery_on: details.dueOn,
+      notes: details.notes,
     };
   }
 
-  // Only if the order is still in the status this form was shown for: another window may have changed it.
+  // Only if the job is still in the status this form was shown for: another window may have changed it.
   const { data, error } = await supabase
     .from('orders')
     .update(patch)
@@ -64,12 +78,14 @@ export async function saveOrderDetails(_previous: ActionState, formData: FormDat
     .select('id');
   if (violates(error, 'orders_client_fk'))
     return failure(CHECK_FIELDS, { client: 'That client could not be found. Choose another.' }, typed);
-  if (error) return saveFailed('the order', error, typed);
+  if (error) return saveFailed('the job', error, typed);
   if (data.length !== 1)
-    return failure('This order was changed in another window. Reload the page and try again.', {}, typed);
+    return failure('This job was changed in another window. Reload the page and try again.', {}, typed);
 
   revalidatePath('/', 'layout');
-  return success('Details saved.');
+  return success(
+    moved === null ? 'Saved.' : `Saved. ${moved} step${moved === 1 ? '' : 's'} moved with the day.`,
+  );
 }
 
 /** Moves the order to another status: confirm, put on hold, resume, deliver, cancel, reopen. */

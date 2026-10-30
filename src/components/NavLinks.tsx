@@ -18,12 +18,12 @@ const ICONS = {
   ),
 };
 
-// Five fit a phone's bar; Clients is in the sidebar on wider screens and linked from Orders (decision 0047).
+// Five fit a phone's bar; Clients is in the sidebar on wider screens and linked from Jobs (decision 0047).
 const LINKS = [
-  { href: '/', label: 'My Day', icon: 'day', wideOnly: false },
-  { href: '/orders', label: 'Orders', icon: 'orders', wideOnly: false },
+  { href: '/', label: 'Today', icon: 'day', wideOnly: false },
+  { href: '/calendar', label: 'Calendar', icon: 'planner', wideOnly: false },
+  { href: '/orders', label: 'Jobs', icon: 'orders', wideOnly: false },
   { href: '/clients', label: 'Clients', icon: 'clients', wideOnly: true },
-  { href: '/planner', label: 'Planner', icon: 'planner', wideOnly: false },
   { href: '/library', label: 'Library', icon: 'library', wideOnly: false },
   { href: '/settings', label: 'Settings', icon: 'settings', wideOnly: false },
 ] as const;

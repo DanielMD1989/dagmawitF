@@ -44,7 +44,7 @@ Restoring **replaces everything** in one account with the file's contents. Work 
    file is wrong (a missing table or column, a row of someone else, a link to nothing), nothing is changed. The
    pictures are put back afterwards; if some fail, run the same command again.
 
-4. Ask her to open My Day: it should show her day, and her orders their history.
+4. Ask her to open Today: it should show her steps, and her jobs their history.
 
 Keep the secret key off her devices and out of the repository. It is needed only for `--files`.
 

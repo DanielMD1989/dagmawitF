@@ -5,14 +5,13 @@ import { usePathname } from 'next/navigation';
 import { useEffect, useRef } from 'react';
 
 const TABS = [
-  { path: '', label: 'Design brief' },
+  { path: '', label: 'Steps' },
+  { path: '/brief', label: 'Design brief' },
   { path: '/measurements', label: 'Measurements' },
-  { path: '/preparation', label: 'Preparation' },
-  { path: '/plan', label: 'Plan' },
   { path: '/history', label: 'History' },
 ] as const;
 
-/** The pages of one order. The Quality and handover tab arrives with Stage 5. */
+/** The pages of one job. */
 export function OrderTabs({ orderId }: { orderId: string }) {
   const pathname = usePathname();
   const base = `/orders/${orderId}`;
@@ -29,7 +28,7 @@ export function OrderTabs({ orderId }: { orderId: string }) {
   }, [pathname]);
 
   return (
-    <nav aria-label="This order">
+    <nav aria-label="This job">
       <div className="tabs" ref={bar}>
         {TABS.map((tab) => {
           const href = `${base}${tab.path}`;

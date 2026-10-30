@@ -1,5 +1,7 @@
 # The scheduling engine
 
+> **Replaced by [calendar-first.md](calendar-first.md) (decision 0066).** This page describes the planning engine, which the app no longer has. It is kept as the record of what was built and why it was taken out.
+
 The agreed contract for `src/domain/engine`. The design reasons are on the canvas (Engine board) and in
 [decisions.md](decisions.md). The rules below are what the code and the tests hold to. If code and this page disagree,
 one of them is a bug: fix the cause, never the test.

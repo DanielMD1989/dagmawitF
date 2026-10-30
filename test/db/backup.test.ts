@@ -156,20 +156,18 @@ describe('the restore', () => {
     });
   });
 
-  it('puts history, counters and versions back as they were, not re-made', async () => {
+  it('puts history and template versions back as they were, not re-made', async () => {
     await inTransaction(async (c) => {
       const a = await person(c, 'a@example.test');
       const before = await exportAs(c, a);
       expect(await restore(c, a, before)).toMatchObject({ ok: true });
       const { rows } = await c.query(
         `select (select count(*)::int from public.activity_log where owner_id = $1) as history,
-                (select plan_epoch from public.profile where owner_id = $1) as epoch,
                 (select max(version) from public.template where owner_id = $1) as version`,
         [a],
       );
       expect(rows[0]).toEqual({
         history: before.tables.activity_log!.length,
-        epoch: String(before.tables.profile![0]!.plan_epoch),
         version: Math.max(...before.tables.template!.map((t) => Number(t.version))),
       });
     });
@@ -237,7 +235,7 @@ describe('the restore', () => {
       });
 
       const lostColumn = structuredClone(file);
-      delete lostColumn.tables.task![0]!.hold_reason;
+      delete lostColumn.tables.task![0]!.done_on;
       expect(await restore(c, a, lostColumn)).toMatchObject({ ok: false, code: BAD_INPUT });
     });
   });
@@ -303,7 +301,8 @@ describe('the restore', () => {
         Number((await c.query(`select count(*) from public.activity_log`)).rows[0]!.count);
       const history = await lines();
       await c.query(
-        `update public.orders set status = 'on_hold', hold_reason = 'After the restore' where status = 'active'`,
+        `update public.orders set status = 'on_hold', hold_reason = 'After the restore'
+         where status = 'active' and kind = 'new_order'`,
       );
       expect(await lines()).toBe(history + 1);
       await actAsOwner(c);

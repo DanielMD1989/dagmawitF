@@ -1331,3 +1331,163 @@ h4 {
     scroll-behavior: auto !important;
   }
 }
+
+/* ---------- Calendar first (decision 0066): ticks, days, the month ---------- */
+.form-grid--pair {
+  grid-template-columns: 1fr 1fr;
+}
+.tick-form {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  /* The mark is 26px; the tap area around it is the full 44. */
+  margin: -9px 0 -9px -9px;
+}
+.tick {
+  width: var(--tap);
+  height: var(--tap);
+  padding: 0;
+  border: 0;
+  background: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: transparent;
+}
+.tick svg {
+  width: 26px;
+  height: 26px;
+  padding: 5px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+  background: var(--field);
+}
+.tick:hover svg {
+  border-color: var(--accent);
+  color: var(--muted);
+}
+.tick--done svg {
+  background: var(--solid);
+  border-color: var(--solid);
+  color: var(--on-solid);
+}
+.tick--done:hover svg {
+  color: var(--on-solid);
+}
+.tick:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+.tick-form__error {
+  margin-left: 9px;
+}
+.item__note--warn {
+  color: var(--warn);
+  font-weight: 600;
+}
+.step-job {
+  color: inherit;
+}
+.day-list + .day-list {
+  margin-top: 20px;
+}
+.day-list__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 0 0 8px;
+}
+.day-list__empty {
+  margin: 0;
+  padding: 12px 16px;
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+  color: var(--muted);
+}
+.kinds {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+.kinds label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: var(--tap);
+  padding: 10px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--field);
+  cursor: pointer;
+}
+.kinds label:has(input:checked) {
+  border-color: var(--solid);
+  box-shadow: inset 0 0 0 1px var(--solid);
+  background: var(--tint);
+}
+.kinds label:has(input:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.kinds input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.kinds strong {
+  font-weight: 600;
+}
+.month {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 4px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.month__weekday {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  padding-bottom: 4px;
+}
+.month__day {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 2px;
+  min-height: 52px;
+  padding: 6px 2px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: inherit;
+  text-decoration: none;
+  font-variant-numeric: tabular-nums;
+}
+.month__day--other {
+  background: transparent;
+  border-color: transparent;
+  color: var(--muted);
+}
+.month__day--today {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 1px var(--accent);
+}
+.month__day[aria-current='date'] {
+  background: var(--tint);
+}
+.month__count {
+  min-width: 20px;
+  padding: 0 6px;
+  border-radius: 10px;
+  background: var(--solid);
+  color: var(--on-solid);
+  font-size: 12px;
+  font-weight: 600;
+  text-align: center;
+}

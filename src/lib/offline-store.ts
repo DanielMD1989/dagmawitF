@@ -1,64 +1,50 @@
 import { z } from 'zod';
-import { SNAPSHOT_VERSION, type DaySnapshot, type WaitingTap } from '@/domain/day/offline';
-import { TASK_STATUSES } from '@/domain/day/progress';
-import { TASK_KINDS } from '@/domain/planning/words';
+import { SNAPSHOT_VERSION, type DaySnapshot, type WaitingTap } from '@/domain/steps/offline';
 
 /**
- * What My Day keeps on the phone (docs/harden.md): today's snapshot and the taps waiting for the signal. Browser
+ * What Today keeps on the phone (docs/harden.md): its snapshot and the ticks waiting for the signal. Browser
  * storage can hold anything (an older version of the app wrote it, or it was cut off halfway), so everything read
  * back is checked, and anything that does not fit is treated as absent. Safe to import from client components.
  */
 
-const SNAPSHOT_KEY = 'dagmawit.today.v1';
-const WAITING_KEY = 'dagmawit.waiting.v1';
+// Version 2 since decision 0066: what version 1 kept (a plan's day) is simply not read any more.
+const SNAPSHOT_KEY = 'dagmawit.today.v2';
+const WAITING_KEY = 'dagmawit.waiting.v2';
+/** What earlier versions kept, removed on sign-out like the rest. */
+const OLD_KEYS = ['dagmawit.today.v1', 'dagmawit.waiting.v1'];
 /** Tells the other open pages of the app that the waiting taps changed. */
 export const WAITING_EVENT = 'dagmawit:waiting';
 
-const minutes = z.number().int().min(0).max(100_000);
-const status = z.enum(TASK_STATUSES);
+const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+const entry = z.object({
+  id: z.string().min(1),
+  title: z.string(),
+  jobLabel: z.string().nullable(),
+  time: z.string().nullable(),
+  part: z.string().nullable(),
+  done: z.boolean(),
+  clash: z.boolean(),
+});
 
 const snapshotSchema = z.object({
   version: z.literal(SNAPSHOT_VERSION),
   ownerId: z.string().min(1),
-  day: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  day,
   timezone: z.string().min(1),
   madeAt: z.iso.datetime(),
   firstName: z.string(),
-  planNumber: z.number().int().nullable(),
-  plannedMinutes: minutes,
-  usableMinutes: minutes,
-  freeMinutes: minutes,
-  entries: z.array(
-    z.object({
-      id: z.string().min(1),
-      section: z.enum(['fixed', 'work', 'started']),
-      title: z.string(),
-      orderLabel: z.string().nullable(),
-      kind: z.enum(TASK_KINDS),
-      minutes: minutes.nullable(),
-      minutesToday: minutes,
-      time: z.string().nullable(),
-      status,
-      remainingMinutes: minutes.nullable(),
-      actualMinutes: minutes.nullable(),
-      state: z.enum(['done', 'started', 'held', 'blocked', 'ready']),
-      reason: z.string().nullable(),
-    }),
-  ),
+  overdue: z.array(entry),
+  days: z.array(z.object({ day, heading: z.string(), entries: z.array(entry) })),
 }) satisfies z.ZodType<DaySnapshot>;
 
 const waitingSchema = z.array(
   z.object({
     key: z.string().min(1),
     ownerId: z.string().min(1),
-    taskId: z.string().min(1),
+    stepId: z.string().min(1),
     title: z.string(),
-    seen: status,
-    change: z.discriminatedUnion('kind', [
-      z.object({ kind: z.literal('start') }),
-      z.object({ kind: z.literal('done'), doneOn: z.string(), actualMinutes: minutes.nullable() }),
-      z.object({ kind: z.literal('remaining'), minutes }),
-    ]),
+    sawDone: z.boolean(),
+    done: z.boolean(),
     at: z.iso.datetime(),
   }),
 ) satisfies z.ZodType<WaitingTap[]>;
@@ -131,8 +117,7 @@ export function subscribeOffline(changed: () => void): () => void {
 /** Signing out removes everything of hers from the phone. */
 export function forgetOffline(): void {
   try {
-    window.localStorage.removeItem(SNAPSHOT_KEY);
-    window.localStorage.removeItem(WAITING_KEY);
+    for (const key of [SNAPSHOT_KEY, WAITING_KEY, ...OLD_KEYS]) window.localStorage.removeItem(key);
   } catch {
     // Nothing was kept.
   }

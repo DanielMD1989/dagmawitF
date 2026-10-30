@@ -10,7 +10,6 @@ import { fail, isoDay } from './rows';
 const profileRow = z.object({
   name: z.string(),
   timezone: z.string(),
-  planning_ratio: z.coerce.number(),
 });
 
 const workWeekRow = z.object({
@@ -37,7 +36,7 @@ export interface CalendarSettings {
 
 /** Everything the calendar screens need, read as the signed-in designer. */
 export async function loadCalendarSettings(supabase: SupabaseClient): Promise<CalendarSettings> {
-  const profileResult = await supabase.from('profile').select('name, timezone, planning_ratio').single();
+  const profileResult = await supabase.from('profile').select('name, timezone').single();
   if (profileResult.error) fail('her profile', profileResult.error);
   const p = profileRow.parse(profileResult.data);
 
@@ -59,7 +58,6 @@ export async function loadCalendarSettings(supabase: SupabaseClient): Promise<Ca
     profile: {
       name: p.name,
       timezone: p.timezone,
-      planningRatio: p.planning_ratio,
     },
     week: z
       .array(workWeekRow)

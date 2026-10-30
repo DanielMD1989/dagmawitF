@@ -2,15 +2,15 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { StatusChip } from '@/components/StatusChip';
 import { formatDay } from '@/domain/dates';
-import { describeHandover, orderLabel } from '@/domain/orders/display';
-import { readinessWarnings, readyCount } from '@/domain/orders/prerequisites';
+import { KIND_WORDS } from '@/domain/jobs/kinds';
+import { describeHandover, orderTitle } from '@/domain/orders/display';
 import { isClosed, isOrderStatus, STATUS_LABEL, type OrderStatus } from '@/domain/orders/status';
 import { loadOrders } from '@/server/orders';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
 import { createSupabase } from '@/server/supabase';
 
-export const metadata: Metadata = { title: 'Orders' };
+export const metadata: Metadata = { title: 'Jobs' };
 
 type Filter = OrderStatus | 'all';
 
@@ -27,33 +27,31 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   const filter = readFilter((await searchParams).status);
   const supabase = await createSupabase();
   const prefs = await loadPreferences(supabase);
-  const orders = await loadOrders(supabase, prefs.today);
+  const orders = await loadOrders(supabase);
 
   const count = (f: Filter) => (f === 'all' ? orders.length : orders.filter((o) => o.status === f).length);
   const shown = orders.filter((o) => filter === 'all' || o.status === filter);
-  // A finished order is looked up by when it was handed over, newest first. The rest by what is due next.
+  // A finished job is looked up by when it was handed over, newest first. The rest by what is due next.
   if (filter === 'delivered' || filter === 'cancelled') shown.reverse();
 
   return (
     <>
       <div className="page-head">
-        <p className="eyebrow">Orders</p>
-        <h1>What she is making</h1>
-        <p className="lede">
-          Soonest handover first. Open an order for its brief, measurements and what it is waiting for.
-        </p>
+        <p className="eyebrow">Jobs</p>
+        <h1>Your jobs</h1>
+        <p className="lede">Soonest first. Open a job for its steps, brief and measurements.</p>
       </div>
 
       <div className="btn-row">
         <Link href="/orders/new" className="btn">
-          New order
+          New job
         </Link>
         <Link href="/clients" className="btn btn--quiet">
           Clients
         </Link>
       </div>
 
-      <nav aria-label="Filter orders">
+      <nav aria-label="Filter jobs">
         <div className="segmented">
           {FILTERS.map((f) => (
             <Link
@@ -71,30 +69,36 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         <div className="card">
           <p>
             {orders.length === 0
-              ? 'No orders yet. Press “New order” to enter the first one.'
-              : `No ${filter === 'all' ? '' : STATUS_LABEL[filter].toLowerCase() + ' '}orders.`}
+              ? 'No jobs yet. Press “New job” to take the first one.'
+              : `No ${filter === 'all' ? '' : STATUS_LABEL[filter].toLowerCase() + ' '}jobs.`}
           </p>
         </div>
       ) : (
         <ul className="rows rows--links">
           {shown.map((o) => {
-            const handover = describeHandover(o.deliveryOn, prefs.today);
-            const planned = o.status === 'active' || o.status === 'on_hold' || o.status === 'draft';
-            const warnings = o.status === 'active' ? readinessWarnings(o.readiness) : [];
+            const due = describeHandover(o.deliveryOn, prefs.today);
+            const words = KIND_WORDS[o.kind];
             return (
               <li key={o.id}>
                 <Link href={`/orders/${o.id}`} className="row-link">
-                  <span className="row-link__title">{orderLabel(o.number, o.garmentTypes)}</span>
+                  <span className="row-link__title">
+                    {orderTitle(o.number, o.garmentTypes)} · {o.clientName}
+                  </span>
                   <span className="hint">
-                    {o.clientName} · Handover {formatDay(o.deliveryOn)}
+                    {words.label} · {words.dueLabel} {formatDay(o.deliveryOn)}
                     {!isClosed(o.status) && (
                       <>
                         {' '}
-                        (<span className={handover.past ? 'late' : undefined}>{handover.text}</span>)
+                        (<span className={due.past ? 'late' : undefined}>{due.text}</span>)
                       </>
                     )}
-                    {planned && o.readiness.total > 0 && ` · ${readyCount(o.readiness)}`}
-                    {warnings.length > 0 && <span className="late"> · {warnings.join(', ')}</span>}
+                    {o.steps > 0 && ` · ${o.done} of ${o.steps} steps done`}
+                    {!isClosed(o.status) && o.next && (
+                      <span className={o.next.onDay < prefs.today ? 'late' : undefined}>
+                        {' '}
+                        · Next: {o.next.title}, {formatDay(o.next.onDay)}
+                      </span>
+                    )}
                   </span>
                   <span className="row-link__side">
                     <StatusChip status={o.status} />

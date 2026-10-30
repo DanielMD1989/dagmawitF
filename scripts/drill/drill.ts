@@ -134,28 +134,22 @@ export async function runDrill(
       const lastSeq = Number(
         (await second.query(`select coalesce(max(seq), 0) as n from public.activity_log`)).rows[0]?.n,
       );
-      await second.query(
-        `select public.create_order(null, 'After the drill', '', null,
-                (app.today_for((select auth.uid())) + 30)::date, null, '', 'Evening dress', '', false)`,
-      );
+      const job = (
+        await second.query(
+          `select public.create_job('new_order', null, 'After the drill', '', null,
+                  (app.today_for((select auth.uid())) + 30)::date, '', 'Evening dress', '',
+                  jsonb_build_array(jsonb_build_object('title', 'Cutting',
+                    'on_day', app.today_for((select auth.uid())) + 10)), true) as id`,
+        )
+      ).rows[0]!.id;
       const newSeq = Number((await second.query(`select max(seq) as n from public.activity_log`)).rows[0]?.n);
       if (!(newSeq > lastSeq)) problems.push('The history did not carry on after the restored lines.');
-      const counters = (
-        await second.query(
-          `select plan_epoch as e, progress_epoch as p, to_char(app.today_for((select auth.uid())), 'YYYY-MM-DD') as d
-           from public.profile`,
-        )
-      ).rows[0]!;
-      const n = (
-        await second.query(`select public.save_proposal($1, $2, $3::date, '{}'::jsonb, '[]'::jsonb) as n`, [
-          counters.e,
-          counters.p,
-          counters.d,
-        ])
-      ).rows[0]!.n;
-      await second.query(`select public.approve_plan($1)`, [n]);
+      await second.query(
+        `update public.task set done_on = app.today_for((select auth.uid())) where order_id = $1`,
+        [job],
+      );
     });
-    say('She carried on: a new order, its history line, and a new plan approved.');
+    say('She carried on: a new job, its history line, and a step done.');
   } catch (error) {
     problems.push(`The drill stopped: ${(error as Error).message}`);
   } finally {

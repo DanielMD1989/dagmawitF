@@ -7,7 +7,7 @@ import { TextArea, TextField } from '@/components/fields';
 import { idle } from '@/lib/action-state';
 import { createClient, saveClient } from './actions';
 
-/** Adds a client, or (with `client`) changes one. Only what planning and a phone call need. */
+/** Adds a client, or (with `client`) changes one. Only what a job and a phone call need. */
 export function ClientForm({
   client,
 }: {

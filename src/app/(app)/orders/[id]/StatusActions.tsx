@@ -43,7 +43,7 @@ const BUTTON: Readonly<Record<OrderStatus, string>> = {
 };
 
 /**
- * The moves this order can make, as buttons. A move that needs an answer (why it is on hold, which day it
+ * The moves this job can make, as buttons. A move that needs an answer (why it is on hold, which day it
  * was delivered, a new handover day when the old one has passed) opens a small form; the rest are one press.
  * The list comes from the same table the database checks, so a button is never offered that would be refused.
  */
@@ -100,7 +100,7 @@ export function StatusActions({
                       <TextField
                         name="delivered-on"
                         id="delivered-on"
-                        label="Delivered on"
+                        label="Finished on"
                         type="date"
                         state={state}
                         saved={today}
@@ -125,8 +125,8 @@ export function StatusActions({
                   {(state) => (
                     <>
                       <p>
-                        The order is kept, with its history and measurements, but takes none of her time. It
-                        can be reopened as a draft.
+                        The job is kept, with its history and measurements, and leaves your calendar. It can
+                        be reopened as a draft.
                       </p>
                       <TextField
                         name="reason"
@@ -156,12 +156,12 @@ export function StatusActions({
                       <TextField
                         name="delivery-on"
                         id="new-delivery-on"
-                        label="New handover day"
+                        label="New day"
                         type="date"
                         state={state}
                         min={today}
                         required
-                        hint={`The old handover day, ${formatDay(order.deliveryOn)}, has passed.`}
+                        hint={`The old day, ${formatDay(order.deliveryOn)}, has passed.`}
                       />
                       <div className="btn-row">
                         <SubmitButton className={className}>{label}</SubmitButton>

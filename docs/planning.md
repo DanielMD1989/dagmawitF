@@ -1,5 +1,7 @@
 # Templates and proposal: from an order to an approved plan
 
+> **Replaced by [calendar-first.md](calendar-first.md) (decision 0066).** This page describes templates with durations, proposals and plans, which the app no longer has. It is kept as the record of what was built and why it was taken out.
+
 Stage 3. The agreed contract for templates, an order's tasks, and how a plan is proposed and approved. The engine itself
 is in [engine.md](engine.md); the orders it plans are in [capture.md](capture.md). The reasons are in decisions 0030 to 0037. If code and this page disagree, one of them is a bug.
 

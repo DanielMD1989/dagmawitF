@@ -1,5 +1,7 @@
 # Change: seeing what a change does before agreeing to it
 
+> **Replaced by [calendar-first.md](calendar-first.md) (decision 0066).** This page describes "Save and see impact", which the app no longer has. It is kept as the record of what was built and why it was taken out.
+
 Stage 5. The agreed contract for the impact of a change, moving a task, and the Planner's week board. Plans are in
 [planning.md](planning.md), My Day in [my-day.md](my-day.md). The reasons are in decisions 0046 to 0050. If code and
 this page disagree, one of them is a bug.

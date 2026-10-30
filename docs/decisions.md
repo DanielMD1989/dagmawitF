@@ -442,3 +442,16 @@ Settings, where the password she uses now is checked first. At least 10 characte
 same minimum in Supabase). A wrong password and an unknown email get the same answer. Forgotten: whoever looks after the
 app sets a new one (docs/operations.md). Cost: one more thing for her to remember; a password manager or the phone's
 own keychain carries it.
+
+## 0066. Calendar first: jobs of a kind, steps on days, no planning engine
+
+Replaces the planning model of decisions 0030 to 0050. On first real use, Dagmawit found the app planned 1 hour of a
+41-hour bridal gown and called it at risk: it waited for an hour estimate for every task, a day for every fitting and a
+date for every material before it planned anything, and spoke about her rather than to her. She thinks in jobs (a new
+order, a fix, an appointment, a sketch, a delivery) whose steps (buy fabric, cut, sew, fit, deliver) each have a day,
+with hours optional. So: a job has a kind; its steps have a day, an optional last day and an optional time; a template
+suggests the days by counting back from the job's day (drawing every step in proportionally when the day is near, never
+before today, on days she works); Today and the month show every step by day; nothing blocks and nothing is approved.
+What she had entered keeps its days (an appointment's day and time, a pinned day, the approved plan's days), and
+preparation not yet in became steps. The plan in full is [calendar-first.md](calendar-first.md). Cost: the app no longer
+checks whether her hours suffice; a clash of times and a step after its job's day are what it points out.

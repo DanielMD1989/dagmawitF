@@ -89,7 +89,7 @@ In this order. Each step says how to check it before going on.
    iPhone: open the site in Safari > Share > Add to Home Screen. Android: Chrome menu > Install app.
 2. **A second account cannot see her rows.** Automatic: `test/db/rls.test.ts`.
 
-After step 1, open Settings, tick her working days, set her hours and save. My Day will show the time she has today.
+After step 1, open Settings and check her working days (a new account starts with Monday to Saturday).
 
 ## Stage 2 exit test
 
@@ -98,28 +98,18 @@ measurements, and what each order is waiting for. Wherever she reaches for her n
 that is a field to add. First, in Settings > Your list of measurements, make the list match the measurements she
 actually takes.
 
-## Stage 3 exit test
+## Calendar-first exit test (decision 0066)
 
-With her, from orders she has made: replace the starter templates' durations with her own (Library), apply a template
-to one real order, give its fittings their days, make a proposal, read it, and approve it. Done when she agrees the plan
-is believable. Where it is not, write down why: a wrong duration, a missing step, a rule the planner does not know.
-
-## Stage 4 exit test
-
-She runs her working days from My Day for a week: starts and finishes tasks there, quick-adds what walks in, and finishes
-each day with the review and tomorrow's plan. Count how often she went back to the notebook, and why.
-
-## Stage 5 exit test
-
-On her real data: when a supplier says the lace will be late, she changes its expected day with "Save and see impact",
-reads what moves, and approves or rejects. Done when she trusts what it shows.
+For a week, she takes every job that comes in on her phone: a new order, a fix, an appointment, a sketch, a delivery.
+She runs her days from Today, ticks steps done, and moves a day when plans change. Count how often she went back to the
+notebook, and why; each reason is the next thing to build.
 
 ## Stage 6 exit test
 
 1. **A restore from backup succeeds.** In Settings, Download everything. Then `npm run drill:restore -- --file <the zip>`
    must end with "The drill passed". Once, also restore a real export into a scratch Supabase project
    (docs/operations.md).
-2. **The day's view opens on her phone with no signal.** Open My Day with signal, put the phone in airplane mode, open
+2. **The day's view opens on her phone with no signal.** Open Today with signal, put the phone in airplane mode, open
    the app from the home screen: her day is there, "as of" the time she last opened it. Mark a task started, turn the
    signal back on, open the app: it says the tap was saved.
 

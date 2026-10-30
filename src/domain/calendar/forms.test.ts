@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseException, parsePlanningPercent, parseProfile, parseWorkWeek } from './forms';
+import { parseException, parseProfile, parseWorkWeek } from './forms';
 
 function form(fields: Record<string, string>): FormData {
   const data = new FormData();
@@ -95,37 +95,19 @@ describe('parseException', () => {
   });
 });
 
-describe('parsePlanningPercent', () => {
-  it.each([
-    ['70', 0.7],
-    ['30', 0.3],
-    ['100', 1],
-  ])('reads %s as %f', (text, ratio) => {
-    expect(parsePlanningPercent(form({ 'planning-percent': text }))).toEqual({ ok: true, value: ratio });
-  });
-  it.each(['29', '101', '70.5', '', 'seventy'])('rejects %j', (text) => {
-    expect(parsePlanningPercent(form({ 'planning-percent': text })).ok).toBe(false);
-  });
-});
-
 describe('parseProfile', () => {
-  it('reads name, time zone and planning share', () => {
-    expect(
-      parseProfile(form({ name: ' Dagmawit ', timezone: 'Africa/Addis_Ababa', 'planning-percent': '70' })),
-    ).toEqual({
+  it('reads name and time zone', () => {
+    expect(parseProfile(form({ name: ' Dagmawit ', timezone: 'Africa/Addis_Ababa' }))).toEqual({
       ok: true,
-      value: { name: 'Dagmawit', timezone: 'Africa/Addis_Ababa', planningRatio: 0.7 },
+      value: { name: 'Dagmawit', timezone: 'Africa/Addis_Ababa' },
     });
   });
   it('allows an empty name', () => {
-    expect(parseProfile(form({ name: '', timezone: 'UTC', 'planning-percent': '100' })).ok).toBe(true);
+    expect(parseProfile(form({ name: '', timezone: 'UTC' })).ok).toBe(true);
   });
   it('reports every problem at once', () => {
-    const result = parseProfile(
-      form({ name: 'x'.repeat(121), timezone: 'Mars/Olympus_Mons', 'planning-percent': '5' }),
-    );
+    const result = parseProfile(form({ name: 'x'.repeat(121), timezone: 'Mars/Olympus_Mons' }));
     expect(result.ok).toBe(false);
-    if (!result.ok)
-      expect(Object.keys(result.errors).sort()).toEqual(['name', 'planning-percent', 'timezone']);
+    if (!result.ok) expect(Object.keys(result.errors).sort()).toEqual(['name', 'timezone']);
   });
 });

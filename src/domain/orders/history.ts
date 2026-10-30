@@ -1,9 +1,20 @@
 import { formatDay, isIsoDate, type IsoDate } from '../dates';
 import { formatMinutes } from '../duration';
 import { ATTACHMENT_KIND_LABEL, isAttachmentKind } from '../files';
-import { isPrerequisiteKind, isPrerequisiteState, stateLabel, type PrerequisiteKind } from './prerequisites';
 import { isOrderStatus, type OrderStatus } from './status';
-import { ORDER_STATE_LABEL, isOrderState } from '../planning/words';
+
+// Words for events that no longer happen (preparation and plans, before decision 0066), so old history still reads.
+const OLD_STATE: Record<string, Record<string, string>> = {
+  material: { needed: 'Needed', ordered: 'Ordered', received: 'Received' },
+  approval: { needed: 'Needed', ordered: 'Asked', received: 'Approved' },
+  measurements: { needed: 'Needed', ordered: 'Booked', received: 'Taken' },
+  other: { needed: 'Needed', ordered: 'In progress', received: 'Done' },
+};
+const OLD_PLAN_STATE: Record<string, string> = {
+  on_track: 'on track',
+  at_risk: 'at risk',
+  infeasible: 'cannot be made in time',
+};
 
 /**
  * The history of an order. The database writes one row for each thing that happens, as a code and a few
@@ -65,16 +76,16 @@ const days = (n: number) => `${n} day${n === 1 ? '' : 's'}`;
 function statusSentence(from: OrderStatus, to: OrderStatus, d: Record<string, unknown>): string {
   const reason = str(d, 'reason');
   const because = reason ? `: ${reason}` : '';
-  if (from === 'draft' && to === 'active') return 'Order confirmed.';
-  if (from === 'on_hold' && to === 'active') return 'Order resumed.';
-  if (to === 'active') return 'Order reopened.';
+  if (from === 'draft' && to === 'active') return 'Job confirmed.';
+  if (from === 'on_hold' && to === 'active') return 'Job resumed.';
+  if (to === 'active') return 'Job reopened.';
   if (to === 'on_hold') return `Put on hold${because}.`;
   if (to === 'delivered') {
     const on = day(d, 'delivered_on');
-    return on ? `Delivered on ${formatDay(on)}.` : 'Delivered.';
+    return on ? `Finished on ${formatDay(on)}.` : 'Finished.';
   }
-  if (to === 'cancelled') return `Order cancelled${because}.`;
-  return 'Order reopened as a draft.';
+  if (to === 'cancelled') return `Job cancelled${because}.`;
+  return 'Job reopened as a draft.';
 }
 
 function versionWord(n: number | null): string {
@@ -87,17 +98,17 @@ export function describeEvent(event: HistoryEvent): string {
   switch (event.action) {
     case 'order_created': {
       const n = num(d, 'number');
-      return n === null ? 'Order created.' : `Order #${n} created.`;
+      return n === null ? 'Job created.' : `Job #${n} created.`;
     }
     case 'status_changed': {
       const from = d.from;
       const to = d.to;
       return isOrderStatus(from) && isOrderStatus(to)
         ? statusSentence(from, to, d)
-        : 'The order changed status.';
+        : 'The job changed status.';
     }
     case 'delivery_changed':
-      return `Handover day moved from ${dayText(day(d, 'from'))} to ${dayText(day(d, 'to'))}.`;
+      return `Day moved from ${dayText(day(d, 'from'))} to ${dayText(day(d, 'to'))}.`;
     case 'buffer_changed': {
       const from = num(d, 'from');
       const to = num(d, 'to');
@@ -127,9 +138,9 @@ export function describeEvent(event: HistoryEvent): string {
     case 'prerequisite_added':
       return `Added to preparation: ${str(d, 'label', 'an item')}.`;
     case 'prerequisite_state': {
-      const kind: PrerequisiteKind = isPrerequisiteKind(d.kind) ? d.kind : 'other';
-      const from = isPrerequisiteState(d.from) ? stateLabel(kind, d.from) : '?';
-      const to = isPrerequisiteState(d.to) ? stateLabel(kind, d.to) : '?';
+      const words = OLD_STATE[str(d, 'kind')] ?? OLD_STATE.other!;
+      const from = words[str(d, 'from')] ?? '?';
+      const to = words[str(d, 'to')] ?? '?';
       return `${str(d, 'label', 'An item')}: ${from} → ${to}.`;
     }
     case 'prerequisite_date': {
@@ -182,7 +193,7 @@ export function describeEvent(event: HistoryEvent): string {
     case 'plan_approved': {
       const n = num(d, 'number');
       const plan = n === null ? 'A plan' : `Plan ${n}`;
-      const state = isOrderState(d.state) ? ORDER_STATE_LABEL[d.state].toLowerCase() : null;
+      const state = OLD_PLAN_STATE[str(d, 'state')] ?? null;
       const ready = day(d, 'ready_on');
       const verdict = [
         ...(state === null ? [] : [state]),
@@ -191,7 +202,7 @@ export function describeEvent(event: HistoryEvent): string {
       return `${plan} approved: ${verdict}.`;
     }
     case 'task_done': {
-      const title = str(d, 'title', 'A task');
+      const title = str(d, 'title', 'A step');
       const actual = num(d, 'actual');
       const estimate = num(d, 'estimate');
       const on = day(d, 'done_on');

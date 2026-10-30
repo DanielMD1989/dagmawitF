@@ -1,221 +1,146 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { QuickAddForm, RemoveQuickTask } from '@/components/day/QuickAdd';
-import { TodayEntryCard } from '@/components/day/TodayEntryCard';
 import { SaveForOffline } from '@/components/offline/SaveForOffline';
-import { describeDay, usableMinutes } from '@/domain/calendar/capacity';
+import { AddStepForm } from '@/components/steps/AddStepForm';
+import { StepEntry } from '@/components/steps/StepEntry';
+import { openDayRule } from '@/domain/calendar/open';
 import { formatDay, formatDayLong, hourIn } from '@/domain/dates';
-import { makeSnapshot } from '@/domain/day/offline';
-import { buildToday } from '@/domain/day/today';
-import { formatMinutes } from '@/domain/duration';
 import { greetingFor } from '@/domain/greeting';
-import { isCurrent } from '@/domain/planning/proposal';
+import { buildAgenda } from '@/domain/steps/agenda';
+import { makeSnapshot } from '@/domain/steps/offline';
+import { dayHeading, partLabel } from '@/domain/steps/words';
 import { loadCalendarSettings } from '@/server/calendar';
-import { loadDayFacts, loadOpenOrders } from '@/server/day';
-import { loadApprovedPlan, loadEpoch } from '@/server/planning';
 import { requireUser } from '@/server/session';
+import { loadCalendarSteps } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
 
-export const metadata: Metadata = { title: 'My Day' };
+export const metadata: Metadata = { title: 'Today' };
 
-/** Today, from the approved plan (docs/my-day.md). */
-export default async function MyDayPage() {
+/** Today and the week ahead: every step of her jobs and her own work, by day (docs/calendar-first.md). */
+export default async function TodayPage() {
   const user = await requireUser();
   const supabase = await createSupabase();
-  const [{ profile, week, exceptions, today }, approved, epoch, orders] = await Promise.all([
-    loadCalendarSettings(supabase),
-    loadApprovedPlan(supabase),
-    loadEpoch(supabase),
-    loadOpenOrders(supabase),
-  ]);
-  const slots = approved?.slots ?? [];
-  const facts = await loadDayFacts(
-    supabase,
-    slots.filter((s) => s.day === today).map((s) => s.taskId),
+  const { profile, week, exceptions, today } = await loadCalendarSettings(supabase);
+  const steps = await loadCalendarSteps(supabase, today);
+  const agenda = buildAgenda(steps, today, 7);
+  const isOpen = openDayRule(
+    week.map((d) => d.weekday),
+    exceptions,
   );
-
-  const day = describeDay(today, week, exceptions);
-  const usable = usableMinutes(day.minutes, profile.planningRatio);
-  const plan = buildToday({ today, usableMinutes: usable, slots, ...facts });
-  const greeting = greetingFor(hourIn(profile.timezone));
   const firstName = profile.name.split(/\s+/)[0] ?? '';
-  const dateLabel = formatDayLong(today).replace(' ', ' · ');
-  const fixed = plan.entries.filter((e) => e.time !== null);
-  const work = plan.entries.filter((e) => e.time === null);
   const snapshot = makeSnapshot({
     ownerId: user.id,
-    day: today,
+    today,
     timezone: profile.timezone,
     madeAt: new Date(),
     firstName,
-    planNumber: approved?.number ?? null,
-    plan,
+    agenda,
   });
-  const share = usable > 0 ? Math.min(100, Math.round((plan.plannedMinutes / usable) * 100)) : 0;
+  const [first, ...rest] = agenda.days;
+  const later = rest.filter((d) => d.entries.length > 0);
+  const nothingAhead = agenda.days.every((d) => d.entries.length === 0) && agenda.overdue.length === 0;
 
   return (
     <>
       <SaveForOffline snapshot={snapshot} />
       <div className="page-head">
-        <p className="eyebrow">{dateLabel}</p>
+        <p className="eyebrow">{formatDayLong(today).replace(' ', ' · ')}</p>
         <div className="title-row">
           <h1>
-            {greeting}
+            {greetingFor(hourIn(profile.timezone))}
             {firstName ? `, ${firstName}` : ''}.
           </h1>
         </div>
-      </div>
-
-      {week.length === 0 && (
-        <div className="card card--warn" role="status">
-          <strong>Her working week is not set yet.</strong>
-          <span>Without it the planner does not know how much time she has.</span>
-          <Link href="/settings" className="link-button">
-            Set the working week
+        <div className="btn-row">
+          <Link href="/orders/new" className="btn">
+            New job
+          </Link>
+          <Link href="/calendar" className="btn btn--quiet">
+            Month
           </Link>
         </div>
-      )}
+      </div>
 
-      <section className="card" aria-label="Time today">
-        {day.kind === 'working' || day.kind === 'shortened-by-exception' ? (
-          <>
-            <div className="big-number">
-              {formatMinutes(plan.plannedMinutes)} planned <small>of {formatMinutes(usable)} usable</small>
-            </div>
-            <div className="meter" role="img" aria-label={`${share}% of today's usable time is planned`}>
-              <span style={{ width: `${share}%` }} />
-            </div>
-            <p className="hint">
-              {formatMinutes(plan.freeMinutes)} left free for alterations that walk in
-              {day.kind === 'shortened-by-exception' && day.reason ? ` (${day.reason})` : ''}.
-              {approved && ` From plan ${approved.number}.`}
-            </p>
-          </>
-        ) : (
-          <>
-            <div className="big-number">
-              {day.kind === 'closed-by-exception' ? 'Closed today' : 'Day off'}
-            </div>
-            {day.reason && <p className="hint">{day.reason}</p>}
-          </>
-        )}
-      </section>
-
-      <QuickAddForm orders={orders} />
-
-      {approved === null ? (
-        <section className="card" aria-labelledby="plan-heading">
-          <h2 id="plan-heading" className="h3">
-            No plan approved yet
-          </h2>
-          <p className="hint">
-            Give an order its tasks on its Plan tab, then make a proposal and approve it. Today’s list comes
-            from it.
-          </p>
-          <Link href="/plan" className="link-button">
-            See plans
-          </Link>
-        </section>
-      ) : (
-        !isCurrent(approved, epoch, today) && (
-          <div className="card" role="status">
-            <p className="attention">
-              Something has changed since plan {approved.number} was approved
-              {approved.madeFor !== today ? ` on ${formatDay(approved.madeFor)}` : ''}. Today’s list is still
-              what you agreed to; a new proposal takes the changes in.
-            </p>
-            <Link href="/today/review" className="link-button">
-              Finish the day and plan tomorrow
-            </Link>
-          </div>
-        )
-      )}
-
-      {fixed.length > 0 && (
-        <section className="section" aria-labelledby="fixed-heading">
+      {agenda.overdue.length > 0 && (
+        <section className="section" aria-labelledby="overdue-heading">
           <div className="section__head">
-            <h2 id="fixed-heading" className="eyebrow">
-              Fixed
+            <h2 id="overdue-heading" className="eyebrow">
+              Not done yet
             </h2>
           </div>
           <ul className="items">
-            {fixed.map((e) => (
-              <TodayEntryCard key={e.task.id} entry={e} today={today} />
+            {agenda.overdue.map((s) => (
+              <StepEntry key={s.id} step={s} overdue />
             ))}
           </ul>
         </section>
       )}
 
-      {work.length > 0 && (
-        <section className="section" aria-labelledby="work-heading">
-          <div className="section__head">
-            <h2 id="work-heading" className="eyebrow">
-              Planned, in suggested order
+      {first && (
+        <section className="section day-list" aria-labelledby="today-heading">
+          <div className="day-list__head">
+            <h2 id="today-heading" className="h3">
+              Today
             </h2>
+            {!isOpen(today) && <span className="chip chip--muted">Not a working day</span>}
           </div>
-          <ul className="items">
-            {work.map((e) => (
-              <TodayEntryCard key={e.task.id} entry={e} today={today} />
-            ))}
-          </ul>
+          {first.entries.length > 0 ? (
+            <ul className="items">
+              {first.entries.map((e) => (
+                <StepEntry key={e.step.id} step={e.step} part={partLabel(e)} clash={e.clash} />
+              ))}
+            </ul>
+          ) : (
+            <p className="day-list__empty">Nothing on today.</p>
+          )}
+          <AddStepForm orderId={null} day={today} summary="Add something for yourself" idPrefix="own" />
         </section>
       )}
 
-      {approved !== null && plan.entries.length === 0 && (
+      {later.map((d) => (
+        <section key={d.day} className="section day-list" aria-labelledby={`day-${d.day}`}>
+          <div className="day-list__head">
+            <h2 id={`day-${d.day}`} className="h3">
+              {dayHeading(d.day, today)}
+              {dayHeading(d.day, today) === 'Tomorrow' && <span className="hint"> · {formatDay(d.day)}</span>}
+            </h2>
+            {!isOpen(d.day) && <span className="chip chip--muted">Not a working day</span>}
+          </div>
+          <ul className="items">
+            {d.entries.map((e) => (
+              <StepEntry key={e.step.id} step={e.step} part={partLabel(e)} clash={e.clash} />
+            ))}
+          </ul>
+        </section>
+      ))}
+
+      {nothingAhead && (
         <div className="card">
-          <p>Nothing is planned for today in plan {approved.number}.</p>
+          <p>Nothing on the calendar for the coming week.</p>
+          <p className="hint">
+            Take a job with <strong>New job</strong>: its steps get their days and show here.
+          </p>
         </div>
       )}
 
-      {plan.alsoStarted.length > 0 && (
-        <section className="section" aria-labelledby="started-heading">
+      {agenda.undated.length > 0 && (
+        <section className="section" aria-labelledby="undated-heading">
           <div className="section__head">
-            <h2 id="started-heading" className="eyebrow">
-              Also started
+            <h2 id="undated-heading" className="eyebrow">
+              Steps with no day yet
             </h2>
           </div>
           <ul className="items">
-            {plan.alsoStarted.map((e) => (
-              <TodayEntryCard key={e.task.id} entry={e} today={today} />
+            {agenda.undated.map((s) => (
+              <StepEntry key={s.id} step={s} />
             ))}
           </ul>
         </section>
       )}
 
-      {plan.waitingForADay.length > 0 && (
-        <section className="section" aria-labelledby="waiting-heading">
-          <div className="section__head">
-            <h2 id="waiting-heading" className="eyebrow">
-              {plan.waitingForADay.length} quick-added item{plan.waitingForADay.length === 1 ? '' : 's'}{' '}
-              waiting for a day
-            </h2>
-          </div>
-          <ul className="items">
-            {plan.waitingForADay.map((t) => (
-              <li key={t.id} className="item">
-                <div className="item__head">
-                  <div className="item__main">
-                    <span className="item__title">{t.title}</span>
-                    <span className="hint">
-                      Studio work{t.minutes ? ` · ${formatMinutes(t.minutes)}` : ''}
-                    </span>
-                  </div>
-                </div>
-                <RemoveQuickTask id={t.id} title={t.title} />
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <div className="btn-row">
-        <Link href="/today/review" className="btn">
-          Finish the day
-        </Link>
-        <Link href="/plan" className="btn btn--quiet">
-          See plans
-        </Link>
-      </div>
+      <p className="hint">
+        <Link href="/calendar">See the whole month</Link>
+      </p>
     </>
   );
 }

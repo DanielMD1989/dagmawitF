@@ -20,8 +20,6 @@
     "test:db": "vitest run --config vitest.db.config.ts",
     "test:e2e": "playwright test -c e2e/playwright.config.ts",
     "icons": "node scripts/make-icons.mjs",
-    "plan": "tsx scripts/print-plan.ts",
-    "test:fuzz": "tsx scripts/fuzz.ts",
     "drill:restore": "tsx scripts/drill/restore-drill.ts",
     "restore": "tsx scripts/restore.ts",
     "check": "npm run typecheck && npm run lint && npm run format:check && npm test && npm run build"

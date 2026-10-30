@@ -6,10 +6,10 @@ const say = (action: HistoryAction, details: Record<string, unknown> = {}) =>
 
 describe('the words for what happened', () => {
   it.each<[HistoryAction, Record<string, unknown>, string]>([
-    ['order_created', { number: 105, delivery_on: '2026-11-20' }, 'Order #105 created.'],
-    ['status_changed', { from: 'draft', to: 'active' }, 'Order confirmed.'],
-    ['status_changed', { from: 'on_hold', to: 'active' }, 'Order resumed.'],
-    ['status_changed', { from: 'delivered', to: 'active' }, 'Order reopened.'],
+    ['order_created', { number: 105, delivery_on: '2026-11-20' }, 'Job #105 created.'],
+    ['status_changed', { from: 'draft', to: 'active' }, 'Job confirmed.'],
+    ['status_changed', { from: 'on_hold', to: 'active' }, 'Job resumed.'],
+    ['status_changed', { from: 'delivered', to: 'active' }, 'Job reopened.'],
     [
       'status_changed',
       { from: 'active', to: 'on_hold', reason: 'Client abroad' },
@@ -18,19 +18,19 @@ describe('the words for what happened', () => {
     [
       'status_changed',
       { from: 'active', to: 'delivered', delivered_on: '2026-10-20' },
-      'Delivered on Tue 20 Oct.',
+      'Finished on Tue 20 Oct.',
     ],
-    ['status_changed', { from: 'active', to: 'cancelled' }, 'Order cancelled.'],
+    ['status_changed', { from: 'active', to: 'cancelled' }, 'Job cancelled.'],
     [
       'status_changed',
       { from: 'active', to: 'cancelled', reason: 'Changed her mind' },
-      'Order cancelled: Changed her mind.',
+      'Job cancelled: Changed her mind.',
     ],
-    ['status_changed', { from: 'cancelled', to: 'draft' }, 'Order reopened as a draft.'],
+    ['status_changed', { from: 'cancelled', to: 'draft' }, 'Job reopened as a draft.'],
     [
       'delivery_changed',
       { from: '2026-11-13', to: '2026-11-18' },
-      'Handover day moved from Fri 13 Nov to Wed 18 Nov.',
+      'Day moved from Fri 13 Nov to Wed 18 Nov.',
     ],
     ['buffer_changed', { from: 2, to: 5 }, 'Buffer before handover changed from 2 days to 5 days.'],
     ['buffer_changed', { from: 1, to: 0 }, 'Buffer before handover changed from 1 day to 0 days.'],

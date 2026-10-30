@@ -28,6 +28,4 @@ export interface CalendarException {
 export interface Profile {
   name: string;
   timezone: string;
-  /** Share of working time the planner may fill, between 0.30 and 1.00. */
-  planningRatio: number;
 }

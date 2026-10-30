@@ -2,19 +2,19 @@
 
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { replayReport, type ReplayOutcome, type WaitingTap } from '@/domain/day/offline';
+import { replayReport, type ReplayOutcome, type WaitingTap } from '@/domain/steps/offline';
 import { readWaiting, saveWaiting } from '@/lib/offline-store';
 
 type Sent = ReplayOutcome | 'keep';
 
-/** Sends one waiting tap. 'keep' when it could not be sent now (no signal, signed out, the server failed). */
+/** Sends one waiting tick. 'keep' when it could not be sent now (no signal, signed out, the server failed). */
 async function send(tap: WaitingTap): Promise<Sent> {
   let response: Response;
   try {
-    response = await fetch('/api/progress', {
+    response = await fetch('/api/steps', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ taskId: tap.taskId, seen: tap.seen, change: tap.change }),
+      body: JSON.stringify({ stepId: tap.stepId, sawDone: tap.sawDone, done: tap.done }),
     });
   } catch {
     return 'keep';
@@ -51,7 +51,7 @@ async function sendAll(ownerId: string): Promise<ReplayOutcome[]> {
 }
 
 /**
- * Sends the taps made without signal (docs/harden.md, "The taps that wait") when a page of the app opens with
+ * Sends the ticks made without signal (docs/harden.md, "The taps that wait") when a page of the app opens with
  * signal, and when the signal comes back while it is open, then says what was saved and what was left.
  */
 export function OfflineSync({ ownerId }: { ownerId: string }) {

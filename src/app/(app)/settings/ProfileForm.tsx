@@ -10,13 +10,12 @@ import { saveProfile } from './actions';
 
 export function ProfileForm({ profile, timeZones }: { profile: Profile; timeZones: string[] }) {
   const [state, action] = useActionState(saveProfile, idle);
-  const percent = Math.round(profile.planningRatio * 100);
 
   return (
     <form action={action} className="form" noValidate>
       <TextField
         name="name"
-        label="Her name"
+        label="Your name"
         state={state}
         saved={profile.name}
         autoComplete="name"
@@ -28,18 +27,6 @@ export function ProfileForm({ profile, timeZones }: { profile: Profile; timeZone
         state={state}
         saved={profile.timezone}
         options={timeZones.map((zone) => ({ value: zone, label: zone.replaceAll('_', ' ') }))}
-      />
-      <TextField
-        name="planning-percent"
-        label="Share of working time to plan (%)"
-        type="number"
-        inputMode="numeric"
-        min={30}
-        max={100}
-        step={1}
-        state={state}
-        saved={String(percent)}
-        hint="The planner fills only this much of each day. The rest stays free for walk-ins and jobs that run long. 70 is a good start."
       />
       <FormNotice state={state} />
       <div className="btn-row">

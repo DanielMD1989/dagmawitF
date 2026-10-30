@@ -10,7 +10,7 @@ import { THEME_COLORS, THEME_COOKIE, parseTheme } from '@/lib/theme';
 
 export const metadata: Metadata = {
   title: { default: 'DAGMAWIT', template: '%s · DAGMAWIT' },
-  description: 'Orders, production plans and the daily schedule for one atelier.',
+  description: 'Jobs, their steps and the calendar for one atelier.',
   applicationName: 'DAGMAWIT',
   appleWebApp: { capable: true, title: 'DAGMAWIT', statusBarStyle: 'default' },
   icons: {

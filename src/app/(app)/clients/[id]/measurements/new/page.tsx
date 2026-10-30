@@ -59,8 +59,8 @@ export default async function RecordMeasurementsPage({
       {visible.length === 0 ? (
         <div className="card card--warn" role="alert">
           <p>
-            Her list of measurements is empty.{' '}
-            <Link href="/settings/measurements">Add the measurements she takes</Link> first.
+            Your list of measurements is empty.{' '}
+            <Link href="/settings/measurements">Add the measurements you take</Link> first.
           </p>
         </div>
       ) : (

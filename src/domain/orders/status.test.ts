@@ -80,12 +80,12 @@ describe('what a status means', () => {
 
 describe('the buttons', () => {
   it('say what they do, and two moves to the same place can read differently', () => {
-    expect(moveLabel('draft', 'active')).toBe('Confirm order');
-    expect(moveLabel('on_hold', 'active')).toBe('Resume order');
-    expect(moveLabel('delivered', 'active')).toBe('Reopen order');
+    expect(moveLabel('draft', 'active')).toBe('Confirm the job');
+    expect(moveLabel('on_hold', 'active')).toBe('Resume the job');
+    expect(moveLabel('delivered', 'active')).toBe('Reopen the job');
     expect(moveLabel('active', 'on_hold')).toBe('Put on hold');
-    expect(moveLabel('active', 'delivered')).toBe('Mark as delivered');
-    expect(moveLabel('active', 'cancelled')).toBe('Cancel order');
+    expect(moveLabel('active', 'delivered')).toBe('Mark as finished');
+    expect(moveLabel('active', 'cancelled')).toBe('Cancel the job');
     expect(moveLabel('cancelled', 'draft')).toBe('Reopen as draft');
   });
 
@@ -97,13 +97,13 @@ describe('the buttons', () => {
 
 describe('what is said after a move', () => {
   it('names what happened, in the past', () => {
-    expect(moveDone('draft', 'active')).toBe('Order confirmed.');
-    expect(moveDone('on_hold', 'active')).toBe('Order resumed.');
-    expect(moveDone('delivered', 'active')).toBe('Order reopened.');
-    expect(moveDone('active', 'on_hold')).toBe('Order put on hold.');
-    expect(moveDone('active', 'delivered')).toBe('Order marked as delivered.');
-    expect(moveDone('draft', 'cancelled')).toBe('Order cancelled.');
-    expect(moveDone('cancelled', 'draft')).toBe('Order reopened as a draft.');
+    expect(moveDone('draft', 'active')).toBe('Job confirmed.');
+    expect(moveDone('on_hold', 'active')).toBe('Job resumed.');
+    expect(moveDone('delivered', 'active')).toBe('Job reopened.');
+    expect(moveDone('active', 'on_hold')).toBe('Job put on hold.');
+    expect(moveDone('active', 'delivered')).toBe('Job marked as finished.');
+    expect(moveDone('draft', 'cancelled')).toBe('Job cancelled.');
+    expect(moveDone('cancelled', 'draft')).toBe('Job reopened as a draft.');
   });
 
   it('gives each button its own confirmation', () => {
