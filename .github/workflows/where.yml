@@ -1,0 +1,19 @@
+name: Where it runs
+
+# Prints where her Supabase project runs (its region), to place the app's server functions beside it (decision 0077).
+# Read-only: it lists the account's projects and changes nothing. Run by hand from the Actions tab.
+on:
+  workflow_dispatch:
+
+jobs:
+  where:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+    steps:
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Her project's region
+        run: supabase projects list -o json | jq -r '.[] | select(.id == "iowwrmnfeaogocnspgvf") | "region: \(.region)"'
