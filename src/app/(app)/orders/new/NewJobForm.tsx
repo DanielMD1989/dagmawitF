@@ -22,14 +22,13 @@ type RowField = Exclude<keyof Row, 'key'>;
 const blank = (key: number, title = ''): Row => ({ key, title, day: '', until: '', from: '', to: '' });
 
 /**
- * A new job (decision 0068): who it is for; what it is; its day; and the steps she builds by tapping her usual ones,
- * or a whole list, giving each its day. Nothing is guessed: the days are hers. An event (a bazaar, a fashion show) is
- * only its name and its day, counted down on Today; the tailoring steps and lists are not for it.
+ * A new job (decisions 0068, 0075): who it is for; what it is; its day; and the steps she builds by tapping her usual
+ * ones, giving each its day. Nothing is guessed: the days are hers. An event (a bazaar, a fashion show) is
+ * only its name and its day, counted down on Today; the tailoring steps are not for it.
  */
 export function NewJobForm({
   clients,
   initialClient,
-  lists,
   usual,
   today,
   nextNumber,
@@ -37,7 +36,6 @@ export function NewJobForm({
 }: {
   clients: { id: string; name: string }[];
   initialClient: string | null;
-  lists: { id: string; name: string; steps: string[] }[];
   usual: string[];
   today: string;
   nextNumber: number;
@@ -58,7 +56,6 @@ export function NewJobForm({
   const event = client === NO_CLIENT;
   const [due, setDue] = useState('');
   const [rows, setRows] = useState<Row[]>([]);
-  const [list, setList] = useState(lists[0]?.id ?? '');
   const next = useRef(0);
   const add = (...titles: string[]) => setRows((r) => [...r, ...titles.map((t) => blank(next.current++, t))]);
   const change = (key: number, field: RowField, value: string) =>
@@ -187,27 +184,6 @@ export function NewJobForm({
               + Another step
             </button>
           </div>
-          {lists.length > 0 && (
-            <div className="field">
-              <label htmlFor="list">Or all the steps of a list</label>
-              <div className="inline-pick">
-                <select id="list" className="select" value={list} onChange={(e) => setList(e.target.value)}>
-                  {lists.map((l) => (
-                    <option key={l.id} value={l.id}>
-                      {l.name} ({l.steps.length} steps)
-                    </option>
-                  ))}
-                </select>
-                <button
-                  type="button"
-                  className="btn btn--quiet"
-                  onClick={() => add(...(lists.find((l) => l.id === list)?.steps ?? []))}
-                >
-                  Add them
-                </button>
-              </div>
-            </div>
-          )}
 
           <input type="hidden" name="steps" value={rows.length} />
           {rows.length === 0 ? (

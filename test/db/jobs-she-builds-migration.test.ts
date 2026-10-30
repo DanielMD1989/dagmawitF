@@ -62,7 +62,7 @@ beforeAll(async () => {
     `update public.template_task set title = 'Fix the hem' where title = 'Fix' and owner_id = $1`,
     [her],
   );
-  await migrate(db, { from: BEFORE });
+  await migrate(db, { from: BEFORE, upTo: '20261102090000' });
 });
 
 afterAll(async () => {

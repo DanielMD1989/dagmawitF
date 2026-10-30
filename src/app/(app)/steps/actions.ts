@@ -9,7 +9,7 @@ import { failure, success, typedIn, type ActionState } from '@/lib/action-state'
 import { missing, saveFailed } from '@/server/action-errors';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
-import { loadCalendarSteps, loadJobSteps, loadTemplate, setDone } from '@/server/steps';
+import { loadCalendarSteps, loadJobSteps, setDone } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
 
 /** Steps of her jobs and her studio work (docs/calendar-first.md). Every change refreshes Today and the job. */
@@ -131,29 +131,4 @@ export async function removeStep(_previous: ActionState, formData: FormData): Pr
   if (data.length === 0) return missing('step', {});
   refresh(orderId);
   return success('Removed.');
-}
-
-/** Adds the steps of one of her lists to a job, after any steps it has, with no day yet: she gives each its day. */
-export async function addTemplateSteps(_previous: ActionState, formData: FormData): Promise<ActionState> {
-  await requireUser();
-  const typed = typedIn(formData);
-  const orderId = idField(formData, 'order-id');
-  const templateId = idField(formData, 'template');
-  if (!orderId) return failure('That job could not be found. Reload the page.', {}, typed);
-  if (!templateId) return failure('Choose the steps to add.', { template: 'Choose a list.' }, typed);
-  const supabase = await createSupabase();
-  const template = await loadTemplate(supabase, templateId);
-  if (!template) return failure('That list could not be found. Reload the page.', {}, typed);
-  if (template.steps.length === 0) return failure(`“${template.name}” has no steps yet.`, {}, typed);
-  const start = await nextSort(supabase, orderId);
-  const { error } = await supabase.from('task').insert(
-    template.steps.map((s, i) => ({
-      order_id: orderId,
-      sort: Math.min(100_000, start + i * 10),
-      title: s.title,
-    })),
-  );
-  if (error) return saveFailed('the steps', error, typed);
-  refresh(orderId);
-  return success(`Added ${template.steps.length} steps from “${template.name}”. Give each its day.`);
 }

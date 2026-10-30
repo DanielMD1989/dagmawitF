@@ -73,12 +73,6 @@ export async function fillPerson(c: Queryable): Promise<{ pictures: string[] }> 
     today,
   ]);
 
-  // Her own list, changed.
-  await c.query(
-    `update public.template_task set title = 'Buy silk' where title = 'Buy fabric'
-       and template_id = (select id from public.template where name = 'Dress')`,
-  );
-
   // A picture, and studio work with no job.
   const picture = await id(c, `select gen_random_uuid() as id`);
   const path = `${owner}/${order}/${picture}.jpg`;

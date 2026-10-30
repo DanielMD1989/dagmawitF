@@ -2,11 +2,10 @@ import { describe, expect, it } from 'vitest';
 import type { PoolClient } from 'pg';
 import { actAs, actAsOwner, attempt, createUser, idOf, inTransaction } from './helpers';
 
-// Calendar first in the database (docs/calendar-first.md, decision 0066): a job's steps with their days, her studio
-// work, and her library of templates that suggest the days.
+// Steps in the database (docs/calendar-first.md, decisions 0066 and 0075): a job's steps with their days, her studio
+// work, and what a new account starts with.
 
 const CHECK = '23514';
-const UNIQUE = '23505';
 const FOREIGN_KEY = '23503';
 const NO_RIGHT = '42501';
 
@@ -227,97 +226,15 @@ describe('a new account', () => {
     });
   });
 
-  it('starts with two lists of steps: a bridal gown and a dress', async () => {
+  it('starts with no lists of steps (decision 0075)', async () => {
     await signedIn(async (c) => {
-      const { rows } = await c.query(
-        `select t.name, t.version, array_agg(s.title order by s.sort) as steps
-         from public.template t join public.template_task s on s.template_id = t.id
-         group by t.id order by t.name`,
-      );
-      expect(rows.map((r) => [r.name, r.version, r.steps.length])).toEqual([
-        ['Bridal gown', 1, 11],
-        ['Dress', 1, 6],
-      ]);
-      expect(rows[0]!.steps.slice(0, 2)).toEqual(['Appointment', 'Sketch']);
-      expect(rows[1]!.steps).toEqual([
-        'Buy fabric',
-        'Cutting',
-        'Sewing',
-        'Fitting',
-        'Finishing and pressing',
-        'Delivery',
-      ]);
-    });
-  });
-});
-
-describe('her library of templates', () => {
-  const dressId = async (c: PoolClient) =>
-    (await one<{ id: string }>(c, `select id from public.template where name = 'Dress'`)).id;
-  const version = async (c: PoolClient, id: string) =>
-    (await one<{ version: number }>(c, `select version from public.template where id = $1`, [id])).version;
-
-  it('counts a new version for every change to a template or its steps, and only then', async () => {
-    await signedIn(async (c) => {
-      const id = await dressId(c);
-      await c.query(`update public.template set notes = 'Mine' where id = $1`, [id]);
-      expect(await version(c, id)).toBe(2);
-      await c.query(`update public.template set notes = 'Mine' where id = $1`, [id]);
-      expect(await version(c, id)).toBe(2);
-      await c.query(
-        `update public.template_task set title = 'Buy silk' where template_id = $1 and title = 'Buy fabric'`,
-        [id],
-      );
-      expect(await version(c, id)).toBe(3);
-      await c.query(`insert into public.template_task (template_id, title) values ($1, 'Embroidery')`, [id]);
-      expect(await version(c, id)).toBe(4);
-      expect(await attempt(c, `update public.template set version = 1 where id = $1`, [id])).toMatchObject({
-        ok: false,
-        code: NO_RIGHT,
-      });
-    });
-  });
-
-  it.each([
-    ['an empty title', ''],
-    ['a title of 121 letters', 'x'.repeat(121)],
-  ])('refuses a step with %s', async (_, title) => {
-    await signedIn(async (c) => {
-      const id = await dressId(c);
       expect(
-        await attempt(c, `insert into public.template_task (template_id, title) values ($1, $2)`, [
-          id,
-          title,
-        ]),
-      ).toMatchObject({ ok: false, code: CHECK });
-    });
-  });
-
-  it('refuses two lists with the same name, in any capitals', async () => {
-    await signedIn(async (c) => {
-      expect(await attempt(c, `insert into public.template (name) values ('DRESS')`)).toMatchObject({
-        ok: false,
-        code: UNIQUE,
-      });
-    });
-  });
-
-  it('keeps one designer’s templates from another', async () => {
-    await inTransaction(async (c) => {
-      const a = await createUser(c, 'a@example.test');
-      const b = await createUser(c, 'b@example.test');
-      await actAs(c, a);
-      const id = await dressId(c);
-      await actAs(c, b);
-      const mine = (await c.query(`select id from public.template`)).rows.map((r) => r.id);
-      expect(mine).not.toContain(id);
-      expect(
-        await attempt(c, `insert into public.template_task (template_id, title) values ($1, 'X')`, [id]),
-      ).toMatchObject({ ok: false, code: FOREIGN_KEY });
-      expect(await attempt(c, `update public.template set notes = 'x' where id = $1`, [id])).toMatchObject({
-        ok: true,
-        rowCount: 0,
-      });
+        (
+          await c.query(
+            `select to_regclass('public.template') as t, to_regclass('public.template_task') as s`,
+          )
+        ).rows[0],
+      ).toEqual({ t: null, s: null });
     });
   });
 });

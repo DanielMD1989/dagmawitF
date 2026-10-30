@@ -544,3 +544,12 @@ now listed as due on its day only when none of its steps shows that day (`dueNot
 the job, already shows it. The month still marks the day "Due". On a phone the calendar's three month buttons took two
 lines and the job filters three: the month now sits between two arrow buttons, with "This month" beside the Calendar
 label, and the filters are one row that swipes sideways.
+
+## 0075. No lists of steps, no Library
+
+She does not need the Library: her steps are the same few every time, and lists named after garments (Bridal gown,
+Dress) suggested otherwise. The Library, its lists and the "all the steps of a list" pickers are gone; the step buttons
+on a job (the common steps, then any of hers used more than once) are how steps are added. The `template` and
+`template_task` tables, their triggers and the seeding of new accounts are dropped (migration `20261103090000`);
+no step ever pointed at a list, so every job keeps its steps. History lines saying a list's steps were added are kept
+as written. Clients takes the Library's place in the phone's bottom bar.

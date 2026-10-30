@@ -12,16 +12,15 @@ import { loadClients } from '@/server/clients';
 import { getOrder } from '@/server/orders';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
-import { loadJobSteps, loadTemplates, loadUsedStepTitles } from '@/server/steps';
+import { loadJobSteps, loadUsedStepTitles } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
 import { OrderDetailsForm } from './OrderDetailsForm';
-import { TemplateStepsForm } from './TemplateStepsForm';
 import { usualSteps } from '@/domain/steps/usual';
 import { deleteJob } from './actions';
 
 /**
  * A job's steps, each on its day, and the job itself (docs/calendar-first.md). An event (no client) is its name and
- * day; what she prepares for it can be noted on its days, without the tailoring steps and lists of a client's job.
+ * day; what she prepares for it can be noted on its days, without the tailoring steps of a client's job.
  */
 export default async function JobStepsPage({ params }: { params: Promise<{ id: string }> }) {
   await requireUser();
@@ -31,9 +30,8 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
   if (!order) notFound();
 
   const supabase = await createSupabase();
-  const [steps, templates, clients, prefs, used] = await Promise.all([
+  const [steps, clients, prefs, used] = await Promise.all([
     loadJobSteps(supabase, order.id),
-    loadTemplates(supabase),
     loadClients(supabase),
     loadPreferences(supabase),
     loadUsedStepTitles(supabase),
@@ -41,9 +39,6 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
   const closed = isClosed(order.status);
   const warnings = closed ? [] : jobWarnings(steps, order.deliveryOn, prefs.today);
   const done = steps.filter((s) => s.doneOn !== null).length;
-  const templateOptions = templates
-    .filter((t) => t.steps.length > 0)
-    .map((t) => ({ id: t.id, label: `${t.name}: ${t.steps.map((x) => x.title).join(', ')}` }));
   const usual = usualSteps(used);
   const event = !order.client;
   const noun = event ? 'event' : 'job';
@@ -79,10 +74,7 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
         {steps.length === 0 ? (
           !event && (
             <div className="card">
-              <p>No steps yet.</p>
-              {!closed && templateOptions.length > 0 && (
-                <TemplateStepsForm orderId={order.id} templates={templateOptions} preferred={null} />
-              )}
+              <p>No steps yet.{!closed && ' Add them below, each on its day.'}</p>
             </div>
           )
         ) : (
@@ -130,14 +122,6 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
               idPrefix="new-step"
               usual={event ? [] : usual}
             />
-            {!event && steps.length > 0 && templateOptions.length > 0 && (
-              <details className="disclosure disclosure--link">
-                <summary>Add the steps of a list</summary>
-                <div className="disclosure__panel">
-                  <TemplateStepsForm orderId={order.id} templates={templateOptions} preferred={null} />
-                </div>
-              </details>
-            )}
           </>
         )}
       </section>

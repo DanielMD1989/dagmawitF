@@ -42,7 +42,7 @@ A failed run leaves a trace for each failed step: `npx playwright show-trace tes
   | Spec                  | What she does                                                                           |
   | --------------------- | --------------------------------------------------------------------------------------- |
   | `01-jobs.spec.ts`     | Her week; builds jobs step by step, with pictures and measurements; statuses; deleting. |
-  | `02-calendar.spec.ts` | Today and the month; ticks; her own work; times, clashes; moving days; lists; an event. |
+  | `02-calendar.spec.ts` | Today and the month; ticks; her own work; times, clashes; moving days; an event.        |
   | `03-harden.spec.ts`   | No signal and waiting ticks; export and the restore drill; tidying; CSP; keyboard.      |
   | `04-sign-out.spec.ts` | Changes her password, signs out (last: it ends every session of hers).                  |
 

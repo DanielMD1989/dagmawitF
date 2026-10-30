@@ -477,8 +477,6 @@ test('every screen passes axe with best practices, on a phone and on a computer 
     `/orders/${O1}/measurements`,
     `/orders/${O1}/history`,
     '/orders/new',
-    '/library',
-    '/library/new',
     '/clients',
     '/settings',
     '/settings/measurements',

@@ -76,7 +76,7 @@ In this order. Each step says how to check it before going on.
 
 4. **Her account.** Authentication > Users > Add user, with her email and a password, and "Auto Confirm User" ticked
    (and one for you, to try it first). Give her the password in person; she can change it in Settings. Her profile,
-   starter templates and measurement list are created automatically.
+   working week and measurement list are created automatically.
 5. **Hosting** (for example Vercel). Import the repository; set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` (Project
    Settings > API). Never the secret key. Put the functions in the region nearest the Supabase project.
    _Check:_ sign in with your own account and its password; the browser's console shows no Content-Security-Policy errors;

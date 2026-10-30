@@ -4,7 +4,7 @@ import { orderId, value } from './support/db';
 import { env, inDays, today } from './support/env';
 
 // Her calendar (docs/calendar-first.md): Today and the days ahead, ticking steps done, her own work, appointments
-// and their times, what is overdue, steps over several days, moving a job's day, templates, and the month. Runs on
+// and their times, what is overdue, steps over several days, moving a job's day, events, and the month. Runs on
 // the jobs 01-jobs.spec.ts took: #1 a bridal gown in 60 days, #2 an evening dress in 16, #3 a fix in 2.
 
 test.describe.configure({ mode: 'serial' });
@@ -204,56 +204,44 @@ test('a step after the job’s day is pointed out', async () => {
   await press.waitFor({ state: 'detached' });
 });
 
-test('a job taken with no steps gets the steps of a list afterwards', async () => {
+test('a job taken with no steps gets its steps afterwards, each on its day', async () => {
   await fillNewJob(page, { client: 'Hanna Tesfaye', title: 'Party dress', due: inDays(10) });
   await page.getByRole('button', { name: 'Save the job' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
-  expect(await has('No steps yet.')).toBe(true);
-  // With no steps yet, the lists are offered at once.
-  // Each list shows its steps, so she knows what she adds.
-  await page
-    .getByLabel('List')
-    .selectOption({ label: 'Dress: Buy fabric, Cutting, Sewing, Fitting, Finishing and pressing, Delivery' });
-  await page.getByRole('button', { name: 'Add these steps' }).click();
-  // The steps take the place of the empty card, with no days: she gives each its own.
-  await expect(page.locator('li.item .item__title')).toHaveText([
-    'Buy fabric',
-    'Cutting',
-    'Sewing',
-    'Fitting',
-    'Finishing and pressing',
-    'Delivery',
-  ]);
+  expect(await has('No steps yet. Add them below, each on its day.')).toBe(true);
+  for (const [title, day] of [
+    ['Buy fabric', inDays(2)],
+    ['Sewing', inDays(5)],
+  ] as const) {
+    const form = await open(page.locator('main'), 'Add a step');
+    await form.getByLabel('Step').fill(title);
+    await form.getByLabel('Day', { exact: true }).fill(day);
+    await form.getByRole('button', { name: 'Add' }).click();
+    await item(page, title).waitFor();
+    await settled(page);
+  }
+  // The steps take the place of the empty card.
+  await expect(page.locator('li.item .item__title')).toHaveText(['Buy fabric', 'Sewing']);
   expect(await has('No steps yet.')).toBe(false);
 });
 
-test('library: she makes a list of her own, puts it in order, and a new job takes it in one tap', async () => {
-  await page.goto('/library');
-  await inspect(page, 'library');
-  await page.goto('/library/new');
-  await page.getByLabel('Name').fill('Habesha kemis');
-  await page.getByRole('button', { name: 'Create the list' }).click();
-  await page.waitForURL(/\/library\/[0-9a-f-]{36}$/);
-  for (const title of ['Delivery', 'Weave the tibeb']) {
-    await page.getByLabel('Add a step').fill(title);
-    await page.getByRole('button', { name: 'Add', exact: true }).click();
-    await item(page, title).waitFor();
-    // Emptied once added. (The first step's ↑ stays disabled, so the page is never “settled”.)
-    await expect(page.getByLabel('Add a step')).toHaveValue('');
-  }
-  await page.getByRole('button', { name: 'Move Weave the tibeb earlier' }).click();
-  await expect(page.locator('li.item .item__title')).toHaveText(['Weave the tibeb', 'Delivery']);
-  await inspect(page, 'list');
-
-  await page.goto('/orders/new');
-  await page.getByLabel('Or all the steps of a list').selectOption({ label: 'Habesha kemis (2 steps)' });
-  await page.getByRole('button', { name: 'Add them' }).click();
-  const rows = page.locator('.step-row').getByRole('combobox');
-  await expect(rows).toHaveCount(2);
-  expect(await rows.evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value))).toEqual([
-    'Weave the tibeb',
-    'Delivery',
+test('there is no Library: her steps are the same each time, so the step buttons are all there is', async () => {
+  await page.goto('/');
+  await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link')).toHaveText([
+    'Today',
+    'Calendar',
+    'Jobs',
+    'Clients',
+    'Settings',
   ]);
+  await page.goto('/orders/new');
+  await expect(page.getByText('Or all the steps of a list')).toHaveCount(0);
+  await expect(page.getByRole('group', { name: 'Your usual steps' })).toBeVisible();
+  await page.goto(`/orders/${ids.o1}`);
+  await expect(page.getByText('Add the steps of a list')).toHaveCount(0);
+  errors.allow(/status of 404/);
+  expect((await page.goto('/library'))?.status()).toBe(404);
+  errors.allow(null);
 });
 
 test('an event, such as a bazaar or a show, is its name and its day, counted down on Today however far', async () => {
@@ -344,11 +332,7 @@ test('the month marks the days jobs and events are due, steps or none, and lists
 });
 
 test('desktop, and a phone in dark mode: every calendar screen', async ({ browser }) => {
-  const template = await value(
-    `select t.id from public.template t join auth.users u on u.id = t.owner_id where u.email = $1 and t.name = 'Dress'`,
-    [env.email],
-  );
-  const screens = ['/', '/calendar', '/library', `/library/${template}`, '/orders/new', `/orders/${ids.o4}`];
+  const screens = ['/', '/calendar', '/clients', '/orders/new', `/orders/${ids.o4}`];
   for (const look of ['desktop', 'phone-dark'] as const) {
     const c = await signedInContext(browser, look);
     const p = await c.newPage();

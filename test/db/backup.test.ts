@@ -156,20 +156,16 @@ describe('the restore', () => {
     });
   });
 
-  it('puts history and template versions back as they were, not re-made', async () => {
+  it('puts history back as it was, not re-made', async () => {
     await inTransaction(async (c) => {
       const a = await person(c, 'a@example.test');
       const before = await exportAs(c, a);
       expect(await restore(c, a, before)).toMatchObject({ ok: true });
       const { rows } = await c.query(
-        `select (select count(*)::int from public.activity_log where owner_id = $1) as history,
-                (select max(version) from public.template where owner_id = $1) as version`,
+        `select (select count(*)::int from public.activity_log where owner_id = $1) as history`,
         [a],
       );
-      expect(rows[0]).toEqual({
-        history: before.tables.activity_log!.length,
-        version: Math.max(...before.tables.template!.map((t) => Number(t.version))),
-      });
+      expect(rows[0]).toEqual({ history: before.tables.activity_log!.length });
     });
   });
 

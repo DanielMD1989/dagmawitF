@@ -86,8 +86,8 @@ no client. Her answers: **she sets each step's day herself**, and Today shows **
 - **Steps are built on the job.** Her usual steps are offered as buttons (Appointment, Sketch, Buy fabric, Cutting,
   Sewing, Fitting, Fix, Delivery, and every step she has typed before, most used first); a tap adds it, she gives it
   its day and, if she wants, a time. Any step can be typed new.
-- **Saved lists.** A list of steps she uses often (Bridal gown) can be added in one tap; she gives the days. Lists
-  hold titles only. The Library is these lists.
+- **No saved lists** (decision 0075, replacing the first version's Library). Her steps are the same few every time, so
+  the step buttons are all she needs: the common steps, and any step of hers she has used more than once.
 - **No suggested days.** Nothing is counted back; the app keeps what she sets.
 - **Days left.** Today lists what is coming up: "Bazaar at Hyatt · 12 days left". Every event ahead is there from the
   day she adds it, however far, because a bazaar or a fashion show needs weeks of preparation (her words: "needs my

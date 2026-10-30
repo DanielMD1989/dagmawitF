@@ -154,9 +154,6 @@ textarea {
   font-size: 12px;
   font-weight: 500;
 }
-.nav__link--wide {
-  display: none;
-}
 .nav__link svg {
   width: 22px;
   height: 22px;
@@ -202,9 +199,6 @@ textarea {
     font-weight: 800;
     letter-spacing: 0.08em;
     padding: 0 12px 20px;
-  }
-  .nav__link--wide {
-    display: flex;
   }
   .nav__link {
     flex: none;

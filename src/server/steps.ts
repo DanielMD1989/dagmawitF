@@ -111,50 +111,6 @@ export async function loadJobSteps(supabase: SupabaseClient, orderId: string): P
   return z.array(stepRow).parse(data).map(toStep);
 }
 
-// ---------------------------------------------------------------------------------------------
-// Templates
-
-export interface Template {
-  id: string;
-  name: string;
-  notes: string;
-  version: number;
-  steps: { id: string; sort: number; title: string }[];
-}
-
-const templateRow = z.object({
-  id: z.string(),
-  name: z.string(),
-  notes: z.string(),
-  version: z.number().int(),
-  template_task: z.array(z.object({ id: z.string(), sort: z.number().int(), title: z.string() })),
-});
-
-function toTemplate(t: z.infer<typeof templateRow>): Template {
-  return {
-    id: t.id,
-    name: t.name,
-    notes: t.notes,
-    version: t.version,
-    steps: [...t.template_task].sort((a, b) => a.sort - b.sort || a.title.localeCompare(b.title)),
-  };
-}
-
-const TEMPLATE_COLUMNS = 'id, name, notes, version, template_task(id, sort, title)';
-
-/** Her saved lists of steps, by name, each with its steps in order. */
-export async function loadTemplates(supabase: SupabaseClient): Promise<Template[]> {
-  const { data, error } = await supabase.from('template').select(TEMPLATE_COLUMNS).order('name').limit(500);
-  if (error) fail('her lists of steps', error);
-  return z.array(templateRow).parse(data).map(toTemplate);
-}
-
-export async function loadTemplate(supabase: SupabaseClient, id: string): Promise<Template | null> {
-  const { data, error } = await supabase.from('template').select(TEMPLATE_COLUMNS).eq('id', id).maybeSingle();
-  if (error) fail('the list of steps', error);
-  return data ? toTemplate(templateRow.parse(data)) : null;
-}
-
 /** The titles of the steps she has used, with how often: her usual steps, offered as buttons. */
 export async function loadUsedStepTitles(
   supabase: SupabaseClient,

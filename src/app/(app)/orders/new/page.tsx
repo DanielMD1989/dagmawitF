@@ -7,7 +7,7 @@ import { loadClients } from '@/server/clients';
 import { loadOrderHints } from '@/server/orders';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
-import { loadTemplates, loadUsedStepTitles } from '@/server/steps';
+import { loadUsedStepTitles } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
 import { NewJobForm } from './NewJobForm';
 
@@ -21,11 +21,10 @@ export default async function NewJobPage({
   await requireUser();
   const params = await searchParams;
   const supabase = await createSupabase();
-  const [clients, hints, prefs, templates, used] = await Promise.all([
+  const [clients, hints, prefs, used] = await Promise.all([
     loadClients(supabase),
     loadOrderHints(supabase),
     loadPreferences(supabase),
-    loadTemplates(supabase),
     loadUsedStepTitles(supabase),
   ]);
   const wanted = asId(params.client);
@@ -50,9 +49,6 @@ export default async function NewJobPage({
       <NewJobForm
         clients={clients.map((c) => ({ id: c.id, name: c.name }))}
         initialClient={initialClient}
-        lists={templates
-          .filter((t) => t.steps.length > 0)
-          .map((t) => ({ id: t.id, name: t.name, steps: t.steps.map((s) => s.title) }))}
         usual={usualSteps(used)}
         today={prefs.today}
         nextNumber={hints.nextNumber}
