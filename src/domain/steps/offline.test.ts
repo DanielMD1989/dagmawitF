@@ -66,7 +66,7 @@ describe('the snapshot kept on the phone', () => {
       [
         'Today',
         [
-          ['Fitting', '10:30–11:30', null],
+          ['Fitting', '10:30–11:30 AM', null],
           ['Sewing', null, 'Day 1 of 3'],
         ],
       ],

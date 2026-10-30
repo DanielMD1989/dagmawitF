@@ -109,7 +109,7 @@ test('with no signal, opening the app shows the day as of when it was kept', asy
   await signal(false);
   await page.goto('/');
   await page.waitForURL(/\/offline\?from=%2F$/);
-  await page.locator('h1', { hasText: /^Today, as of \d\d:\d\d$/ }).waitFor();
+  await page.locator('h1', { hasText: /^Today, as of \d{1,2}:\d\d [AP]M$/ }).waitFor();
   const t = await text(page);
   expect(t).toMatch(/no signal/i);
   expect(t).toContain('What you tick here waits on this phone');

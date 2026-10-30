@@ -1,3 +1,4 @@
+import { clock } from '@/domain/steps/words';
 import { notFound } from 'next/navigation';
 import { formatDayLong, wallClockOf, type IsoDate } from '@/domain/dates';
 import { isUuid } from '@/domain/form-input';
@@ -48,7 +49,7 @@ export default async function OrderHistoryPage({ params }: { params: Promise<{ i
             <ul className="timeline">
               {d.lines.map((l) => (
                 <li key={l.seq}>
-                  <time>{l.time}</time>
+                  <time>{clock(l.time)}</time>
                   <span>{l.text}</span>
                 </li>
               ))}

@@ -25,8 +25,8 @@ export function StepEntry({
     <li className={overdue ? 'item item--late' : 'item'}>
       <div className="item__head">
         <TickButton stepId={step.id} orderId={step.job?.id ?? null} title={step.title} done={done} />
-        {time && <span className="today__time">{time}</span>}
         <div className="item__main">
+          {time && <span className="item__time">{time}</span>}
           <span className={done ? 'item__title today__done' : 'item__title'}>{step.title}</span>
           {(part || showJob) && (
             <span className="hint">

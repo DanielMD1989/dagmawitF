@@ -1497,3 +1497,9 @@ h4 {
   gap: 6px;
   margin-top: 8px;
 }
+
+.item__time {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}

@@ -61,7 +61,7 @@ test('something of her own for today, at a time', async () => {
   await form.getByLabel('To (optional)').fill('10:30');
   await form.getByRole('button', { name: 'Add' }).click();
   const own = item(page, 'Sharpen the shears');
-  await expect(own).toContainText('10:00–10:30');
+  await expect(own).toContainText('10:00–10:30 AM');
   await expect(own).toContainText('Your own');
 });
 
@@ -86,7 +86,7 @@ test('an appointment is a job at a time on its day; a time already taken is refu
   await expect(page.locator('#template option:checked')).toHaveText(/^Appointment/);
   await page.getByRole('button', { name: 'Save the job' }).click();
   // 10:00 to 10:30 is already hers: sharpening the shears.
-  await expect(page.locator('#time-error')).toContainText('10:00–10:30 on ');
+  await expect(page.locator('#time-error')).toContainText('10:00–10:30 AM on ');
   await expect(page.locator('#time-error')).toContainText('is taken by “Sharpen the shears” (your own).');
   await expect(page.getByLabel('Client', { exact: true })).toHaveValue(/[0-9a-f-]{36}/);
   await settled(page);
@@ -98,7 +98,7 @@ test('an appointment is a job at a time on its day; a time already taken is refu
   await expect(page.locator('h1')).toContainText('Appointment #4');
   await page.goto('/');
   const appointment = item(section('Today'), 'Appointment');
-  await expect(appointment).toContainText('10:30–11:00');
+  await expect(appointment).toContainText('10:30–11:00 AM');
   await expect(page.getByText('Its time crosses another step’s.')).toHaveCount(0);
   // Timed steps come first, in time order.
   const titles = await section('Today').locator('.item__title').allInnerTexts();
@@ -117,7 +117,7 @@ test('a step’s time already taken is refused there too', async () => {
   await settled(page);
   await form.getByLabel('From (optional)').fill('11:00');
   await form.getByRole('button', { name: 'Add' }).click();
-  await expect(item(page, 'Call the lace supplier')).toContainText('11:00');
+  await expect(item(page, 'Call the lace supplier')).toContainText('11:00 AM');
 });
 
 test('a step whose day has passed waits under “Not done yet”, and its job says so', async () => {

@@ -9,10 +9,20 @@ export function jobLabel(job: JobRef): string {
   return `#${job.number} · ${job.clientName} · ${KIND_WORDS[job.kind].label}`;
 }
 
-/** "09:00–13:00", "09:00", or null. */
+/** A time on the 12-hour clock she reads: '14:30' → "2:30 PM", '00:15' → "12:15 AM". */
+export function clock(time: string): string {
+  const [h, m] = [Number(time.slice(0, 2)), time.slice(3, 5)];
+  return `${h % 12 === 0 ? 12 : h % 12}:${m} ${h < 12 ? 'AM' : 'PM'}`;
+}
+
+/** "9:00–11:30 AM", "11:30 AM–1:00 PM", "2:00 PM", or null. */
 export function timeLabel(step: Pick<Step, 'startsAt' | 'endsAt'>): string | null {
   if (!step.startsAt) return null;
-  return step.endsAt ? `${step.startsAt}–${step.endsAt}` : step.startsAt;
+  if (!step.endsAt) return clock(step.startsAt);
+  const from = clock(step.startsAt);
+  const to = clock(step.endsAt);
+  // One AM or PM is enough when both are on the same side of noon.
+  return from.slice(-2) === to.slice(-2) ? `${from.slice(0, -3)}–${to}` : `${from}–${to}`;
 }
 
 /** "Day 2 of 5" for a step over several days. */

@@ -12,6 +12,7 @@ import {
   type OfflineEntry,
   type WaitingTap,
 } from '@/domain/steps/offline';
+import { clock } from '@/domain/steps/words';
 import { readSnapshot, readWaiting, saveWaiting, subscribeOffline } from '@/lib/offline-store';
 
 /**
@@ -62,7 +63,7 @@ export function OfflineDay() {
       <div className="page-head">
         <p className="eyebrow">{signal ? 'Kept on this phone' : 'No signal'}</p>
         <h1>
-          {today ? 'Today' : formatDayLong(snapshot.day)}, as of {madeAt?.time ?? 'earlier'}
+          {today ? 'Today' : formatDayLong(snapshot.day)}, as of {madeAt ? clock(madeAt.time) : 'earlier'}
         </h1>
         <p className="lede">
           {today
@@ -165,8 +166,8 @@ function Entry({
         ) : (
           <span className={entry.done ? 'item__mark item__mark--done' : 'item__mark'} aria-hidden="true" />
         )}
-        {entry.time && <span className="today__time">{entry.time}</span>}
         <div className="item__main">
+          {entry.time && <span className="item__time">{entry.time}</span>}
           <span className={entry.done ? 'item__title today__done' : 'item__title'}>{entry.title}</span>
           <span className="hint">
             {[entry.part, entry.jobLabel ?? 'Your own'].filter(Boolean).join(' · ')}
