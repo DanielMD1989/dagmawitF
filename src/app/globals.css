@@ -1,7 +1,8 @@
 /*
  * DAGMAWIT design tokens. Each is light-dark(light value, night value).
- * The light values are the white and off-white design she chose; the night values are a soft
- * warm charcoal with cream text, never pure black or pure white.
+ * The light values are the green design she chose (decision 0071): a warm off-white page, white cards, pine-black
+ * text, forest-green actions and a deep pine-green bottom bar. The night values are deep green-charcoal with soft
+ * light text, never pure black or pure white.
  * Contrast of every text/background pairing is checked in docs/design-tokens.md.
  *
  * html[data-theme] forces a side; with none, the phone's own setting decides.
@@ -10,33 +11,43 @@
 :root {
   color-scheme: light dark;
 
-  --bg: light-dark(#f6f2ea, #2a2723);
-  --surface: light-dark(#fffdf8, #34312b);
-  --line: light-dark(#ddd4c3, #4b473f);
-  --line-strong: light-dark(#cfc6b4, #5a564c);
-  --ink: light-dark(#25231f, #ece6d8);
-  --muted: light-dark(#5c574d, #bdb6a6);
-  --accent: light-dark(#3f5a4b, #a9c5b1);
-  --accent-2: light-dark(#4a6455, #93b3a0);
-  --tint: light-dark(#e9efe8, #3b4a41);
-  --solid: light-dark(#3f5a4b, #4d6b5a);
-  --on-solid: light-dark(#ffffff, #f3efe4);
-  --on-accent: light-dark(#ffffff, #2a2723);
-  --field: light-dark(#ffffff, #231f1b);
+  --bg: light-dark(#faf8f5, #131a14);
+  --surface: light-dark(#ffffff, #1c261d);
+  --line: light-dark(#e4e7e1, #2e3b2f);
+  --line-strong: light-dark(#cdd4ca, #44544a);
+  --ink: light-dark(#1a231a, #e6eee4);
+  --muted: light-dark(#556355, #a8b8a7);
+  /* Her forest green #228B22, one step deeper where it carries text so it stays readable (5.4:1 on white). */
+  --accent: light-dark(#1e7b1e, #7fd883);
+  --accent-2: light-dark(#2e8b3a, #6cc470);
+  --tint: light-dark(#e7f3e5, #213622);
+  --solid: light-dark(#1e7b1e, #2e7d32);
+  --solid-hover: light-dark(#186618, #276b2b);
+  --on-solid: light-dark(#ffffff, #f3f7f1);
+  --on-accent: light-dark(#ffffff, #131a14);
+  --field: light-dark(#ffffff, #162017);
   --warn: light-dark(#7a3622, #f0b9a2);
   --warn-border: light-dark(#9c4a32, #c98a70);
   --on-warn: light-dark(#ffffff, #2a2723);
   --warn-bg: light-dark(#fbf0eb, #3d2d27);
   --warn-line: light-dark(#e5c5b8, #6d4c40);
-  --track: light-dark(#e4dccb, #443f37);
+  --track: light-dark(#e4e7e1, #2e3b2f);
   --sand: light-dark(#e8dabb, #5a5130);
   --sand-ink: light-dark(#4a4333, #f0e6c4);
   --wait: light-dark(#b9a472, #c9b77f);
+  /* The bottom bar (the side bar on a wide screen): deep pine green, the open page in bright green. */
+  --nav-bg: light-dark(#0d3e0d, #0a2a0b);
+  --nav-ink: light-dark(#b9cbb9, #a8bca8);
+  --nav-active: light-dark(#7fd883, #8fe092);
+  --nav-pill: light-dark(#1f5a1f, #17451a);
+  /* Cards float a little above the page. */
+  --shadow-color: light-dark(rgb(13 62 13 / 7%), rgb(0 0 0 / 35%));
+  --shadow: 0 2px 10px var(--shadow-color), 0 1px 2px var(--shadow-color);
+  --card-border: light-dark(transparent, #2e3b2f);
 
-  --font-sans: 'Instrument Sans Variable', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-serif: 'Cormorant Garamond', Georgia, 'Times New Roman', serif;
-  --radius: 12px;
-  --radius-sm: 8px;
+  --font-sans: 'Inter Variable', Inter, -apple-system, 'SF Pro Text', Roboto, system-ui, sans-serif;
+  --radius: 16px;
+  --radius-sm: 12px;
   --tap: 44px;
 }
 :root[data-theme='light'] {
@@ -68,15 +79,16 @@ p {
 }
 h1,
 h2 {
-  font-family: var(--font-serif);
-  font-weight: 700;
-  line-height: 1.1;
+  line-height: 1.2;
+  letter-spacing: -0.01em;
 }
 h1 {
-  font-size: clamp(34px, 6vw, 44px);
+  font-size: 24px;
+  font-weight: 700;
 }
 h2 {
-  font-size: 26px;
+  font-size: 18px;
+  font-weight: 600;
 }
 a {
   color: inherit;
@@ -122,9 +134,10 @@ textarea {
   inset: auto 0 0 0;
   z-index: 10;
   display: flex;
-  background: var(--surface);
-  border-top: 1px solid var(--line);
-  padding-bottom: env(safe-area-inset-bottom);
+  background: var(--nav-bg);
+  border-radius: 24px 24px 0 0;
+  box-shadow: 0 -4px 16px rgb(13 62 13 / 18%);
+  padding: 6px 4px env(safe-area-inset-bottom);
 }
 .nav__brand {
   display: none;
@@ -138,7 +151,7 @@ textarea {
   justify-content: center;
   gap: 3px;
   text-decoration: none;
-  color: var(--muted);
+  color: var(--nav-ink);
   font-size: 12px;
   font-weight: 500;
 }
@@ -150,11 +163,14 @@ textarea {
   height: 22px;
 }
 .nav__link[aria-current='page'] {
-  color: var(--accent);
+  color: var(--nav-active);
   font-weight: 700;
 }
 .nav__link[aria-current='page'] .nav__icon {
-  background: var(--tint);
+  background: var(--nav-pill);
+}
+.nav__link:focus-visible {
+  outline-color: var(--nav-active);
 }
 .nav__icon {
   display: flex;
@@ -169,6 +185,7 @@ textarea {
     flex-direction: row;
   }
   .nav {
+    border-radius: 0 24px 24px 0;
     position: sticky;
     /* top, right, bottom, left: pinned to the top edge only. This also undoes the phone layout's
        pin to the bottom edge. (A separate "top: 0" before "inset: auto" would be overwritten.) */
@@ -178,15 +195,13 @@ textarea {
     flex-direction: column;
     gap: 4px;
     padding: 24px 16px;
-    border-top: 0;
-    border-right: 1px solid var(--line);
   }
   .nav__brand {
     display: block;
-    font-family: var(--font-serif);
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
+    color: #ffffff;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
     padding: 0 12px 20px;
   }
   .nav__link--wide {
@@ -199,11 +214,11 @@ textarea {
     justify-content: flex-start;
     gap: 12px;
     padding: 0 12px;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 15px;
   }
   .nav__link[aria-current='page'] {
-    background: var(--tint);
+    background: var(--nav-pill);
   }
   .nav__icon,
   .nav__link[aria-current='page'] .nav__icon {
@@ -247,7 +262,8 @@ textarea {
 }
 .card {
   background: var(--surface);
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-border);
+  box-shadow: var(--shadow);
   border-radius: var(--radius);
   padding: 20px;
   display: flex;
@@ -370,14 +386,18 @@ fieldset {
   min-width: 0;
 }
 .btn {
-  min-height: var(--tap);
-  padding: 0 20px;
+  min-height: 48px;
+  padding: 0 22px;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
-  background: var(--ink);
-  color: var(--bg);
-  font-weight: 600;
+  border-radius: var(--radius);
+  background: var(--solid);
+  color: var(--on-solid);
+  font-weight: 700;
   cursor: pointer;
+  box-shadow: 0 2px 6px rgb(30 123 30 / 22%);
+}
+.btn:hover {
+  background: var(--solid-hover);
 }
 .btn:disabled {
   opacity: 0.6;
@@ -390,14 +410,22 @@ a.btn {
   text-decoration: none;
 }
 .btn--quiet {
-  background: transparent;
+  background: var(--surface);
   color: var(--ink);
   border-color: var(--line-strong);
+  box-shadow: none;
+}
+.btn--quiet:hover {
+  background: var(--tint);
 }
 .btn--warn {
   background: transparent;
   color: var(--warn);
   border-color: var(--warn-border);
+  box-shadow: none;
+}
+.btn--warn:hover {
+  background: var(--warn-bg);
 }
 .btn-row {
   display: flex;
@@ -462,10 +490,11 @@ a.btn {
 .week {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-border);
   border-radius: var(--radius);
   overflow: hidden;
   background: var(--surface);
+  box-shadow: var(--shadow);
 }
 .week__day {
   display: grid;
@@ -539,9 +568,10 @@ a.btn {
   padding: 0;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-border);
   border-radius: var(--radius);
   background: var(--surface);
+  box-shadow: var(--shadow);
 }
 .rows li {
   display: flex;
@@ -578,9 +608,9 @@ a.btn {
   gap: 20px;
 }
 .wordmark {
-  font-family: var(--font-serif);
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  color: var(--accent);
+  font-weight: 800;
+  letter-spacing: 0.08em;
   font-size: 22px;
 }
 
@@ -730,9 +760,10 @@ a.btn {
   flex-direction: column;
   gap: 14px;
   padding: 16px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-border);
   border-radius: var(--radius);
   background: var(--surface);
+  box-shadow: var(--shadow);
 }
 .confirm {
   display: flex;
@@ -798,9 +829,10 @@ a.btn {
 .photo {
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-border);
   border-radius: var(--radius);
   background: var(--surface);
+  box-shadow: var(--shadow);
   overflow: hidden;
 }
 .photo__img {
@@ -859,9 +891,10 @@ a.btn {
   padding: 0;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-border);
   border-radius: var(--radius);
   background: var(--surface);
+  box-shadow: var(--shadow);
   overflow: hidden;
 }
 .item {
@@ -1139,9 +1172,10 @@ h4 {
 }
 .table-wrap {
   overflow-x: auto;
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-border);
   border-radius: var(--radius);
   background: var(--surface);
+  box-shadow: var(--shadow);
 }
 .table {
   width: 100%;
@@ -1330,10 +1364,10 @@ h4 {
 }
 .nav__brand--alone {
   display: block;
-  font-family: var(--font-serif);
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
+  color: var(--accent);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
 }
 .sync ul {
   margin: 8px 0 0;
@@ -1603,9 +1637,10 @@ h4 {
 .step-row fieldset {
   margin: 0;
   padding: 12px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--card-border);
   border-radius: var(--radius);
   background: var(--surface);
+  box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
   gap: 10px;

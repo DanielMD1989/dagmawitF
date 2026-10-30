@@ -93,7 +93,7 @@ test('Today is kept on the phone as she sees it, and nothing else of hers is', a
     await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('dagmawit'))),
   ).toEqual(['dagmawit.today.v3']);
   const cached = await page.evaluate(async () =>
-    (await (await caches.open('dagmawit-shell-v2')).keys()).map((r) => new URL(r.url).pathname),
+    (await (await caches.open('dagmawit-shell-v3')).keys()).map((r) => new URL(r.url).pathname),
   );
   expect(cached).toContain('/offline');
   expect(cached.some((p) => p.endsWith('.css'))).toBe(true);

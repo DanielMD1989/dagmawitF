@@ -504,3 +504,13 @@ by kind (sketches, the client's inspiration, fabric, fittings, other), each with
 
 Installed on a phone the app has no browser back button, and the small grey breadcrumb was easy to miss. Every inner
 page now starts with a large "← Jobs" (or Clients, Library, Settings, the client) link back to its list.
+
+## 0071. Her green design
+
+She gave a design for the app's look: a warm off-white page (#FAF8F5), white cards with soft shadows and 16 px corners,
+pine-black text (#1A231A) and slate green-grey secondary text (#556355), forest-green buttons (#228B22), a deep
+pine-green bottom bar (#0D3E0D) with 24 px top corners whose open page shows in bright green, and Inter (titles 24 px
+bold, section headings 18 px semi-bold). It replaces the cream, serif and sage look of 0005 through the tokens in
+`globals.css`, so every screen follows. Two shades are one step deeper than given, where text sits on them: white on
+#228B22 is 4.4:1 and needs 4.5:1, so buttons and green text use #1E7B1E; the open page's green on the bar is #7FD883,
+because #4CAF50 there is 4.2:1. Night keeps the same design in deep green-charcoal. The contrast test covers the bar.

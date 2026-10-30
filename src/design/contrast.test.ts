@@ -20,7 +20,11 @@ const PAIRS: [foreground: string, background: string, minimum: number][] = [
   ['accent', 'tint', 4.5],
   ['on-solid', 'solid', 4.5],
   ['on-accent', 'accent', 3],
-  ['bg', 'ink', 4.5], // the main button: page colour on ink
+  ['on-solid', 'solid', 4.5], // the main button: white on forest green
+  ['on-solid', 'solid-hover', 4.5], // the main button, pointed at
+  ['nav-ink', 'nav-bg', 4.5], // the bottom bar's other pages
+  ['nav-active', 'nav-bg', 4.5], // the open page
+  ['nav-active', 'nav-pill', 4.5], // the open page's icon on its pill
   ['warn', 'bg', 4.5],
   ['warn', 'surface', 4.5],
   ['warn', 'warn-bg', 4.5],

@@ -1,9 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 import { cookies } from 'next/headers';
-import '@fontsource-variable/instrument-sans';
-import '@fontsource/cormorant-garamond/500.css';
-import '@fontsource/cormorant-garamond/600.css';
-import '@fontsource/cormorant-garamond/700.css';
+import '@fontsource-variable/inter';
 import './globals.css';
 import { ServiceWorker } from '@/components/ServiceWorker';
 import { THEME_COLORS, THEME_COOKIE, parseTheme } from '@/lib/theme';

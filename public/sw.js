@@ -13,7 +13,7 @@
  *
  * To change this file, bump VERSION so old caches are cleared.
  */
-const VERSION = 'v2';
+const VERSION = 'v3';
 const SHELL = `dagmawit-shell-${VERSION}`;
 const PLAIN_OFFLINE = '/offline.html';
 const OFFLINE = '/offline';

@@ -15,4 +15,4 @@ export const THEME_LABELS: Record<Theme, string> = {
 };
 
 /** Browser chrome colours, matching --bg in globals.css. */
-export const THEME_COLORS = { light: '#F6F2EA', night: '#2A2723' } as const;
+export const THEME_COLORS = { light: '#FAF8F5', night: '#131A14' } as const;
