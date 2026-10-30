@@ -1,12 +1,16 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useMemo, useState } from 'react';
 import { FormNotice } from '@/components/FormNotice';
 import { SubmitButton } from '@/components/SubmitButton';
 import { TextArea, TextField } from '@/components/fields';
 import { fieldValue, idle } from '@/lib/action-state';
 import { JOB_KINDS, KIND_WORDS, isJobKind, type JobKind } from '@/domain/jobs/kinds';
+import { openDayRule } from '@/domain/calendar/open';
+import { isIsoDate } from '@/domain/dates';
 import { pickTemplate } from '@/domain/jobs/templates';
+import { suggestDays, type TemplateStep } from '@/domain/steps/suggest';
+import { daysLabel } from '@/domain/steps/words';
 import { NEW_CLIENT, NO_TEMPLATE } from '@/domain/orders/forms';
 import { createJob } from '../actions';
 
@@ -14,7 +18,7 @@ export interface TemplateChoice {
   id: string;
   name: string;
   kind: JobKind;
-  steps: number;
+  steps: TemplateStep[];
 }
 
 const KIND_HINT: Record<JobKind, string> = {
@@ -33,6 +37,8 @@ export function NewJobForm({
   today,
   nextNumber,
   garmentTypes,
+  workingDays,
+  daysOff,
 }: {
   clients: { id: string; name: string }[];
   initialClient: string | null;
@@ -41,6 +47,8 @@ export function NewJobForm({
   today: string;
   nextNumber: number;
   garmentTypes: string[];
+  workingDays: number[];
+  daysOff: { day: string; minutesAvailable: number }[];
 }) {
   const [state, action] = useActionState(createJob, idle);
   const hasClients = clients.length > 0;
@@ -52,6 +60,14 @@ export function NewJobForm({
   const [pickedTemplate, setPickedTemplate] = useState<string | null>(null);
   const template = pickedTemplate ?? pickTemplate(templates, kind, garment)?.id ?? NO_TEMPLATE;
   const words = KIND_WORDS[kind];
+  const [due, setDue] = useState(fieldValue(state, 'due-on', ''));
+  const chosen = templates.find((t) => t.id === template) ?? null;
+  // The same rule the server uses when it saves (src/server/suggest.ts), so the days shown are the days she gets.
+  const preview = useMemo(() => {
+    if (!chosen || !isIsoDate(due) || due < today) return null;
+    return suggestDays(chosen.steps, due, today, openDayRule(workingDays, daysOff));
+  }, [chosen, due, today, workingDays, daysOff]);
+  const count = (t: TemplateChoice) => `${t.steps.length} step${t.steps.length === 1 ? '' : 's'}`;
   const ofKind = templates.filter((t) => t.kind === kind);
   const others = templates.filter((t) => t.kind !== kind);
 
@@ -144,6 +160,7 @@ export function NewJobForm({
             min={today}
             required
             hint={words.dueHint}
+            onChange={(e) => setDue(e.target.value)}
           />
           {words.atTime && <TextField name="time" label="Time (optional)" type="time" state={state} />}
         </div>
@@ -190,38 +207,70 @@ export function NewJobForm({
       </section>
 
       <section className="section" aria-labelledby="steps-heading">
-        <h2 id="steps-heading">Steps</h2>
+        <h2 id="steps-heading">Steps of the work</h2>
+        <p className="hint">
+          The work broken into steps, each on its own day on your calendar: they show on Today, and you tick
+          each one when it is done. Choose the list that fits; you can change, add or remove steps after
+          saving. Your lists are in the Library.
+        </p>
         <div className="field">
-          <label htmlFor="template">Start with the steps of</label>
+          <label htmlFor="template">Use the steps of</label>
           <select
             id="template"
             name="template"
             className="select"
             value={template}
             onChange={(e) => setPickedTemplate(e.target.value)}
-            aria-describedby="template-hint"
           >
             {ofKind.map((t) => (
               <option key={t.id} value={t.id}>
-                {t.name} ({t.steps} step{t.steps === 1 ? '' : 's'})
+                {t.name} ({count(t)})
               </option>
             ))}
             {others.length > 0 && (
-              <optgroup label="Other templates">
+              <optgroup label="Other lists">
                 {others.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.name} ({t.steps} step{t.steps === 1 ? '' : 's'})
+                    {t.name} ({count(t)})
                   </option>
                 ))}
               </optgroup>
             )}
-            <option value={NO_TEMPLATE}>No steps yet: I will add them</option>
+            <option value={NO_TEMPLATE}>No steps: I will add my own</option>
           </select>
-          <p id="template-hint" className="hint">
-            Each step gets a day, counted back from the day above. You can change any of them next.
-          </p>
           {state.errors.template && <p className="error">{state.errors.template}</p>}
         </div>
+        {chosen && (
+          <div className="card" aria-live="polite">
+            {preview ? (
+              <>
+                <p className="hint">
+                  {preview.squeezed
+                    ? 'The day is near, so the steps are drawn closer together to fit before it.'
+                    : `Counted back from ${words.dueLabel.toLowerCase()}, on the days you work.`}
+                </p>
+                <ol className="plain-list steps-preview">
+                  {preview.steps.map((s, i) => (
+                    <li key={i}>
+                      <strong>{s.title}</strong> <span className="hint">· {daysLabel(s)}</span>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            ) : (
+              <>
+                <p className="hint">Choose the day above to see the day each step gets.</p>
+                <ol className="plain-list steps-preview">
+                  {chosen.steps.map((s, i) => (
+                    <li key={i}>
+                      <strong>{s.title}</strong>
+                    </li>
+                  ))}
+                </ol>
+              </>
+            )}
+          </div>
+        )}
       </section>
 
       <details className="disclosure disclosure--link">

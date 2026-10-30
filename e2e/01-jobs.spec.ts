@@ -92,7 +92,13 @@ test('she takes job 1, a bridal gown, and its steps get days counted back from d
   await page.getByLabel('Garment', { exact: true }).fill('Bridal gown');
   // The template named like the garment is chosen for her.
   await expect(page.locator('#template option:checked')).toHaveText(/^Bridal gown/);
+  // Before the day is chosen, the steps are listed; once it is, each shows the day it will get.
+  const preview = page.locator('.steps-preview li');
+  await expect(preview).toHaveCount(11);
+  await expect(page.getByText('Choose the day above to see the day each step gets.')).toBeVisible();
   await page.getByLabel('Delivery day').fill(inDays(60));
+  await expect(preview.first()).toContainText('Design agreed with the client · ');
+  const shown = await preview.allInnerTexts();
   await page.getByText('Notes and job number').click();
   await page.getByLabel('Notes (optional)').fill('Pays in two parts. Mother collects.');
   await page.getByLabel('Phone (optional)').fill('0911 22 33 44');
@@ -113,6 +119,11 @@ test('she takes job 1, a bridal gown, and its steps get days counted back from d
   expect(days.find((d) => d.title === 'Delivery')!.on_day).toBe(inDays(60));
   expect(days.find((d) => d.title === 'Design agreed with the client')!.on_day).toBe(inDays(4));
   expect(days.find((d) => d.title === 'First fitting')!.on_day).toBe(inDays(32));
+  // The days the form showed are the days she got.
+  const listed = await page.locator('li.item .item__main > .hint').allInnerTexts();
+  expect(shown.map((line) => line.split(' · ').slice(1).join(' · '))).toEqual(
+    listed.map((l) => l.split(' · ')[0]),
+  );
   await inspect(page, 'job steps');
 });
 

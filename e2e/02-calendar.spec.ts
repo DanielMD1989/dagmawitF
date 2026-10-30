@@ -163,7 +163,7 @@ test('a job taken with no steps gets a template’s steps afterwards', async () 
   await page.goto('/orders/new?kind=sketch');
   await page.getByLabel('Client', { exact: true }).selectOption({ label: 'Hanna Tesfaye' });
   await page.getByLabel('Show the client on').fill(inDays(10));
-  await page.getByLabel('Start with the steps of').selectOption({ label: 'No steps yet: I will add them' });
+  await page.getByLabel('Use the steps of').selectOption({ label: 'No steps: I will add my own' });
   await page.getByRole('button', { name: 'Save the job' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   expect(await has('No steps yet.')).toBe(true);

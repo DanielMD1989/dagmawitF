@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { asId } from '@/domain/form-input';
 import { isJobKind } from '@/domain/jobs/kinds';
+import { loadCalendarSettings } from '@/server/calendar';
 import { loadClients } from '@/server/clients';
 import { loadOrderHints } from '@/server/orders';
 import { loadPreferences } from '@/server/preferences';
@@ -20,11 +21,12 @@ export default async function NewJobPage({
   await requireUser();
   const params = await searchParams;
   const supabase = await createSupabase();
-  const [clients, hints, prefs, templates] = await Promise.all([
+  const [clients, hints, prefs, templates, calendar] = await Promise.all([
     loadClients(supabase),
     loadOrderHints(supabase),
     loadPreferences(supabase),
     loadTemplates(supabase),
+    loadCalendarSettings(supabase),
   ]);
   const wanted = asId(params.client);
   const initialClient = clients.some((c) => c.id === wanted) ? wanted : null;
@@ -44,7 +46,19 @@ export default async function NewJobPage({
         clients={clients.map((c) => ({ id: c.id, name: c.name }))}
         initialClient={initialClient}
         initialKind={isJobKind(params.kind) ? params.kind : 'new_order'}
-        templates={templates.map((t) => ({ id: t.id, name: t.name, kind: t.kind, steps: t.steps.length }))}
+        templates={templates.map((t) => ({
+          id: t.id,
+          name: t.name,
+          kind: t.kind,
+          steps: t.steps.map(({ title, daysBefore, spanDays, withClient }) => ({
+            title,
+            daysBefore,
+            spanDays,
+            withClient,
+          })),
+        }))}
+        workingDays={calendar.week.map((d) => d.weekday)}
+        daysOff={calendar.exceptions.map(({ day, minutesAvailable }) => ({ day, minutesAvailable }))}
         today={prefs.today}
         nextNumber={hints.nextNumber}
         garmentTypes={hints.garmentTypes}
