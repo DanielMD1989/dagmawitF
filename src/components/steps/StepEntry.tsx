@@ -44,7 +44,9 @@ export function StepEntry({
           )}
           {overdue && last && <span className="item__note">Was for {formatDay(last)}, not done yet.</span>}
           {clash && (
-            <span className="item__note item__note--warn">Another appointment overlaps this time.</span>
+            <span className="item__note item__note--warn">
+              Its time crosses another step’s. Move one of them.
+            </span>
           )}
         </div>
       </div>

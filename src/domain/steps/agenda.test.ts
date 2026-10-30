@@ -1,5 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { buildAgenda, entriesOn, jobWarnings, monthCounts, type JobRef, type Step } from './agenda';
+import {
+  buildAgenda,
+  entriesOn,
+  findClash,
+  jobWarnings,
+  monthCounts,
+  timesOverlap,
+  type JobRef,
+  type Step,
+} from './agenda';
 
 const TODAY = '2026-11-02';
 const JOB: JobRef = {
@@ -73,19 +82,24 @@ describe('her calendar', () => {
     ]);
   });
 
-  it('marks steps whose times overlap, an hour long when they have no end', () => {
+  it('marks steps whose times overlap; a time with no end is only that moment', () => {
+    // Her afternoon as she entered it: one every half hour, start times only. Nothing overlaps.
+    const afternoon = ['14:00', '14:30', '15:00', '15:30'].map((t) =>
+      step({ title: t, onDay: TODAY, startsAt: t }),
+    );
+    expect(entriesOn(afternoon, TODAY).map((e) => e.clash)).toEqual([false, false, false, false]);
     const steps = [
       step({ title: 'Fitting', onDay: TODAY, startsAt: '10:00', endsAt: '11:00' }),
       step({ title: 'Appointment', onDay: TODAY, startsAt: '10:30' }),
-      step({ title: 'After', onDay: TODAY, startsAt: '11:30' }),
+      step({ title: 'At eleven', onDay: TODAY, startsAt: '11:00' }),
       step({ title: 'Done one', onDay: TODAY, startsAt: '10:00', doneOn: TODAY }),
     ];
-    // Same time: by title. A done step clashes with nothing; 11:30 starts as the appointment's hour ends.
+    // Same time: by title. A done step clashes with nothing; 11:00 starts as the fitting ends.
     expect(entriesOn(steps, TODAY).map((e) => [e.step.title, e.clash])).toEqual([
       ['Done one', false],
       ['Fitting', true],
       ['Appointment', true],
-      ['After', false],
+      ['At eleven', false],
     ]);
   });
 
@@ -137,5 +151,67 @@ describe('what a job tells her', () => {
       '“Long sewing” is after the job’s day.',
       '“Missed” was due and is not done.',
     ]);
+  });
+});
+
+describe('her time is hers once', () => {
+  it('two times cross when from–to times overlap, or they start together', () => {
+    expect(timesOverlap({ startsAt: '14:00', endsAt: null }, { startsAt: '14:30', endsAt: null })).toBe(
+      false,
+    );
+    expect(timesOverlap({ startsAt: '14:00', endsAt: null }, { startsAt: '14:00', endsAt: null })).toBe(true);
+    expect(timesOverlap({ startsAt: '14:00', endsAt: '15:00' }, { startsAt: '14:30', endsAt: null })).toBe(
+      true,
+    );
+    expect(timesOverlap({ startsAt: '14:00', endsAt: '14:30' }, { startsAt: '14:30', endsAt: '15:00' })).toBe(
+      false,
+    );
+    expect(timesOverlap({ startsAt: null, endsAt: null }, { startsAt: '14:30', endsAt: null })).toBe(false);
+  });
+
+  it('finds the step a new time would cross, on any day they share', () => {
+    const fitting = step({
+      id: 'fit',
+      title: 'Fitting',
+      onDay: '2026-11-04',
+      startsAt: '10:00',
+      endsAt: '11:00',
+    });
+    const sewing = step({
+      id: 'sew',
+      title: 'Sewing',
+      onDay: '2026-11-03',
+      untilDay: '2026-11-06',
+      startsAt: '13:00',
+      endsAt: '17:00',
+    });
+    const all = [fitting, sewing];
+    expect(findClash({ onDay: '2026-11-04', untilDay: null, startsAt: '10:30', endsAt: null }, all)).toBe(
+      fitting,
+    );
+    expect(findClash({ onDay: '2026-11-05', untilDay: null, startsAt: '14:00', endsAt: '15:00' }, all)).toBe(
+      sewing,
+    );
+    expect(
+      findClash({ onDay: '2026-11-04', untilDay: null, startsAt: '11:00', endsAt: '12:00' }, all),
+    ).toBeNull();
+    expect(
+      findClash({ onDay: '2026-11-07', untilDay: null, startsAt: '14:00', endsAt: null }, all),
+    ).toBeNull();
+    // A step does not clash with itself, nor with one done, nor with a job off her calendar, nor without a time.
+    expect(
+      findClash({ id: 'fit', onDay: '2026-11-04', untilDay: null, startsAt: '10:30', endsAt: null }, all),
+    ).toBeNull();
+    expect(
+      findClash({ onDay: '2026-11-04', untilDay: null, startsAt: '10:30', endsAt: null }, [
+        { ...fitting, doneOn: TODAY },
+      ]),
+    ).toBeNull();
+    expect(
+      findClash({ onDay: '2026-11-04', untilDay: null, startsAt: '10:30', endsAt: null }, [
+        { ...fitting, job: { ...JOB, status: 'on_hold' } },
+      ]),
+    ).toBeNull();
+    expect(findClash({ onDay: '2026-11-04', untilDay: null, startsAt: null, endsAt: null }, all)).toBeNull();
   });
 });

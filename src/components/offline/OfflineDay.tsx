@@ -172,7 +172,9 @@ function Entry({
             {[entry.part, entry.jobLabel ?? 'Your own'].filter(Boolean).join(' · ')}
           </span>
           {entry.clash && (
-            <span className="item__note item__note--warn">Another appointment overlaps this time.</span>
+            <span className="item__note item__note--warn">
+              Its time crosses another step’s. Move one of them.
+            </span>
           )}
           {entry.waiting > 0 && <span className="item__note">Waiting to be sent.</span>}
         </div>

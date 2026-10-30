@@ -60,10 +60,30 @@ describe('a new job', () => {
         number: null,
         dueOn: '2026-11-20',
         time: null,
+        timeEnd: null,
         notes: '',
         garment: { garmentType: 'Bridal gown', brief: '' },
         templateId: TEMPLATE_ID,
       },
+    });
+  });
+
+  it('an appointment: a from and to time, the end after the start', () => {
+    expect(
+      parseNewJob(
+        newJob({ kind: 'appointment', 'garment-type': '', time: '14:00', 'time-to': '14:30' }),
+        ctx,
+      ),
+    ).toMatchObject({ ok: true, value: { time: '14:00', timeEnd: '14:30' } });
+    expect(
+      parseNewJob(newJob({ kind: 'appointment', time: '14:00', 'time-to': '13:30' }), ctx),
+    ).toMatchObject({
+      ok: false,
+      errors: { 'time-to': 'The end comes after the start.' },
+    });
+    expect(parseNewJob(newJob({ kind: 'appointment', 'time-to': '13:30' }), ctx)).toMatchObject({
+      ok: false,
+      errors: { 'time-to': 'Give the start time too.' },
     });
   });
 

@@ -77,25 +77,47 @@ test('a refused step keeps what she typed and says why next to the field', async
   await settled(page);
 });
 
-test('an appointment is a job at a time on its day; an overlap with another time is pointed out', async () => {
+test('an appointment is a job at a time on its day; a time already taken is refused, by name', async () => {
   await page.goto('/orders/new?kind=appointment');
   await page.getByLabel('Client', { exact: true }).selectOption({ label: 'Selam Bekele' });
   await page.getByLabel('Day', { exact: true }).fill(today());
-  await page.getByLabel('Time (optional)').fill('10:15');
+  await page.getByLabel('From (optional)').fill('10:15');
+  await page.getByLabel('To (optional)').fill('11:00');
   await expect(page.locator('#template option:checked')).toHaveText(/^Appointment/);
+  await page.getByRole('button', { name: 'Save the job' }).click();
+  // 10:00 to 10:30 is already hers: sharpening the shears.
+  await expect(page.locator('#time-error')).toContainText('10:00–10:30 on ');
+  await expect(page.locator('#time-error')).toContainText('is taken by “Sharpen the shears” (your own).');
+  await expect(page.getByLabel('Client', { exact: true })).toHaveValue(/[0-9a-f-]{36}/);
+  await settled(page);
+  // Right after it is free: the end of one is the start of the next.
+  await page.getByLabel('From (optional)').fill('10:30');
   await page.getByRole('button', { name: 'Save the job' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   ids.o4 = /\/orders\/([0-9a-f-]{36})/.exec(page.url())![1]!;
   await expect(page.locator('h1')).toContainText('Appointment #4');
   await page.goto('/');
   const appointment = item(section('Today'), 'Appointment');
-  await expect(appointment).toContainText('10:15');
-  await expect(appointment).toContainText('Another appointment overlaps this time.');
-  await expect(item(page, 'Sharpen the shears')).toContainText('Another appointment overlaps this time.');
+  await expect(appointment).toContainText('10:30–11:00');
+  await expect(page.getByText('Its time crosses another step’s.')).toHaveCount(0);
   // Timed steps come first, in time order.
   const titles = await section('Today').locator('.item__title').allInnerTexts();
   expect(titles.slice(0, 2)).toEqual(['Sharpen the shears', 'Appointment']);
-  await inspect(page, 'today with a clash');
+  await inspect(page, 'today with timed steps');
+});
+
+test('a step’s time already taken is refused there too', async () => {
+  const form = await open(section('Today'), 'Add something for yourself');
+  await form.getByLabel('Step').fill('Call the lace supplier');
+  await form.getByLabel('From (optional)').fill('10:45');
+  await form.getByRole('button', { name: 'Add' }).click();
+  await expect(form.locator('#own-from-error')).toContainText(
+    'is taken by “Appointment” (Selam Bekele, #4).',
+  );
+  await settled(page);
+  await form.getByLabel('From (optional)').fill('11:00');
+  await form.getByRole('button', { name: 'Add' }).click();
+  await expect(item(page, 'Call the lace supplier')).toContainText('11:00');
 });
 
 test('a step whose day has passed waits under “Not done yet”, and its job says so', async () => {

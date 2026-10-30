@@ -32,3 +32,10 @@ export function daysLabel(step: Pick<Step, 'onDay' | 'untilDay'>): string {
   if (!step.onDay) return 'No day yet';
   return step.untilDay ? `${formatDay(step.onDay)} – ${formatDay(step.untilDay)}` : formatDay(step.onDay);
 }
+
+/** Why a step was not saved: the step whose time it would cross, named so she can find it. */
+export function clashMessage(other: Step): string {
+  const whose = other.job ? `${other.job.clientName}, #${other.job.number}` : 'your own';
+  const day = other.untilDay ? daysLabel(other) : formatDay(other.onDay!);
+  return `${timeLabel(other)} on ${day} is taken by “${other.title}” (${whose}). Choose another time.`;
+}

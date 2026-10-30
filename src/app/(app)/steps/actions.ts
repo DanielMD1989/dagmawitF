@@ -2,12 +2,14 @@
 
 import { revalidatePath } from 'next/cache';
 import { idField, text } from '@/domain/form-input';
+import { findClash } from '@/domain/steps/agenda';
 import { parseStep, type StepFields } from '@/domain/steps/forms';
+import { clashMessage } from '@/domain/steps/words';
 import { failure, success, typedIn, type ActionState } from '@/lib/action-state';
 import { missing, saveFailed, unexpected } from '@/server/action-errors';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
-import { setDone } from '@/server/steps';
+import { loadCalendarSteps, setDone } from '@/server/steps';
 import { suggestFromTemplate } from '@/server/suggest';
 import { createSupabase } from '@/server/supabase';
 
@@ -18,6 +20,18 @@ function refresh(orderId: string | null) {
   revalidatePath('/calendar');
   revalidatePath('/orders');
   if (orderId) revalidatePath(`/orders/${orderId}`, 'layout');
+}
+
+/** The message for the field, when the step's time is already taken on her calendar (decision 0067). */
+async function timeTaken(
+  supabase: Awaited<ReturnType<typeof createSupabase>>,
+  step: StepFields,
+  stepId?: string,
+): Promise<string | null> {
+  if (!step.startsAt || !step.onDay) return null;
+  const { today } = await loadPreferences(supabase);
+  const other = findClash({ ...step, id: stepId }, await loadCalendarSteps(supabase, today));
+  return other ? clashMessage(other) : null;
 }
 
 const columns = (s: StepFields) => ({
@@ -63,6 +77,8 @@ export async function addStep(_previous: ActionState, formData: FormData): Promi
   const parsed = parseStep(formData);
   if (!parsed.ok) return failure('Check the step.', parsed.errors, typed);
   const supabase = await createSupabase();
+  const taken = await timeTaken(supabase, parsed.value);
+  if (taken) return failure('That time is taken.', { from: taken }, typed);
   const { error } = await supabase
     .from('task')
     .insert({ order_id: orderId, sort: await nextSort(supabase, orderId), ...columns(parsed.value) });
@@ -80,6 +96,8 @@ export async function saveStep(_previous: ActionState, formData: FormData): Prom
   const parsed = parseStep(formData);
   if (!parsed.ok) return failure('Check the step.', parsed.errors, typed);
   const supabase = await createSupabase();
+  const taken = await timeTaken(supabase, parsed.value, stepId);
+  if (taken) return failure('That time is taken.', { from: taken }, typed);
   const { data, error } = await supabase
     .from('task')
     .update(columns(parsed.value))

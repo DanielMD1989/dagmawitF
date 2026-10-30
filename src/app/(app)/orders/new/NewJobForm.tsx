@@ -1,8 +1,7 @@
 'use client';
 
-import { useActionState, useMemo, useState } from 'react';
+import { startTransition, useActionState, useMemo, useState, type FormEvent } from 'react';
 import { FormNotice } from '@/components/FormNotice';
-import { SubmitButton } from '@/components/SubmitButton';
 import { TextArea, TextField } from '@/components/fields';
 import { fieldValue, idle } from '@/lib/action-state';
 import { JOB_KINDS, KIND_WORDS, isJobKind, type JobKind } from '@/domain/jobs/kinds';
@@ -50,7 +49,15 @@ export function NewJobForm({
   workingDays: number[];
   daysOff: { day: string; minutesAvailable: number }[];
 }) {
-  const [state, action] = useActionState(createJob, idle);
+  const [state, action, pending] = useActionState(createJob, idle);
+  // Sent by hand rather than through the form's action: React resets a form natively after its action, and that
+  // puts a chosen client or template back to the first option while the choice is still held here. This form
+  // follows her choices as she makes them, so a refusal must leave every one of them as she left it.
+  const submit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const data = new FormData(event.currentTarget);
+    startTransition(() => action(data));
+  };
   const hasClients = clients.length > 0;
   const [pickedClient, setPickedClient] = useState<string | null>(null);
   const client = pickedClient ?? fieldValue(state, 'client', hasClients ? (initialClient ?? '') : NEW_CLIENT);
@@ -72,7 +79,7 @@ export function NewJobForm({
   const others = templates.filter((t) => t.kind !== kind);
 
   return (
-    <form action={action} className="form" noValidate>
+    <form onSubmit={submit} className="form" noValidate aria-busy={pending}>
       <section className="section" aria-labelledby="kind-heading">
         <h2 id="kind-heading">What kind of job</h2>
         <div className="kinds" role="radiogroup" aria-labelledby="kind-heading">
@@ -151,7 +158,7 @@ export function NewJobForm({
 
       <section className="section" aria-labelledby="when-heading">
         <h2 id="when-heading">When</h2>
-        <div className={words.atTime ? 'form-grid form-grid--pair' : 'form-grid'}>
+        <div className="form-grid">
           <TextField
             name="due-on"
             label={words.dueLabel}
@@ -162,8 +169,19 @@ export function NewJobForm({
             hint={words.dueHint}
             onChange={(e) => setDue(e.target.value)}
           />
-          {words.atTime && <TextField name="time" label="Time (optional)" type="time" state={state} />}
         </div>
+        {words.atTime && (
+          <div className="form-grid form-grid--pair">
+            <TextField name="time" label="From (optional)" type="time" state={state} />
+            <TextField
+              name="time-to"
+              label="To (optional)"
+              type="time"
+              state={state}
+              hint="Until when it keeps you busy."
+            />
+          </div>
+        )}
       </section>
 
       <section className="section" aria-labelledby="what-heading">
@@ -299,7 +317,9 @@ export function NewJobForm({
 
       <FormNotice state={state} />
       <div className="btn-row">
-        <SubmitButton pendingText="Saving…">Save the job</SubmitButton>
+        <button type="submit" className="btn" disabled={pending}>
+          {pending ? 'Saving…' : 'Save the job'}
+        </button>
       </div>
     </form>
   );

@@ -50,8 +50,9 @@ export interface NewJob {
   /** Empty means "her next number". */
   number: number | null;
   dueOn: IsoDate;
-  /** A time on the due day, for an appointment or a delivery. */
+  /** A time on the due day, for an appointment or a delivery, and when it ends. */
   time: string | null;
+  timeEnd: string | null;
   notes: string;
   /** Null when the job has no garment (an appointment, a sketch). */
   garment: GarmentFields | null;
@@ -99,12 +100,19 @@ export function parseNewJob(data: FormData, context: { today: IsoDate }): Result
   const dueOn = readDay(data, 'due-on', errors);
   if (!errors['due-on'] && dueOn < context.today) errors['due-on'] = PAST_DAY;
 
-  let time: string | null = null;
-  const rawTime = text(data, 'time');
-  if (words.atTime && rawTime !== '') {
-    const hhmm = rawTime.length === 8 && rawTime.endsWith(':00') ? rawTime.slice(0, 5) : rawTime;
-    if (/^([01]\d|2[0-3]):[0-5]\d$/.test(hhmm)) time = hhmm;
-    else errors.time = 'Use a time such as 10:30.';
+  const readTime = (name: string): string | null => {
+    const raw = text(data, name);
+    if (!words.atTime || raw === '') return null;
+    const hhmm = raw.length === 8 && raw.endsWith(':00') ? raw.slice(0, 5) : raw;
+    if (/^([01]\d|2[0-3]):[0-5]\d$/.test(hhmm)) return hhmm;
+    errors[name] = 'Use a time such as 10:30.';
+    return null;
+  };
+  const time = readTime('time');
+  const timeEnd = readTime('time-to');
+  if (timeEnd && !errors.time) {
+    if (!time) errors['time-to'] = 'Give the start time too.';
+    else if (timeEnd <= time) errors['time-to'] = 'The end comes after the start.';
   }
 
   const notes = text(data, 'notes');
@@ -125,7 +133,7 @@ export function parseNewJob(data: FormData, context: { today: IsoDate }): Result
   }
 
   if (Object.keys(errors).length > 0) return { ok: false, errors };
-  return { ok: true, value: { kind, client, number, dueOn, time, notes, garment, templateId } };
+  return { ok: true, value: { kind, client, number, dueOn, time, timeEnd, notes, garment, templateId } };
 }
 
 /** An order's notes. The one thing that can still be changed on a delivered or cancelled order. */

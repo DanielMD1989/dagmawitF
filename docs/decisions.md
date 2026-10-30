@@ -455,3 +455,21 @@ before today, on days she works); Today and the month show every step by day; no
 What she had entered keeps its days (an appointment's day and time, a pinned day, the approved plan's days), and
 preparation not yet in became steps. The plan in full is [calendar-first.md](calendar-first.md). Cost: the app no longer
 checks whether her hours suffice; a clash of times and a step after its job's day are what it points out.
+
+## 0067. Her time is hers once: a taken time is refused
+
+The first rule took a step with a start and no end to last an hour, so appointments every half hour were all flagged as
+overlapping, which they were not. A time with no end is now only that moment; two steps clash when they start together
+or their from–to times cross. An appointment or a delivery can be given an end. Because the calendar is for using her
+time well, a new or changed step whose time crosses another open step on the same day is refused, naming the step that
+has it. Overlaps that arise indirectly (moving a job's day moves its steps) are still shown, not refused.
+
+## 0067. A time is taken once; a time with no end is a moment
+
+A start time with no end counted as an hour, so appointments she booked every half hour (14:00, 14:30, 15:00) were all
+called overlapping, which they were not. Now a start with no end is that moment: two steps cross only when they start
+together or their from–to times overlap (`timesOverlap`). And because the point of the calendar is to use her time
+well, a job or a step whose time crosses another is not saved; the message names the step that has the time
+(`findClash`, `clashMessage`). Appointments and deliveries can be given an end. An overlap that arises only
+indirectly (moving a job's day moves its steps) is still shown on Today, to be moved by hand. Cost: a time typed with
+no end does not stop a second one ten minutes later; give an end when it matters.

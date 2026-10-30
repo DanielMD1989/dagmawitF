@@ -63,11 +63,47 @@ export function isOverdue(step: Step, today: IsoDate): boolean {
 }
 
 const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
-/** A step with a start and no end counts as an hour, to find clashes. */
-const span = (s: Step) => {
-  const start = minutes(s.startsAt!);
-  return { start, end: s.endsAt ? minutes(s.endsAt) : start + 60 };
-};
+
+/** The times of two steps cross: from–to times that overlap, or the same start. A start with no end is that moment. */
+export function timesOverlap(
+  a: Pick<Step, 'startsAt' | 'endsAt'>,
+  b: Pick<Step, 'startsAt' | 'endsAt'>,
+): boolean {
+  if (!a.startsAt || !b.startsAt) return false;
+  const as = minutes(a.startsAt);
+  const bs = minutes(b.startsAt);
+  if (as === bs) return true;
+  const ae = a.endsAt ? minutes(a.endsAt) : as;
+  const be = b.endsAt ? minutes(b.endsAt) : bs;
+  return as < be && bs < ae;
+}
+
+/** Two steps are on at least one day together. */
+function shareADay(a: Pick<Step, 'onDay' | 'untilDay'>, b: Pick<Step, 'onDay' | 'untilDay'>): boolean {
+  if (!a.onDay || !b.onDay) return false;
+  return a.onDay <= (b.untilDay ?? b.onDay) && b.onDay <= (a.untilDay ?? a.onDay);
+}
+
+/**
+ * The step on her calendar whose time a new or changed step would cross, if any (decision 0067): her time is hers
+ * once, so such a step is not saved. Steps done, of jobs not on her calendar, or the step itself do not count.
+ */
+export function findClash(
+  candidate: Pick<Step, 'onDay' | 'untilDay' | 'startsAt' | 'endsAt'> & { id?: string },
+  steps: readonly Step[],
+): Step | null {
+  if (!candidate.startsAt || !candidate.onDay) return null;
+  return (
+    steps.find(
+      (s) =>
+        s.id !== candidate.id &&
+        s.doneOn === null &&
+        isOnCalendar(s) &&
+        shareADay(candidate, s) &&
+        timesOverlap(candidate, s),
+    ) ?? null
+  );
+}
 
 function byTimeThenDue(a: Entry, b: Entry): number {
   const ta = a.step.startsAt;
@@ -96,9 +132,7 @@ export function entriesOn(steps: readonly Step[], day: IsoDate): Entry[] {
   for (const a of timed) {
     for (const b of timed) {
       if (a === b) continue;
-      const x = span(a.step);
-      const y = span(b.step);
-      if (x.start < y.end && y.start < x.end) a.clash = true;
+      if (timesOverlap(a.step, b.step)) a.clash = true;
     }
   }
   return entries.sort(byTimeThenDue);

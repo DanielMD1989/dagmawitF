@@ -6,9 +6,12 @@ import { z } from 'zod';
 import { failure, typedIn, type ActionState } from '@/lib/action-state';
 import { violates } from '@/lib/database-errors';
 import { parseNewJob } from '@/domain/orders/forms';
+import { findClash } from '@/domain/steps/agenda';
+import { clashMessage } from '@/domain/steps/words';
 import { saveFailed } from '@/server/action-errors';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
+import { loadCalendarSteps } from '@/server/steps';
 import { suggestFromTemplate } from '@/server/suggest';
 import { createSupabase } from '@/server/supabase';
 
@@ -29,7 +32,13 @@ export async function createJob(_previous: ActionState, formData: FormData): Pro
   if (!parsed.ok) return failure('Check the fields marked below.', parsed.errors, typed);
   const job = parsed.value;
 
-  let steps: { title: string; on_day: string; until_day: string | null; starts_at: string | null }[] = [];
+  let steps: {
+    title: string;
+    on_day: string;
+    until_day: string | null;
+    starts_at: string | null;
+    ends_at: string | null;
+  }[] = [];
   if (job.templateId) {
     const suggestion = await suggestFromTemplate(supabase, job.templateId, job.dueOn);
     if (!suggestion)
@@ -38,13 +47,29 @@ export async function createJob(_previous: ActionState, formData: FormData): Pro
         { template: 'That template could not be found.' },
         typed,
       );
-    steps = suggestion.steps.map((s) => ({
-      title: s.title,
-      on_day: s.onDay,
-      until_day: s.untilDay,
+    steps = suggestion.steps.map((s) => {
       // The time she gave is the time of what happens with the client on the day itself.
-      starts_at: job.time && s.withClient && s.onDay === job.dueOn ? job.time : null,
-    }));
+      const timed = job.time !== null && s.withClient && s.onDay === job.dueOn;
+      return {
+        title: s.title,
+        on_day: s.onDay,
+        until_day: s.untilDay,
+        starts_at: timed ? job.time : null,
+        ends_at: timed ? job.timeEnd : null,
+      };
+    });
+  }
+
+  // Her time is hers once (decision 0067): a time already taken on that day is not given twice.
+  if (job.time) {
+    const calendar = await loadCalendarSteps(supabase, prefs.today);
+    for (const s of steps.filter((x) => x.starts_at)) {
+      const other = findClash(
+        { onDay: s.on_day, untilDay: s.until_day, startsAt: s.starts_at, endsAt: s.ends_at },
+        calendar,
+      );
+      if (other) return failure('That time is taken.', { time: clashMessage(other) }, typed);
+    }
   }
 
   const create = () =>
