@@ -1387,9 +1387,6 @@ h4 {
   color: var(--warn);
   font-weight: 600;
 }
-.step-job {
-  color: inherit;
-}
 .day-list + .day-list {
   margin-top: 20px;
 }
@@ -1502,4 +1499,86 @@ h4 {
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   color: var(--accent);
+}
+.step-work {
+  color: inherit;
+  text-decoration: none;
+}
+.step-work:hover,
+.step-work:focus-visible {
+  text-decoration: underline;
+}
+.item__step {
+  color: var(--ink);
+  font-weight: 500;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.chip-button {
+  min-height: var(--tap);
+  padding: 8px 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  background: var(--field);
+  color: var(--ink);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.chip-button:hover {
+  border-color: var(--accent);
+}
+.chip-button:active {
+  background: var(--tint);
+}
+.inline-pick {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+.inline-pick .select {
+  flex: 1;
+  min-width: 0;
+}
+.step-rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.step-row fieldset {
+  margin: 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.step-row__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.step-row__n {
+  font-weight: 700;
+  color: var(--muted);
+}
+.step-row__title {
+  flex: 1;
+  min-width: 0;
+}
+.step-row__tools {
+  display: flex;
+  gap: 2px;
+}
+.step-row__tools .btn {
+  min-width: 36px;
+  padding-inline: 8px;
 }

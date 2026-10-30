@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation';
 import { failure, success, typedIn, type ActionState } from '@/lib/action-state';
 import { violates } from '@/lib/database-errors';
 import { idField } from '@/domain/form-input';
-import { parseTemplate, parseTemplateStep, type TemplateStepFields } from '@/domain/library/forms';
+import { parseTemplate, parseTemplateStep } from '@/domain/library/forms';
 import { missing, saveFailed } from '@/server/action-errors';
 import { requireUser } from '@/server/session';
 import { createSupabase } from '@/server/supabase';
@@ -16,13 +16,6 @@ import { createSupabase } from '@/server/supabase';
 
 const CHECK_FIELDS = 'Check the fields marked below.';
 const NAME_TAKEN = 'You already have a template with this name.';
-
-const stepColumns = (s: TemplateStepFields) => ({
-  title: s.title,
-  days_before: s.daysBefore,
-  span_days: s.spanDays,
-  with_client: s.withClient,
-});
 
 // ---------------------------------------------------------------------------------------------
 // The template
@@ -99,12 +92,12 @@ export async function addTemplateStep(_previous: ActionState, formData: FormData
 
   const { error } = await supabase
     .from('template_task')
-    .insert({ template_id: templateId, sort, ...stepColumns(parsed.value) });
+    .insert({ template_id: templateId, sort, title: parsed.value });
   if (violates(error, 'template_task_template_fk')) return missing('template', typed);
   if (error) return saveFailed('the step', error, typed);
 
   revalidatePath('/', 'layout');
-  return success(`Added “${parsed.value.title}”.`);
+  return success(`Added “${parsed.value}”.`);
 }
 
 export async function saveTemplateStep(_previous: ActionState, formData: FormData): Promise<ActionState> {
@@ -118,7 +111,7 @@ export async function saveTemplateStep(_previous: ActionState, formData: FormDat
   const supabase = await createSupabase();
   const { data, error } = await supabase
     .from('template_task')
-    .update(stepColumns(parsed.value))
+    .update({ title: parsed.value })
     .eq('id', id)
     .select('id');
   if (error) return saveFailed('the step', error, typed);
@@ -138,4 +131,39 @@ export async function removeTemplateStep(_previous: ActionState, formData: FormD
   if (data.length !== 1) return missing('step', {});
   revalidatePath('/', 'layout');
   return success('Removed.');
+}
+
+/** Moves a step of a list one place earlier or later. */
+export async function moveTemplateStep(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+  const id = idField(formData, 'id');
+  const direction = formData.get('direction');
+  if (!id || (direction !== 'up' && direction !== 'down')) return missing('step', {});
+  const supabase = await createSupabase();
+  const me = await supabase.from('template_task').select('template_id, sort').eq('id', id).maybeSingle();
+  if (me.error) return saveFailed('the list', me.error, {});
+  if (!me.data) return missing('step', {});
+  const { template_id: templateId } = me.data as { template_id: string; sort: number };
+  const all = await supabase
+    .from('template_task')
+    .select('id, sort')
+    .eq('template_id', templateId)
+    .order('sort')
+    .order('title');
+  if (all.error) return saveFailed('the list', all.error, {});
+  const order = (all.data as { id: string }[]).map((r) => r.id);
+  const at = order.indexOf(id);
+  const to = direction === 'up' ? at - 1 : at + 1;
+  if (at < 0 || to < 0 || to >= order.length) return success('');
+  [order[at], order[to]] = [order[to]!, order[at]!];
+  // Every step gets its place again, ten apart: the order is then the one she sees, with room to spare.
+  for (const [i, stepId] of order.entries()) {
+    const { error } = await supabase
+      .from('template_task')
+      .update({ sort: (i + 1) * 10 })
+      .eq('id', stepId);
+    if (error) return saveFailed('the list', error, {});
+  }
+  revalidatePath('/', 'layout');
+  return success('');
 }

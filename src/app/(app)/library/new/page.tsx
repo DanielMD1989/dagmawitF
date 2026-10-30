@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { requireUser } from '@/server/session';
 import { TemplateForm } from '../TemplateForm';
 
-export const metadata: Metadata = { title: 'New template' };
+export const metadata: Metadata = { title: 'New list' };
 
 export default async function NewTemplatePage() {
   await requireUser();
@@ -13,7 +13,7 @@ export default async function NewTemplatePage() {
         <p className="crumbs">
           <Link href="/library">Library</Link> / New
         </p>
-        <h1>New template</h1>
+        <h1>New list of steps</h1>
         <p className="lede">Name it first. Its steps are added on the next page.</p>
       </div>
       <TemplateForm />

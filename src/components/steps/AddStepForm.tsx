@@ -16,12 +16,15 @@ export function AddStepForm({
   day,
   summary,
   idPrefix,
+  usual = [],
 }: {
   orderId: string | null;
   /** The day it starts on unless she changes it. */
   day: string;
   summary: string;
   idPrefix: string;
+  /** Her usual steps, offered as she types the title. */
+  usual?: readonly string[];
 }) {
   const [state, action] = useActionState(addStep, idle);
   const form = useRef<HTMLFormElement>(null);
@@ -38,6 +41,7 @@ export function AddStepForm({
             state={state}
             idPrefix={idPrefix}
             saved={{ title: '', day, until: '', from: '', to: '' }}
+            usual={usual}
           />
           <FormNotice state={state} />
           <div className="btn-row">
@@ -54,13 +58,22 @@ export function StepFields({
   state,
   idPrefix,
   saved,
+  usual = [],
 }: {
   state: Parameters<typeof TextField>[0]['state'];
   idPrefix: string;
   saved: { title: string; day: string; until: string; from: string; to: string };
+  usual?: readonly string[];
 }) {
   return (
     <>
+      {usual.length > 0 && (
+        <datalist id={`${idPrefix}-usual`}>
+          {usual.map((t) => (
+            <option key={t} value={t} />
+          ))}
+        </datalist>
+      )}
       <TextField
         name="title"
         id={`${idPrefix}-title`}
@@ -69,6 +82,7 @@ export function StepFields({
         saved={saved.title}
         placeholder="Cutting, sewing, fitting…"
         autoComplete="off"
+        list={usual.length > 0 ? `${idPrefix}-usual` : undefined}
       />
       <div className="form-grid form-grid--pair">
         <TextField

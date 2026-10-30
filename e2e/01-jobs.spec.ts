@@ -1,5 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { inspect, settled, signedInContext, text, watchErrors } from './support/app';
+import { fillNewJob, inspect, settled, signedInContext, text, watchErrors } from './support/app';
 import { sql, value } from './support/db';
 import { env, inDays, today } from './support/env';
 import { bigSketch, noise, notAPicture, smallSwatch } from './support/pictures';
@@ -73,57 +73,75 @@ test('the jobs list starts empty and says what to do', async () => {
   expect(await has('No jobs yet')).toBe(true);
 });
 
-test('a refused form keeps what she typed and says what is missing', async () => {
-  await page.goto('/orders/new');
-  await page.getByLabel("Client's name").fill('Selam Bekele');
-  await page.getByLabel('Design brief (optional)').fill('Ivory lace, long sleeves, boat neckline');
+test('a refused form keeps what she typed, her steps too, and says what is missing', async () => {
+  await fillNewJob(page, {
+    client: { name: 'Selam Bekele', phone: '0911 22 33 44' },
+    title: 'Bridal gown',
+    brief: 'Ivory lace, long sleeves, boat neckline',
+    due: '',
+    steps: [{ title: 'Appointment', day: inDays(4), from: '14:00', to: '14:30' }],
+  });
   await page.getByRole('button', { name: 'Save the job' }).click();
-  await page.locator('.error').first().waitFor();
+  await expect(page.locator('#due-on-error')).toHaveText('Choose a day.');
   await expect(page.getByLabel("Client's name")).toHaveValue('Selam Bekele');
   await expect(page.getByLabel('Design brief (optional)')).toHaveValue(/^Ivory/);
-  const errs = await page.locator('.error').allInnerTexts();
-  expect(errs.some((e) => /being made/i.test(e)) && errs.some((e) => /day/i.test(e)), errs.join(' | ')).toBe(
-    true,
-  );
+  await expect(page.locator('.step-row')).toHaveCount(1);
+  await expect(page.locator('.step-row').getByLabel('Day', { exact: true })).toHaveValue(inDays(4));
   await inspect(page, 'new job refused');
 });
 
-test('she takes job 1, a bridal gown, and its steps get days counted back from delivery', async () => {
-  await page.getByLabel('Garment', { exact: true }).fill('Bridal gown');
-  // The template named like the garment is chosen for her.
-  await expect(page.locator('#template option:checked')).toHaveText(/^Bridal gown/);
-  // Before the day is chosen, the steps are listed; once it is, each shows the day it will get.
-  const preview = page.locator('.steps-preview li');
-  await expect(preview).toHaveCount(11);
-  await expect(page.getByText('Choose the day above to see the day each step gets.')).toBeVisible();
+test('she takes job 1, a bridal gown, building its steps with a tap each and giving each its day', async () => {
   await page.getByLabel('Delivery day').fill(inDays(60));
-  await expect(preview.first()).toContainText('Design agreed with the client · ');
-  const shown = await preview.allInnerTexts();
+  await expect(page.getByText('That is 60 days left.')).toBeVisible();
+  for (const step of [
+    { title: 'Sketch', day: inDays(7) },
+    { title: 'Buy fabric', day: inDays(10) },
+    { title: 'Cutting', day: inDays(14) },
+    { title: 'Sewing', day: inDays(16), until: inDays(25) },
+    { title: 'Fitting', day: inDays(32), from: '10:30', to: '11:30' },
+    { title: 'Lace work' },
+    { title: 'Delivery', day: inDays(60) },
+  ])
+    await fillNewJob(page, { due: inDays(60), steps: [step] });
+  // A step tapped twice, or in the wrong place, is put right before saving.
+  await page.getByRole('button', { name: 'Move step 7 earlier' }).click();
+  await expect(page.locator('.step-row').nth(5).getByRole('combobox')).toHaveValue('Lace work');
   await page.getByText('Notes and job number').click();
   await page.getByLabel('Notes (optional)').fill('Pays in two parts. Mother collects.');
-  await page.getByLabel('Phone (optional)').fill('0911 22 33 44');
   await page.getByRole('button', { name: 'Save the job' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   ids.o1 = orderOfUrl();
-  await expect(page.locator('h1')).toContainText('#1');
+  // The work is the title: who it is for and what it is.
+  await expect(page.locator('h1')).toHaveText('Selam Bekele · Bridal gown');
+  await expect(page.locator('.lede')).toContainText('#1');
   await expect(page.locator('.chip').first()).toHaveText('Active');
-  const titles = await stepTitles();
-  expect(titles).toHaveLength(11);
-  expect(titles[0]).toBe('Design agreed with the client');
-  expect(titles.at(-1)).toBe('Delivery');
-  // With room enough, each step starts its template's days before delivery.
-  const days = await sql<{ title: string; on_day: string }>(
-    `select title, on_day::text from public.task where order_id = $1 order by sort`,
+  expect(await stepTitles()).toEqual([
+    'Appointment',
+    'Sketch',
+    'Buy fabric',
+    'Cutting',
+    'Sewing',
+    'Lace work',
+    'Fitting',
+    'Delivery',
+  ]);
+  // Each on the day she gave it; nothing is guessed.
+  const days = await sql<{
+    title: string;
+    on_day: string | null;
+    until_day: string | null;
+    starts_at: string | null;
+  }>(
+    `select title, on_day::text, until_day::text, starts_at::text from public.task where order_id = $1 order by sort`,
     [ids.o1],
   );
+  expect(days.find((d) => d.title === 'Appointment')).toMatchObject({
+    on_day: inDays(4),
+    starts_at: '14:00:00',
+  });
+  expect(days.find((d) => d.title === 'Sewing')).toMatchObject({ on_day: inDays(16), until_day: inDays(25) });
+  expect(days.find((d) => d.title === 'Lace work')).toMatchObject({ on_day: null });
   expect(days.find((d) => d.title === 'Delivery')!.on_day).toBe(inDays(60));
-  expect(days.find((d) => d.title === 'Design agreed with the client')!.on_day).toBe(inDays(4));
-  expect(days.find((d) => d.title === 'First fitting')!.on_day).toBe(inDays(32));
-  // The days the form showed are the days she got.
-  const listed = await page.locator('li.item .item__main > .hint').allInnerTexts();
-  expect(shown.map((line) => line.split(' · ').slice(1).join(' · '))).toEqual(
-    listed.map((l) => l.split(' · ')[0]),
-  );
   await inspect(page, 'job steps');
 });
 
@@ -450,28 +468,23 @@ test('settings: the time zone she saves is the one still shown', async () => {
 });
 
 // ---------------------------------------------------------------- jobs 2 and 3
-test('job 2: an evening dress for another new client starts with the steps of a dress', async () => {
-  await page.goto('/orders/new');
-  await page.getByLabel('Client', { exact: true }).selectOption({ label: '+ A new client' });
-  await page.getByLabel("Client's name").fill('Hanna Tesfaye');
-  await page.getByLabel('Garment', { exact: true }).fill('Evening dress');
-  await page.getByLabel('Design brief (optional)').fill('Wine red satin, open back, floor length');
-  await page.getByLabel('Delivery day').fill(inDays(16));
-  await expect(page.locator('#template option:checked')).toHaveText(/^Dress/);
+test('job 2: an evening dress for another new client, with a few steps', async () => {
+  await fillNewJob(page, {
+    client: { name: 'Hanna Tesfaye' },
+    title: 'Evening dress',
+    brief: 'Wine red satin, open back, floor length',
+    due: inDays(16),
+    steps: [
+      { title: 'Buy fabric', day: inDays(1) },
+      { title: 'Fitting', day: inDays(8), from: '15:00', to: '15:30' },
+      { title: 'Delivery', day: inDays(16) },
+    ],
+  });
   await page.getByRole('button', { name: 'Save the job' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   ids.o2 = orderOfUrl();
-  await expect(page.locator('h1')).toContainText('#2');
-  // 16 days for a template that starts 28 days before: every step is drawn in, in the same order.
-  const days = (
-    await sql<{ on_day: string }>(`select on_day::text from public.task where order_id = $1 order by sort`, [
-      ids.o2,
-    ])
-  ).map((d) => d.on_day);
-  expect(days).toHaveLength(8);
-  expect(days).toEqual([...days].sort());
-  expect(days[0]! >= today()).toBe(true);
-  expect(days.at(-1)).toBe(inDays(16));
+  await expect(page.locator('h1')).toHaveText('Hanna Tesfaye · Evening dress');
+  expect(await stepTitles()).toEqual(['Buy fabric', 'Fitting', 'Delivery']);
 });
 
 test('job 2: garments of a new client have no measurements, and she is told', async () => {
@@ -490,28 +503,30 @@ test('job 3: a client added on her own, then a fix started from the client page'
   await inspect(page, 'client page (no jobs)');
   await page.getByRole('link', { name: 'New job for Yonas Alemu' }).click();
   await page.waitForURL(/orders\/new\?client=/);
-  await expect(page.getByLabel('Client', { exact: true })).toHaveValue(ids.client3);
-  await page.locator('.kinds label', { hasText: 'Fix' }).click();
-  await page.getByLabel('Garment', { exact: true }).fill('Suit alteration');
-  await page.getByLabel('Design brief (optional)').fill('Take in the waist 3 cm, shorten trousers');
-  await page.getByLabel('Ready on').fill(inDays(2));
+  await expect(page.getByLabel('For', { exact: true })).toHaveValue(ids.client3);
+  await fillNewJob(page, {
+    title: 'Suit alteration',
+    brief: 'Take in the waist 3 cm, shorten trousers',
+    due: inDays(2),
+    steps: [
+      { title: 'Fix', day: today() },
+      { title: 'Delivery', day: inDays(2) },
+    ],
+  });
   await page.getByRole('button', { name: 'Save the job' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   ids.o3 = orderOfUrl();
-  await expect(page.locator('h1')).toContainText('Fix #3');
+  await expect(page.locator('h1')).toHaveText('Yonas Alemu · Suit alteration');
   expect(await stepTitles()).toEqual(['Fix', 'Delivery']);
 });
 
 test('job 3: a taken job number is refused at its field', async () => {
-  await page.goto('/orders/new');
-  await page.getByLabel('Client', { exact: true }).selectOption(ids.client3!);
-  await page.getByLabel('Garment', { exact: true }).fill('Trousers hem');
-  await page.getByLabel('Delivery day').fill(inDays(1));
+  await fillNewJob(page, { client: 'Yonas Alemu', title: 'Trousers hem', due: inDays(1) });
   await page.getByText('Notes and job number').click();
   await page.getByLabel('Job number').fill('1');
   await page.getByRole('button', { name: 'Save the job' }).click();
   await expect(page.locator('.error').first()).toHaveText(/already/i);
-  await expect(page.getByLabel('Garment', { exact: true })).toHaveValue('Trousers hem');
+  await expect(page.getByLabel('What it is (optional)')).toHaveValue('Trousers hem');
 });
 
 test('job 3: a hold needs a reason, and the reason is shown', async () => {
@@ -562,7 +577,7 @@ test('job 3: reopened, cancelled with a reason, reopened as a draft and deleted'
   await page.getByRole('button', { name: 'Reopen as draft' }).click();
   await page.locator('.chip', { hasText: 'Draft' }).first().waitFor();
   expect(await has('A draft is not on your calendar')).toBe(true);
-  await page.getByRole('button', { name: 'Delete this draft' }).click();
+  await page.getByRole('button', { name: 'Delete this job' }).click();
   await page.getByRole('button', { name: 'Yes, delete' }).click();
   await page.waitForURL(`${env.baseURL}/orders`);
   expect(await has('Suit alteration')).toBe(false);
@@ -573,15 +588,32 @@ test('job 3: reopened, cancelled with a reason, reopened as a draft and deleted'
   errors.allow(null);
 });
 
+test('a job made by mistake is deleted at once, whatever its state', async () => {
+  await fillNewJob(page, { client: 'Yonas Alemu', title: 'Typed by mistake', due: inDays(3) });
+  await page.getByRole('button', { name: 'Save the job' }).click();
+  await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
+  await expect(page.locator('.chip').first()).toHaveText('Active');
+  await page.getByRole('button', { name: 'Delete this job' }).click();
+  await page.getByRole('button', { name: 'Yes, delete' }).click();
+  await page.waitForURL(`${env.baseURL}/orders`);
+  expect(await has('Typed by mistake')).toBe(false);
+});
+
 test('job 3 again: the same client, a second fix, kept this time', async () => {
-  await page.goto(`/orders/new?client=${ids.client3}&kind=fix`);
-  await page.getByLabel('Garment', { exact: true }).fill('Suit alteration');
-  await page.getByLabel('Ready on').fill(inDays(2));
+  await page.goto(`/orders/new?client=${ids.client3}`);
+  await fillNewJob(page, {
+    title: 'Suit alteration',
+    due: inDays(2),
+    steps: [
+      { title: 'Fix', day: today() },
+      { title: 'Delivery', day: inDays(2) },
+    ],
+  });
   await page.getByRole('button', { name: 'Save the job' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   ids.o3 = orderOfUrl();
-  // A deleted draft promised nothing, so its number is free again.
-  await expect(page.locator('h1')).toContainText('#3');
+  // Deleted jobs promised nothing, so the next number is the one after the last kept.
+  await expect(page.locator('.lede')).toContainText('#3');
 });
 
 // ---------------------------------------------------------------- history, lists, clients
@@ -596,12 +628,15 @@ test('history: order 1 tells its story in her words', async () => {
 test('jobs list: soonest first, filters count, steps shown', async () => {
   await page.goto('/orders');
   const titles = await page.locator('.row-link__title').allInnerTexts();
-  expect(titles).toHaveLength(3);
-  expect(titles[0]).toContain('#3');
-  expect(titles[2]).toContain('#1');
+  expect(titles).toEqual([
+    'Yonas Alemu · Suit alteration',
+    'Hanna Tesfaye · Evening dress',
+    'Selam Bekele · Bridal gown',
+  ]);
   const t = await text(page);
-  expect(t).toContain('0 of 11 steps done');
-  expect(t).toContain('Fix · Ready on');
+  expect(t).toContain('0 of 8 steps done');
+  expect(t).toContain('#3 · Delivery');
+  expect(t).toContain('Next: Fix, ');
   expect(t).toContain('Active (3)');
   await inspect(page, 'jobs list');
   await page.goto('/orders?status=delivered');

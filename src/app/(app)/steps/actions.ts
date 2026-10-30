@@ -3,14 +3,13 @@
 import { revalidatePath } from 'next/cache';
 import { idField, text } from '@/domain/form-input';
 import { findClash } from '@/domain/steps/agenda';
-import { parseStep, type StepFields } from '@/domain/steps/forms';
+import { parseStep, sameStep, type StepFields } from '@/domain/steps/forms';
 import { clashMessage } from '@/domain/steps/words';
 import { failure, success, typedIn, type ActionState } from '@/lib/action-state';
-import { missing, saveFailed, unexpected } from '@/server/action-errors';
+import { missing, saveFailed } from '@/server/action-errors';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
-import { loadCalendarSteps, setDone } from '@/server/steps';
-import { suggestFromTemplate } from '@/server/suggest';
+import { loadCalendarSteps, loadJobSteps, loadTemplate, setDone } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
 
 /** Steps of her jobs and her studio work (docs/calendar-first.md). Every change refreshes Today and the job. */
@@ -77,6 +76,18 @@ export async function addStep(_previous: ActionState, formData: FormData): Promi
   const parsed = parseStep(formData);
   if (!parsed.ok) return failure('Check the step.', parsed.errors, typed);
   const supabase = await createSupabase();
+  // The same step twice on the same day of a job is one step added twice (her Task 6).
+  if (orderId) {
+    const twice = (await loadJobSteps(supabase, orderId)).find(
+      (s) => s.doneOn === null && sameStep(s, parsed.value),
+    );
+    if (twice)
+      return failure(
+        'This step is already there.',
+        { title: `This job already has “${twice.title}” on that day. Change that one instead.` },
+        typed,
+      );
+  }
   const taken = await timeTaken(supabase, parsed.value);
   if (taken) return failure('That time is taken.', { from: taken }, typed);
   const { error } = await supabase
@@ -122,38 +133,27 @@ export async function removeStep(_previous: ActionState, formData: FormData): Pr
   return success('Removed.');
 }
 
-/** Adds a template's steps to a job, on days counted back from its day, after any steps it has. */
+/** Adds the steps of one of her lists to a job, after any steps it has, with no day yet: she gives each its day. */
 export async function addTemplateSteps(_previous: ActionState, formData: FormData): Promise<ActionState> {
   await requireUser();
   const typed = typedIn(formData);
   const orderId = idField(formData, 'order-id');
   const templateId = idField(formData, 'template');
   if (!orderId) return failure('That job could not be found. Reload the page.', {}, typed);
-  if (!templateId) return failure('Choose the steps to add.', { template: 'Choose a template.' }, typed);
+  if (!templateId) return failure('Choose the steps to add.', { template: 'Choose a list.' }, typed);
   const supabase = await createSupabase();
-  const job = await supabase.from('orders').select('delivery_on').eq('id', orderId).maybeSingle();
-  if (job.error) return unexpected('the steps', job.error, typed);
-  if (!job.data) return missing('job', typed);
-  const suggestion = await suggestFromTemplate(
-    supabase,
-    templateId,
-    (job.data as { delivery_on: string }).delivery_on,
-  );
-  if (!suggestion) return failure('That template could not be found. Reload the page.', {}, typed);
+  const template = await loadTemplate(supabase, templateId);
+  if (!template) return failure('That list could not be found. Reload the page.', {}, typed);
+  if (template.steps.length === 0) return failure(`“${template.name}” has no steps yet.`, {}, typed);
   const start = await nextSort(supabase, orderId);
   const { error } = await supabase.from('task').insert(
-    suggestion.steps.map((s, i) => ({
+    template.steps.map((s, i) => ({
       order_id: orderId,
       sort: Math.min(100_000, start + i * 10),
       title: s.title,
-      on_day: s.onDay,
-      until_day: s.untilDay,
     })),
   );
   if (error) return saveFailed('the steps', error, typed);
   refresh(orderId);
-  return success(
-    `Added ${suggestion.steps.length} steps from “${suggestion.templateName}”.` +
-      (suggestion.squeezed ? ' The day is near, so they were drawn closer together.' : ''),
-  );
+  return success(`Added ${template.steps.length} steps from “${template.name}”. Give each its day.`);
 }

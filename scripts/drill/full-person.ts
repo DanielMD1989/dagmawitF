@@ -44,8 +44,8 @@ export async function fillPerson(c: Queryable): Promise<{ pictures: string[] }> 
   // A client, her measurements, and a new order with its steps: one done, one over several days, one with a time.
   const order = await id(
     c,
-    `select public.create_job('new_order', null, 'Selam Tesfaye', '0911 000 000', null, $1::date, 'Church wedding',
-                              'Evening dress', 'Emerald silk, long sleeves', $2::jsonb, true) as id`,
+    `select public.create_job(null, 'Selam Tesfaye', '0911 000 000', null, 'Evening dress', $1::date, 'Church wedding',
+                              'Emerald silk, long sleeves', $2::jsonb, true) as id`,
     [
       await day(40),
       JSON.stringify([
@@ -73,9 +73,9 @@ export async function fillPerson(c: Queryable): Promise<{ pictures: string[] }> 
     today,
   ]);
 
-  // Her own template, changed.
+  // Her own list, changed.
   await c.query(
-    `update public.template_task set days_before = 30 where title = 'Buy fabric'
+    `update public.template_task set title = 'Buy silk' where title = 'Buy fabric'
        and template_id = (select id from public.template where name = 'Dress')`,
   );
 
@@ -91,19 +91,27 @@ export async function fillPerson(c: Queryable): Promise<{ pictures: string[] }> 
     await day(1),
   ]);
 
-  // An appointment with a second client, no garment; and a draft fix.
+  // An appointment with a second client, no garment; a draft fix; and a bazaar, for nobody.
   await c.query(
-    `select public.create_job('appointment', null, 'Hanna Bekele', '', null, $1::date, '', null, '', $2::jsonb, true)`,
+    `select public.create_job(null, 'Hanna Bekele', '', null, '', $1::date, '', '', $2::jsonb, true)`,
     [await day(2), JSON.stringify([{ title: 'Appointment', on_day: await day(2), starts_at: '14:00' }])],
   );
   await c.query(
-    `select public.create_job('fix', null, 'Mimi Alemu', '', null, $1::date, '', 'Trousers', 'Shorten', $2::jsonb, false)`,
+    `select public.create_job(null, 'Mimi Alemu', '', null, 'Trousers', $1::date, '', 'Shorten', $2::jsonb, false)`,
     [
       await day(5),
       JSON.stringify([
         { title: 'Fix', on_day: await day(3) },
         { title: 'Delivery', on_day: await day(5) },
       ]),
+    ],
+  );
+
+  await c.query(
+    `select public.create_job(null, null, null, null, 'Bazaar at the Hyatt', $1::date, '', '', $2::jsonb, true)`,
+    [
+      await day(14),
+      JSON.stringify([{ title: 'Make 10 dresses', on_day: await day(1), until_day: await day(12) }]),
     ],
   );
 

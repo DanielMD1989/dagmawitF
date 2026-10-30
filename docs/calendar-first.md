@@ -74,3 +74,26 @@ The app speaks to her: "your week", "what you are making", never "her". Plain wo
    Settings without capacity; the words.
 4. Browser suite rewritten as her story with the new screens; axe on every screen.
 5. Docs, CI green, deployed. Then she uses it for a week, and we write down what is still missing.
+
+## Second round: jobs she builds (30 October, decision 0068)
+
+After a day of use she said "kind of job" does not fit: work moves through stages (an appointment, a sketch, fabric,
+production, delivery), any of which may be missing; a fix may start with an appointment; and bazaars are events with
+no client. Her answers: **she sets each step's day herself**, and Today shows **days left for events and deliveries**.
+
+- **No kind.** A job is: who it is for (a client, or nobody: an event such as a bazaar), what it is (a few words), its
+  day (delivery, or the event), and its steps.
+- **Steps are built on the job.** Her usual steps are offered as buttons (Appointment, Sketch, Buy fabric, Cutting,
+  Sewing, Fitting, Fix, Delivery, and every step she has typed before, most used first); a tap adds it, she gives it
+  its day and, if she wants, a time. Any step can be typed new.
+- **Saved lists.** A list of steps she uses often (Bridal gown) can be added in one tap; she gives the days. Lists
+  hold titles only. The Library is these lists.
+- **No suggested days.** Nothing is counted back; the app keeps what she sets.
+- **Days left.** Today lists what is coming up: "Bazaar at Hyatt · 12 days left". Every event ahead is there from the
+  day she adds it, however far, because a bazaar or a fashion show needs weeks of preparation (her words: "needs my
+  attention"); deliveries show in their last 30 days. A job's page says it too. Preparation is steps over several days
+  (a day and a last day), shown on each of them.
+- **The work is the headline.** On Today and the calendar an entry reads "Megan · Bridal gown", with the step under it.
+- **Delete any job** made by mistake, whatever its state; cancel one to keep it on record.
+- **Times stay hers once** (decision 0067): a step's time that crosses another is refused, including two steps of the
+  same new job.

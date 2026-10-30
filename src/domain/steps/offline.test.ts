@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildAgenda, type JobRef, type Step } from './agenda';
 import {
   addTap,
+  tapName,
   isForToday,
   makeSnapshot,
   replayReport,
@@ -16,7 +17,7 @@ const OWNER = 'owner-1';
 const JOB: JobRef = {
   id: 'j',
   number: 7,
-  kind: 'new_order',
+  title: 'Bridal gown',
   clientName: 'Hana',
   dueOn: '2026-11-20',
   status: 'active',
@@ -55,7 +56,7 @@ describe('the snapshot kept on the phone', () => {
       {
         id: 'late',
         title: 'Buy lace',
-        jobLabel: '#7 · Hana · New order',
+        work: 'Hana · Bridal gown',
         time: null,
         part: 'From Fri 30 Oct',
         done: false,
@@ -79,7 +80,7 @@ describe('the snapshot kept on the phone', () => {
       ],
       ['Wed 4 Nov', [['Sewing', null, 'Day 3 of 3']]],
     ]);
-    expect(snapshot.days[1]!.entries[1]!.jobLabel).toBeNull();
+    expect(snapshot.days[1]!.entries[1]!.work).toBeNull();
   });
 
   it('is today’s only on the day it was made, in her time zone', () => {
@@ -100,7 +101,8 @@ describe('ticks that wait for the signal', () => {
         key: 'k1',
         ownerId: OWNER,
         stepId: 'fit',
-        title: 'Fitting',
+        // Named as its tick is, so what is said of it after sending names the work too.
+        title: 'Fitting, Hana · Bridal gown',
         sawDone: false,
         done: true,
         at: at.toISOString(),
@@ -110,6 +112,11 @@ describe('ticks that wait for the signal', () => {
     const twice = addTap(once, fitting(once), OWNER, 'k2', at);
     expect(twice[1]).toMatchObject({ sawDone: true, done: false });
     expect(fitting(twice)).toMatchObject({ done: false, waiting: 2, undoKey: 'k2' });
+  });
+
+  it('name a step with its work; her own by its title', () => {
+    expect(tapName({ title: 'Fitting', work: 'Hana · Bridal gown' })).toBe('Fitting, Hana · Bridal gown');
+    expect(tapName({ title: 'Sharpen the shears', work: null })).toBe('Sharpen the shears');
   });
 
   it('apply to every day a step is on', () => {

@@ -3,25 +3,22 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { ConfirmAction } from '@/components/ConfirmAction';
 import { isUuid } from '@/domain/form-input';
-import { KIND_WORDS } from '@/domain/jobs/kinds';
-import { whenLabel } from '@/domain/library/forms';
 import { requireUser } from '@/server/session';
 import { loadTemplate } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
 import { TemplateForm } from '../TemplateForm';
 import { deleteTemplate } from '../actions';
-import { AddTemplateStep, TemplateStepEditor } from './TemplateSteps';
+import { AddTemplateStep, MoveStep, TemplateStepEditor } from './TemplateSteps';
 
-export const metadata: Metadata = { title: 'Template' };
+export const metadata: Metadata = { title: 'List of steps' };
 
-/** One template: its steps, each some days before the job's day, as a new job's steps are suggested from it. */
+/** One saved list: the steps it adds to a job, in order. She gives each its day on the job. */
 export default async function TemplatePage({ params }: { params: Promise<{ id: string }> }) {
   await requireUser();
   const { id } = await params;
   if (!isUuid(id)) notFound();
   const template = await loadTemplate(await createSupabase(), id);
   if (!template) notFound();
-  const steps = [...template.steps].sort((a, b) => b.daysBefore - a.daysBefore || a.sort - b.sort);
 
   return (
     <>
@@ -31,9 +28,7 @@ export default async function TemplatePage({ params }: { params: Promise<{ id: s
         </p>
         <h1>{template.name}</h1>
         <p className="lede">
-          For a {KIND_WORDS[template.kind].label.toLowerCase()}. A new job with these steps gets their days
-          counted back from its day. When the day is nearer than the first step, every step is drawn in to
-          fit.
+          These steps are added to a job in one tap, in this order. You give each its day on the job.
         </p>
       </div>
 
@@ -41,47 +36,44 @@ export default async function TemplatePage({ params }: { params: Promise<{ id: s
         <div className="section__head">
           <h2 id="steps-heading">Steps</h2>
         </div>
-        {steps.length === 0 ? (
+        {template.steps.length === 0 ? (
           <div className="card">
             <p>No steps yet.</p>
           </div>
         ) : (
-          <ul className="items">
-            {steps.map((s) => (
+          <ol className="items">
+            {template.steps.map((s, i) => (
               <li key={s.id} className="item">
-                <div className="item__main">
-                  <span className="item__title">{s.title}</span>
-                  <span className="hint">
-                    {whenLabel(s.daysBefore, s.spanDays)}
-                    {s.withClient && ' · with the client'}
-                  </span>
+                <div className="item__head">
+                  <div className="item__main">
+                    <span className="item__title">{s.title}</span>
+                  </div>
+                  <MoveStep step={s} first={i === 0} last={i === template.steps.length - 1} />
                 </div>
                 <TemplateStepEditor step={s} />
               </li>
             ))}
-          </ul>
+          </ol>
         )}
         <AddTemplateStep templateId={template.id} />
       </section>
 
       <section className="section" aria-labelledby="about-heading">
         <div className="section__head">
-          <h2 id="about-heading">About this template</h2>
+          <h2 id="about-heading">About this list</h2>
         </div>
-        <TemplateForm
-          template={{ id: template.id, name: template.name, kind: template.kind, notes: template.notes }}
-        />
+        <TemplateForm template={{ id: template.id, name: template.name, notes: template.notes }} />
       </section>
 
       <section className="section" aria-labelledby="delete-heading">
         <div className="section__head">
-          <h2 id="delete-heading">Delete this template</h2>
+          <h2 id="delete-heading">Delete this list</h2>
           <p className="hint">Jobs that took its steps keep them.</p>
         </div>
         <ConfirmAction
           action={deleteTemplate}
           fields={{ id: template.id }}
-          label="Delete this template"
+          label="Delete this list"
           question={`Delete “${template.name}”? This cannot be undone.`}
           confirmLabel="Yes, delete"
           pendingText="Deleting…"

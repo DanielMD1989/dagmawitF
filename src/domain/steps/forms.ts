@@ -38,29 +38,67 @@ function time(data: FormData, name: string, errors: FieldErrors): string | null 
   return hhmm;
 }
 
-export function parseStep(data: FormData): Result<StepFields> {
+/**
+ * Reads one step. With a `prefix` it reads one row of several on a form ("step-2-title", "step-2-day", ...), and its
+ * messages are keyed the same way, so each sits next to its own field.
+ */
+export function parseStep(data: FormData, prefix = ''): Result<StepFields> {
   const errors: FieldErrors = {};
-  const title = text(data, 'title');
-  if (chars(title) === 0) errors.title = 'Say what the step is, for example “Cutting”.';
-  else if (chars(title) > 120) errors.title = 'Keep this under 120 characters.';
+  const name = (field: string) => `${prefix}${field}`;
+  const title = text(data, name('title'));
+  if (chars(title) === 0) errors[name('title')] = 'Say what the step is, for example “Cutting”.';
+  else if (chars(title) > 120) errors[name('title')] = 'Keep this under 120 characters.';
 
-  const onDay = day(data, 'day', errors);
-  const untilDay = day(data, 'until', errors);
-  const startsAt = time(data, 'from', errors);
-  const endsAt = time(data, 'to', errors);
+  const onDay = day(data, name('day'), errors);
+  const untilDay = day(data, name('until'), errors);
+  const startsAt = time(data, name('from'), errors);
+  const endsAt = time(data, name('to'), errors);
 
-  if (untilDay && !errors.day) {
-    if (!onDay) errors.until = 'Choose the first day too.';
+  if (untilDay && !errors[name('day')]) {
+    if (!onDay) errors[name('until')] = 'Choose the first day too.';
     else if (untilDay <= onDay)
-      errors.until = 'The last day comes after the first. Leave it empty for one day.';
+      errors[name('until')] = 'The last day comes after the first. Leave it empty for one day.';
   }
-  if (startsAt && !onDay && !errors.day) errors.from = 'Choose a day for the time.';
-  if (endsAt && !errors.to) {
-    if (!startsAt) errors.to = 'Give the start time too.';
-    else if (endsAt <= startsAt) errors.to = 'The end comes after the start.';
+  if (startsAt && !onDay && !errors[name('day')]) errors[name('from')] = 'Choose a day for the time.';
+  if (endsAt && !errors[name('to')]) {
+    if (!startsAt) errors[name('to')] = 'Give the start time too.';
+    else if (endsAt <= startsAt) errors[name('to')] = 'The end comes after the start.';
   }
 
   return Object.keys(errors).length > 0
     ? { ok: false, errors }
     : { ok: true, value: { title, onDay, untilDay, startsAt, endsAt } };
+}
+
+export const MAX_STEPS = 100;
+
+/**
+ * Reads the rows of steps on the new-job form: "step-0-…", "step-1-…", in the order they are on the form, for as many
+ * rows as `steps` says. Two rows with the same title on the same day are one step typed twice (her Task 6).
+ */
+export function parseStepRows(data: FormData): Result<StepFields[]> {
+  const raw = text(data, 'steps');
+  const count = raw === '' ? 0 : Number(raw);
+  if (!Number.isInteger(count) || count < 0 || count > MAX_STEPS)
+    return { ok: false, errors: { steps: `Use at most ${MAX_STEPS} steps.` } };
+  const errors: FieldErrors = {};
+  const steps: StepFields[] = [];
+  for (let i = 0; i < count; i++) {
+    const r = parseStep(data, `step-${i}-`);
+    if (!r.ok) Object.assign(errors, r.errors);
+    else {
+      const twice = steps.findIndex((s) => sameStep(s, r.value));
+      if (twice >= 0) errors[`step-${i}-title`] = `“${r.value.title}” is already in the list for that day.`;
+      steps.push(r.value);
+    }
+  }
+  return Object.keys(errors).length > 0 ? { ok: false, errors } : { ok: true, value: steps };
+}
+
+/** The same step: the same title, in any capitals, on the same day (or both with no day yet). */
+export function sameStep(
+  a: Pick<StepFields, 'title' | 'onDay'>,
+  b: Pick<StepFields, 'title' | 'onDay'>,
+): boolean {
+  return a.title.trim().toLowerCase() === b.title.trim().toLowerCase() && a.onDay === b.onDay;
 }

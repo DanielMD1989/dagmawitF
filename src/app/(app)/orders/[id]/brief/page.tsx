@@ -21,7 +21,7 @@ export default async function OrderBriefPage({ params }: { params: Promise<{ id:
 
   const supabase = await createSupabase();
   const [sets, pictures] = await Promise.all([
-    loadMeasurementSets(supabase, order.client.id),
+    order.client ? loadMeasurementSets(supabase, order.client.id) : Promise.resolve([]),
     loadAttachments(supabase, order.id),
   ]);
   const closed = isClosed(order.status);

@@ -125,7 +125,7 @@ describe('the restore', () => {
       const before = await exportAs(c, a);
       await actAs(c, a);
       await c.query(`update public.profile set name = 'Someone else'`);
-      await c.query(`select public.delete_draft_order(id) from public.orders where status = 'draft'`);
+      await c.query(`select public.delete_job(id) from public.orders where status = 'draft'`);
       await c.query(`insert into public.client (name) values ('Added after')`);
       await actAsOwner(c);
       expect(await restore(c, a, before)).toMatchObject({ ok: true });
@@ -302,7 +302,7 @@ describe('the restore', () => {
       const history = await lines();
       await c.query(
         `update public.orders set status = 'on_hold', hold_reason = 'After the restore'
-         where status = 'active' and kind = 'new_order'`,
+         where status = 'active' and title = 'Evening dress'`,
       );
       expect(await lines()).toBe(history + 1);
       await actAsOwner(c);

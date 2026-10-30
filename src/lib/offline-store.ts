@@ -7,11 +7,11 @@ import { SNAPSHOT_VERSION, type DaySnapshot, type WaitingTap } from '@/domain/st
  * back is checked, and anything that does not fit is treated as absent. Safe to import from client components.
  */
 
-// Version 2 since decision 0066: what version 1 kept (a plan's day) is simply not read any more.
-const SNAPSHOT_KEY = 'dagmawit.today.v2';
+// Each change of what is kept takes a new key, so an older shape is simply not read (decisions 0066, 0068).
+const SNAPSHOT_KEY = 'dagmawit.today.v3';
 const WAITING_KEY = 'dagmawit.waiting.v2';
 /** What earlier versions kept, removed on sign-out like the rest. */
-const OLD_KEYS = ['dagmawit.today.v1', 'dagmawit.waiting.v1'];
+const OLD_KEYS = ['dagmawit.today.v1', 'dagmawit.waiting.v1', 'dagmawit.today.v2'];
 /** Tells the other open pages of the app that the waiting taps changed. */
 export const WAITING_EVENT = 'dagmawit:waiting';
 
@@ -19,7 +19,7 @@ const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const entry = z.object({
   id: z.string().min(1),
   title: z.string(),
-  jobLabel: z.string().nullable(),
+  work: z.string().nullable(),
   time: z.string().nullable(),
   part: z.string().nullable(),
   done: z.boolean(),

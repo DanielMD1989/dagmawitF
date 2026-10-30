@@ -1,13 +1,13 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { asId } from '@/domain/form-input';
-import { isJobKind } from '@/domain/jobs/kinds';
-import { loadCalendarSettings } from '@/server/calendar';
+import { NO_CLIENT } from '@/domain/orders/forms';
+import { usualSteps } from '@/domain/steps/usual';
 import { loadClients } from '@/server/clients';
 import { loadOrderHints } from '@/server/orders';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
-import { loadTemplates } from '@/server/steps';
+import { loadTemplates, loadUsedStepTitles } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
 import { NewJobForm } from './NewJobForm';
 
@@ -16,20 +16,24 @@ export const metadata: Metadata = { title: 'New job' };
 export default async function NewJobPage({
   searchParams,
 }: {
-  searchParams: Promise<{ client?: string; kind?: string }>;
+  searchParams: Promise<{ client?: string; event?: string }>;
 }) {
   await requireUser();
   const params = await searchParams;
   const supabase = await createSupabase();
-  const [clients, hints, prefs, templates, calendar] = await Promise.all([
+  const [clients, hints, prefs, templates, used] = await Promise.all([
     loadClients(supabase),
     loadOrderHints(supabase),
     loadPreferences(supabase),
     loadTemplates(supabase),
-    loadCalendarSettings(supabase),
+    loadUsedStepTitles(supabase),
   ]);
   const wanted = asId(params.client);
-  const initialClient = clients.some((c) => c.id === wanted) ? wanted : null;
+  const initialClient = clients.some((c) => c.id === wanted)
+    ? wanted
+    : params.event === '1'
+      ? NO_CLIENT
+      : null;
 
   return (
     <>
@@ -38,27 +42,15 @@ export default async function NewJobPage({
           <Link href="/orders">Jobs</Link> / New
         </p>
         <h1>New job</h1>
-        <p className="lede">
-          Its steps get their days on your calendar. Everything can be changed afterwards.
-        </p>
+        <p className="lede">Who it is for, what it is, and the steps you will take, each on its day.</p>
       </div>
       <NewJobForm
         clients={clients.map((c) => ({ id: c.id, name: c.name }))}
         initialClient={initialClient}
-        initialKind={isJobKind(params.kind) ? params.kind : 'new_order'}
-        templates={templates.map((t) => ({
-          id: t.id,
-          name: t.name,
-          kind: t.kind,
-          steps: t.steps.map(({ title, daysBefore, spanDays, withClient }) => ({
-            title,
-            daysBefore,
-            spanDays,
-            withClient,
-          })),
-        }))}
-        workingDays={calendar.week.map((d) => d.weekday)}
-        daysOff={calendar.exceptions.map(({ day, minutesAvailable }) => ({ day, minutesAvailable }))}
+        lists={templates
+          .filter((t) => t.steps.length > 0)
+          .map((t) => ({ id: t.id, name: t.name, steps: t.steps.map((s) => s.title) }))}
+        usual={usualSteps(used)}
         today={prefs.today}
         nextNumber={hints.nextNumber}
         garmentTypes={hints.garmentTypes}

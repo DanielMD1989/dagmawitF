@@ -133,7 +133,7 @@ beforeAll(async () => {
     [d.order],
   );
 
-  await migrate(db, { from: BEFORE });
+  await migrate(db, { from: BEFORE, upTo: '20261101090000' });
 });
 
 afterAll(async () => {

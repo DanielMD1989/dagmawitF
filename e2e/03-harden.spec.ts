@@ -24,8 +24,14 @@ let OWNER = '';
 interface Kept {
   id: string;
   title: string;
+  /** The work it is part of, its headline; null for her own. */
+  work: string | null;
   done: boolean;
 }
+/** What she reads first on an entry: the work, or her own step's title. */
+const headline = (e: Kept) => e.work ?? e.title;
+/** The name a tick button carries: the step, then its work. */
+const tickName = (e: Kept) => (e.work ? `${e.title}, ${e.work}` : e.title);
 /** Today's steps as kept on the phone, and the two not done yet that the offline steps tick. */
 let kept: Kept[] = [];
 let A = -1;
@@ -71,21 +77,21 @@ test('the app installs its service worker', async () => {
 });
 
 test('Today is kept on the phone as she sees it, and nothing else of hers is', async () => {
-  await expect.poll(() => stored('dagmawit.today.v2')).not.toBeNull();
-  const snap = JSON.parse((await stored('dagmawit.today.v2'))!) as {
+  await expect.poll(() => stored('dagmawit.today.v3')).not.toBeNull();
+  const snap = JSON.parse((await stored('dagmawit.today.v3'))!) as {
     ownerId: string;
     firstName: string;
     days: { heading: string; entries: Kept[] }[];
   };
   expect(snap.days[0]!.heading).toBe('Today');
-  expect(snap.days[0]!.entries.map((e) => e.title)).toEqual(
+  expect(snap.days[0]!.entries.map(headline)).toEqual(
     await todayList().locator('.item__title').allInnerTexts(),
   );
   expect(snap.ownerId).toBe(OWNER);
   expect(snap.firstName).toBe('Dagmawit');
   expect(
     await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('dagmawit'))),
-  ).toEqual(['dagmawit.today.v2']);
+  ).toEqual(['dagmawit.today.v3']);
   const cached = await page.evaluate(async () =>
     (await (await caches.open('dagmawit-shell-v2')).keys()).map((r) => new URL(r.url).pathname),
   );
@@ -113,7 +119,7 @@ test('with no signal, opening the app shows the day as of when it was kept', asy
   const t = await text(page);
   expect(t).toMatch(/no signal/i);
   expect(t).toContain('What you tick here waits on this phone');
-  expect(await todayList().locator('.item__title').allInnerTexts()).toEqual(kept.map((e) => e.title));
+  expect(await todayList().locator('.item__title').allInnerTexts()).toEqual(kept.map(headline));
   await inspect(page, 'offline day');
 });
 
@@ -125,21 +131,21 @@ test('any page she opens with no signal leads to the day; Try again goes back to
 
 test('she ticks two steps done; each tick waits, and undo takes back only the last', async () => {
   await entry(A)
-    .getByRole('button', { name: `Mark ${kept[A]!.title} as done` })
+    .getByRole('button', { name: `Mark ${tickName(kept[A]!)} as done` })
     .click();
   await expect(entry(A)).toContainText('Waiting to be sent');
   await entry(B)
-    .getByRole('button', { name: `Mark ${kept[B]!.title} as done` })
+    .getByRole('button', { name: `Mark ${tickName(kept[B]!)} as done` })
     .click();
   await entry(B)
-    .getByRole('button', { name: `${kept[B]!.title}: done. Mark as not done` })
+    .getByRole('button', { name: `${tickName(kept[B]!)}: done. Mark as not done` })
     .click();
   await expect(page.locator('main')).toContainText('3 ticks wait to be sent.');
   await entry(B)
-    .getByRole('button', { name: `Undo the last change to ${kept[B]!.title}` })
+    .getByRole('button', { name: `Undo the last change to ${tickName(kept[B]!)}` })
     .click();
   await expect(
-    entry(B).getByRole('button', { name: `${kept[B]!.title}: done. Mark as not done` }),
+    entry(B).getByRole('button', { name: `${tickName(kept[B]!)}: done. Mark as not done` }),
   ).toBeVisible();
   await expect(page.locator('main')).toContainText('2 ticks wait to be sent.');
   const ticks = JSON.parse((await stored('dagmawit.waiting.v2'))!) as { sawDone: boolean; done: boolean }[];
@@ -151,7 +157,7 @@ test('the ticks survive closing and reopening the app with no signal', async () 
   await page.waitForURL(/\/offline/);
   await expect(page.locator('main')).toContainText('2 ticks wait to be sent.');
   await expect(
-    entry(A).getByRole('button', { name: `${kept[A]!.title}: done. Mark as not done` }),
+    entry(A).getByRole('button', { name: `${tickName(kept[A]!)}: done. Mark as not done` }),
   ).toBeVisible();
   await inspect(page, 'offline with ticks');
 });
@@ -166,11 +172,11 @@ test('meanwhile, on her computer, she ticks the second step done herself', async
   const p = await computer.newPage();
   await p.goto('/');
   await p
-    .getByRole('button', { name: `Mark ${kept[B]!.title} as done` })
+    .getByRole('button', { name: `Mark ${tickName(kept[B]!)} as done` })
     .first()
     .click();
   await p
-    .getByRole('button', { name: `${kept[B]!.title}: done. Mark as not done` })
+    .getByRole('button', { name: `${tickName(kept[B]!)}: done. Mark as not done` })
     .first()
     .waitFor();
   await computer.close();
@@ -185,7 +191,7 @@ test('the signal comes back: the page says so, and opening the app sends what wa
   await status.getByText('1 tick made without signal was saved.').waitFor();
   await expect(status.locator('.attention')).toHaveText('One was not saved:');
   await expect(status.locator('li')).toHaveText(
-    `${kept[B]!.title}. It was already ticked done on another device.`,
+    `${tickName(kept[B]!)}. It was already ticked done on another device.`,
   );
   expect(await doneOn(kept[A]!.id)).toBe(today());
   expect(await doneOn(kept[B]!.id)).toBe(today());
@@ -250,9 +256,9 @@ test('the replay endpoint keeps the rules: nonsense is refused, a stranger is tu
 
 test('a list kept on an earlier day is a reminder only: no ticks', async () => {
   await page.evaluate(() => {
-    const s = JSON.parse(localStorage.getItem('dagmawit.today.v2')!) as { day: string };
+    const s = JSON.parse(localStorage.getItem('dagmawit.today.v3')!) as { day: string };
     s.day = '2026-01-05';
-    localStorage.setItem('dagmawit.today.v2', JSON.stringify(s));
+    localStorage.setItem('dagmawit.today.v3', JSON.stringify(s));
   });
   await signal(false);
   await page.goto('/calendar');
@@ -404,7 +410,7 @@ test('the keyboard alone: take a job', async () => {
 
   await page.goto('/orders/new');
   await page.locator('body').focus();
-  const client = page.getByLabel('Client', { exact: true });
+  const client = page.getByLabel('For', { exact: true });
   await tabTo(client);
   // A closed list picks the option whose name she types.
   await page.keyboard.type('Hanna');
@@ -414,12 +420,20 @@ test('the keyboard alone: take a job', async () => {
   const [y, m, d] = inDays(20).split('-');
   await page.keyboard.type(dayFirst ? `${d}${m}${y}` : `${m}${d}${y}`);
   await expect(due).toHaveValue(inDays(20));
-  await tabTo(page.getByLabel('Garment', { exact: true }));
+  await tabTo(page.getByLabel('What it is (optional)'));
   await page.keyboard.type('Netela shawl');
+  // A step is a tap: Enter on its button, then its day.
+  await tabTo(page.getByRole('button', { name: '+ Delivery', exact: true }));
+  await page.keyboard.press('Enter');
+  const day = page.locator('.step-row').getByLabel('Day', { exact: true });
+  await tabTo(day);
+  await page.keyboard.type(dayFirst ? `${d}${m}${y}` : `${m}${d}${y}`);
+  await expect(day).toHaveValue(inDays(20));
   await tabTo(page.getByRole('button', { name: 'Save the job' }));
   await page.keyboard.press('Enter');
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
-  await expect(page.locator('h1')).toContainText('Netela shawl');
+  await expect(page.locator('h1')).toHaveText('Hanna Tesfaye · Netela shawl');
+  await expect(page.locator('li.item .item__title')).toHaveText(['Delivery']);
 });
 
 test('the keyboard alone: tick a step done', async () => {

@@ -4,7 +4,7 @@ import {
   NEW_CLIENT,
   garmentProblems,
   parseGarment,
-  NO_TEMPLATE,
+  NO_CLIENT,
   parseNewJob,
   parseOrderDetails,
   parseOrderNotes,
@@ -19,18 +19,7 @@ function form(fields: Record<string, string>): FormData {
 
 const today = '2026-10-25';
 const ctx = { today };
-const TEMPLATE_ID = '7a1d2c3b-4e5f-4a6b-8c7d-9e0f1a2b3c4d';
 const CLIENT_ID = '3f6c2b0e-9d4a-4c1e-8b7a-5e2f1a9c0d11';
-
-const newJob = (over: Record<string, string> = {}) =>
-  form({
-    kind: 'new_order',
-    client: CLIENT_ID,
-    'due-on': '2026-11-20',
-    'garment-type': 'Bridal gown',
-    template: TEMPLATE_ID,
-    ...over,
-  });
 
 describe('a garment', () => {
   // The same cases the database's constraints are tested with, so the two cannot drift apart.
@@ -50,94 +39,64 @@ describe('a garment', () => {
   });
 });
 
+const newJob = (over: Record<string, string> = {}) =>
+  form({
+    client: CLIENT_ID,
+    title: 'Bridal gown',
+    'due-on': '2026-11-20',
+    steps: '2',
+    'step-0-title': 'Appointment',
+    'step-0-day': '2026-10-27',
+    'step-0-from': '14:00',
+    'step-0-to': '14:30',
+    'step-1-title': 'Delivery',
+    'step-1-day': '2026-11-20',
+    ...over,
+  });
+
 describe('a new job', () => {
-  it('a new order: a client, what is being made, a delivery day, and the steps it starts with', () => {
+  it('for a client: what it is, its day, and the steps she built with their days', () => {
     expect(parseNewJob(newJob(), ctx)).toEqual({
       ok: true,
       value: {
-        kind: 'new_order',
         client: { kind: 'existing', id: CLIENT_ID },
         number: null,
+        title: 'Bridal gown',
         dueOn: '2026-11-20',
-        time: null,
-        timeEnd: null,
         notes: '',
-        garment: { garmentType: 'Bridal gown', brief: '' },
-        templateId: TEMPLATE_ID,
+        brief: '',
+        steps: [
+          { title: 'Appointment', onDay: '2026-10-27', untilDay: null, startsAt: '14:00', endsAt: '14:30' },
+          { title: 'Delivery', onDay: '2026-11-20', untilDay: null, startsAt: null, endsAt: null },
+        ],
       },
     });
   });
 
-  it('an appointment: a from and to time, the end after the start', () => {
-    expect(
-      parseNewJob(
-        newJob({ kind: 'appointment', 'garment-type': '', time: '14:00', 'time-to': '14:30' }),
-        ctx,
-      ),
-    ).toMatchObject({ ok: true, value: { time: '14:00', timeEnd: '14:30' } });
-    expect(
-      parseNewJob(newJob({ kind: 'appointment', time: '14:00', 'time-to': '13:30' }), ctx),
-    ).toMatchObject({
-      ok: false,
-      errors: { 'time-to': 'The end comes after the start.' },
-    });
-    expect(parseNewJob(newJob({ kind: 'appointment', 'time-to': '13:30' }), ctx)).toMatchObject({
-      ok: false,
-      errors: { 'time-to': 'Give the start time too.' },
+  it('for a client may go without a title or steps', () => {
+    expect(parseNewJob(newJob({ title: '', steps: '0' }), ctx)).toMatchObject({
+      ok: true,
+      value: { title: '', steps: [] },
     });
   });
 
-  it('an appointment: no garment needed, and a time', () => {
+  it('for nobody is an event, and needs a name; it keeps no brief', () => {
     expect(
-      parseNewJob(
-        newJob({ kind: 'appointment', 'garment-type': '', time: '14:30:00', template: NO_TEMPLATE }),
-        ctx,
-      ),
+      parseNewJob(newJob({ client: NO_CLIENT, title: 'Bazaar at the Hyatt', brief: 'x' }), ctx),
     ).toMatchObject({
       ok: true,
-      value: { kind: 'appointment', garment: null, time: '14:30', templateId: null },
+      value: { client: { kind: 'none' }, title: 'Bazaar at the Hyatt', brief: '' },
     });
-  });
-
-  it('a sketch keeps a garment if she names one', () => {
-    expect(parseNewJob(newJob({ kind: 'sketch', 'garment-type': 'Evening dress' }), ctx)).toMatchObject({
-      ok: true,
-      value: { garment: { garmentType: 'Evening dress', brief: '' } },
-    });
-  });
-
-  it('a new order or a fix needs to say what is being made', () => {
-    for (const kind of ['new_order', 'fix']) {
-      expect(parseNewJob(newJob({ kind, 'garment-type': '' }), ctx), kind).toMatchObject({
-        ok: false,
-        errors: { 'garment-type': expect.any(String) },
-      });
-    }
-  });
-
-  it('ignores a time for a kind that has none, and refuses one that is not a time', () => {
-    expect(parseNewJob(newJob({ time: '10:00' }), ctx)).toMatchObject({ ok: true, value: { time: null } });
-    expect(parseNewJob(newJob({ kind: 'appointment', time: 'ten' }), ctx)).toMatchObject({
+    expect(parseNewJob(newJob({ client: NO_CLIENT, title: '' }), ctx)).toMatchObject({
       ok: false,
-      errors: { time: expect.any(String) },
+      errors: { title: 'Give the event a name, for example “Bazaar at the Hyatt”.' },
     });
   });
 
-  it('refuses a kind it does not know', () => {
-    expect(parseNewJob(newJob({ kind: 'repair' }), ctx)).toMatchObject({
+  it('says what is wrong with a step next to it', () => {
+    expect(parseNewJob(newJob({ 'step-0-to': '13:00' }), ctx)).toMatchObject({
       ok: false,
-      errors: { kind: expect.any(String) },
-    });
-  });
-
-  it('starts with no steps when she says so, and refuses a template that is not one', () => {
-    expect(parseNewJob(newJob({ template: NO_TEMPLATE }), ctx)).toMatchObject({
-      ok: true,
-      value: { templateId: null },
-    });
-    expect(parseNewJob(newJob({ template: 'x' }), ctx)).toMatchObject({
-      ok: false,
-      errors: { template: expect.any(String) },
+      errors: { 'step-0-to': 'The end comes after the start.' },
     });
   });
 
@@ -160,7 +119,7 @@ describe('a new job', () => {
     });
   });
 
-  it('refuses a client that is neither chosen nor new', () => {
+  it('refuses a client that is neither chosen, new nor none', () => {
     for (const client of ['', 'not-an-id']) {
       expect(parseNewJob(newJob({ client }), ctx)).toMatchObject({
         ok: false,
@@ -198,21 +157,27 @@ describe('a new job', () => {
   });
 
   it('reports every problem at once, each next to its field', () => {
-    const r = parseNewJob(form({ kind: 'new_order', client: '', 'due-on': '', 'garment-type': '' }), ctx);
+    const r = parseNewJob(form({ client: '', 'due-on': '', title: 'x'.repeat(121) }), ctx);
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(Object.keys(r.errors).sort()).toEqual(['client', 'due-on', 'garment-type']);
+    if (!r.ok) expect(Object.keys(r.errors).sort()).toEqual(['client', 'due-on', 'title']);
   });
 });
 
 describe('changing a job', () => {
   const current = (status: 'draft' | 'active' | 'on_hold') => ({ status, dueOn: '2026-11-20', today });
   const details = (over: Record<string, string> = {}) =>
-    form({ client: CLIENT_ID, kind: 'fix', 'due-on': '2026-11-27', notes: ' Wedding ', ...over });
+    form({ client: CLIENT_ID, title: 'Trousers', 'due-on': '2026-11-27', notes: ' Wedding ', ...over });
 
-  it('reads the new day, the kind, and whether the steps move with the day', () => {
+  it('reads who it is for, what it is, the new day, and whether the steps move with it', () => {
     expect(parseOrderDetails(details(), current('active'))).toEqual({
       ok: true,
-      value: { clientId: CLIENT_ID, kind: 'fix', dueOn: '2026-11-27', moveSteps: false, notes: 'Wedding' },
+      value: {
+        clientId: CLIENT_ID,
+        title: 'Trousers',
+        dueOn: '2026-11-27',
+        moveSteps: false,
+        notes: 'Wedding',
+      },
     });
     expect(parseOrderDetails(details({ 'move-steps': 'on' }), current('active'))).toMatchObject({
       ok: true,
@@ -220,10 +185,20 @@ describe('changing a job', () => {
     });
   });
 
-  it('refuses a kind it does not know', () => {
-    expect(parseOrderDetails(details({ kind: 'x' }), current('active'))).toMatchObject({
+  it('may become an event, with a name', () => {
+    expect(
+      parseOrderDetails(details({ client: NO_CLIENT, title: 'Bazaar' }), current('active')),
+    ).toMatchObject({
+      ok: true,
+      value: { clientId: null, title: 'Bazaar' },
+    });
+    expect(parseOrderDetails(details({ client: NO_CLIENT, title: '' }), current('active'))).toMatchObject({
       ok: false,
-      errors: { kind: expect.any(String) },
+      errors: { title: expect.any(String) },
+    });
+    expect(parseOrderDetails(details({ client: 'x' }), current('active'))).toMatchObject({
+      ok: false,
+      errors: { client: expect.any(String) },
     });
   });
 

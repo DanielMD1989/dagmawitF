@@ -136,8 +136,8 @@ export async function runDrill(
       );
       const job = (
         await second.query(
-          `select public.create_job('new_order', null, 'After the drill', '', null,
-                  (app.today_for((select auth.uid())) + 30)::date, '', 'Evening dress', '',
+          `select public.create_job(null, 'After the drill', '', null, 'Evening dress',
+                  (app.today_for((select auth.uid())) + 30)::date, '', '',
                   jsonb_build_array(jsonb_build_object('title', 'Cutting',
                     'on_day', app.today_for((select auth.uid())) + 10)), true) as id`,
         )

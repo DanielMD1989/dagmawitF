@@ -25,7 +25,7 @@ const BUCKET = 'order-files';
 // The order itself
 
 /**
- * The kind, the client, the day and the notes. When the day moves and she asked for it, the steps not done yet move
+ * Who it is for (or nobody: an event), what it is, the day and the notes. When the day moves and she asked for it, the steps not done yet move
  * by as many days, with the day itself, in one step. A delivered or cancelled job can only have its notes changed.
  */
 export async function saveOrderDetails(_previous: ActionState, formData: FormData): Promise<ActionState> {
@@ -63,7 +63,7 @@ export async function saveOrderDetails(_previous: ActionState, formData: FormDat
     }
     patch = {
       client_id: details.clientId,
-      kind: details.kind,
+      title: details.title,
       delivery_on: details.dueOn,
       notes: details.notes,
     };
@@ -126,29 +126,24 @@ export async function moveOrder(_previous: ActionState, formData: FormData): Pro
   return success(moveDone(order.status, move.to));
 }
 
-/** Deletes an order that is still a draft, with its garments, preparation and pictures. */
-export async function deleteDraft(_previous: ActionState, formData: FormData): Promise<ActionState> {
+/**
+ * Deletes a job made by mistake, whatever its state (she asked for this): its garments, steps, pictures and history
+ * go with it. To keep a record of a job called off, she cancels it instead.
+ */
+export async function deleteJob(_previous: ActionState, formData: FormData): Promise<ActionState> {
   await requireUser();
   const typed = typedIn(formData);
   const id = idField(formData, 'id');
-  if (!id) return missing('order', typed);
+  if (!id) return missing('job', typed);
 
   const supabase = await createSupabase();
-  const order = await loadOrder(supabase, id);
-  if (!order) return missing('order', typed);
-  if (order.status !== 'draft')
-    return failure(
-      'Only a draft can be deleted. Cancel the order instead, so its history is kept.',
-      {},
-      typed,
-    );
-
-  // The pictures are removed with the order, so their files must be too. Read where they are first.
+  // The pictures are removed with the job, so their files must be too. Read where they are first.
   const files = await supabase.from('attachment').select('storage_path').eq('order_id', id);
-  if (files.error) return unexpected('the order', files.error, typed);
+  if (files.error) return unexpected('the job', files.error, typed);
 
-  const { error } = await supabase.rpc('delete_draft_order', { p_order_id: id });
-  if (error) return saveFailed('the order', error, typed);
+  const { error } = await supabase.rpc('delete_job', { p_order_id: id });
+  if (error?.code === 'P0002') return missing('job', typed);
+  if (error) return saveFailed('the job', error, typed);
 
   await removeFiles(
     supabase,

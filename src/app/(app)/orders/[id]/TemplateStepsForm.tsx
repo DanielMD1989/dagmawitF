@@ -7,7 +7,7 @@ import { SubmitButton } from '@/components/SubmitButton';
 import { SelectField } from '@/components/fields';
 import { idle } from '@/lib/action-state';
 
-/** Adds a template's steps to the job, on days counted back from its day. */
+/** Adds the steps of one of her lists to the job, with no day yet. */
 export function TemplateStepsForm({
   orderId,
   templates,
@@ -23,11 +23,11 @@ export function TemplateStepsForm({
       <input type="hidden" name="order-id" value={orderId} />
       <SelectField
         name="template"
-        label="Steps of"
+        label="List"
         state={state}
         saved={preferred ?? templates[0]?.id ?? ''}
         options={templates.map((t) => ({ value: t.id, label: t.label }))}
-        hint="Each step gets a day counted back from the job’s day. Change any of them afterwards."
+        hint="Its steps are added with no day yet: give each its day with Change."
       />
       <FormNotice state={state} />
       <div className="btn-row">

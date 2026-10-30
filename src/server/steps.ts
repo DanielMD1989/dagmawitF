@@ -2,10 +2,8 @@ import 'server-only';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { addDays, type IsoDate } from '@/domain/dates';
-import { isJobKind, type JobKind } from '@/domain/jobs/kinds';
 import { isOrderStatus, type OrderStatus } from '@/domain/orders/status';
 import type { Step } from '@/domain/steps/agenda';
-import type { TemplateStep } from '@/domain/steps/suggest';
 import { fail, isoDay } from './rows';
 
 /** Steps, their jobs and her templates, read as the signed-in designer (docs/calendar-first.md). */
@@ -17,7 +15,7 @@ const time = z
   .transform((t) => t.slice(0, 5));
 
 const STEP_COLUMNS = `id, title, sort, order_item_id, on_day, until_day, starts_at, ends_at, done_on,
-  job:orders(id, number, kind, status, delivery_on, client:client(name))`;
+  job:orders(id, number, title, status, delivery_on, client:client(name))`;
 
 const stepRow = z.object({
   id: z.string(),
@@ -33,10 +31,10 @@ const stepRow = z.object({
     .object({
       id: z.string(),
       number: z.number().int(),
-      kind: z.string().refine(isJobKind),
+      title: z.string(),
       status: z.string().refine(isOrderStatus),
       delivery_on: isoDay,
-      client: z.object({ name: z.string() }),
+      client: z.object({ name: z.string() }).nullable(),
     })
     .nullable(),
 });
@@ -60,10 +58,10 @@ function toStep(r: z.infer<typeof stepRow>): JobStep {
     job: r.job && {
       id: r.job.id,
       number: r.job.number,
-      kind: r.job.kind as JobKind,
+      title: r.job.title,
       status: r.job.status as OrderStatus,
       dueOn: r.job.delivery_on,
-      clientName: r.job.client.name,
+      clientName: r.job.client?.name ?? null,
     },
   };
 }
@@ -119,64 +117,58 @@ export async function loadJobSteps(supabase: SupabaseClient, orderId: string): P
 export interface Template {
   id: string;
   name: string;
-  kind: JobKind;
   notes: string;
   version: number;
-  steps: (TemplateStep & { id: string; sort: number })[];
+  steps: { id: string; sort: number; title: string }[];
 }
 
 const templateRow = z.object({
   id: z.string(),
   name: z.string(),
-  kind: z.string().refine(isJobKind),
   notes: z.string(),
   version: z.number().int(),
-  template_task: z.array(
-    z.object({
-      id: z.string(),
-      sort: z.number().int(),
-      title: z.string(),
-      days_before: z.number().int(),
-      span_days: z.number().int(),
-      with_client: z.boolean(),
-    }),
-  ),
+  template_task: z.array(z.object({ id: z.string(), sort: z.number().int(), title: z.string() })),
 });
 
 function toTemplate(t: z.infer<typeof templateRow>): Template {
   return {
     id: t.id,
     name: t.name,
-    kind: t.kind as JobKind,
     notes: t.notes,
     version: t.version,
-    steps: t.template_task
-      .map((s) => ({
-        id: s.id,
-        sort: s.sort,
-        title: s.title,
-        daysBefore: s.days_before,
-        spanDays: s.span_days,
-        withClient: s.with_client,
-      }))
-      .sort((a, b) => a.sort - b.sort || b.daysBefore - a.daysBefore || a.title.localeCompare(b.title)),
+    steps: [...t.template_task].sort((a, b) => a.sort - b.sort || a.title.localeCompare(b.title)),
   };
 }
 
-const TEMPLATE_COLUMNS =
-  'id, name, kind, notes, version, template_task(id, sort, title, days_before, span_days, with_client)';
+const TEMPLATE_COLUMNS = 'id, name, notes, version, template_task(id, sort, title)';
 
-/** Her templates, by name, each with its steps in order. */
+/** Her saved lists of steps, by name, each with its steps in order. */
 export async function loadTemplates(supabase: SupabaseClient): Promise<Template[]> {
   const { data, error } = await supabase.from('template').select(TEMPLATE_COLUMNS).order('name').limit(500);
-  if (error) fail('her templates', error);
+  if (error) fail('her lists of steps', error);
   return z.array(templateRow).parse(data).map(toTemplate);
 }
 
 export async function loadTemplate(supabase: SupabaseClient, id: string): Promise<Template | null> {
   const { data, error } = await supabase.from('template').select(TEMPLATE_COLUMNS).eq('id', id).maybeSingle();
-  if (error) fail('the template', error);
+  if (error) fail('the list of steps', error);
   return data ? toTemplate(templateRow.parse(data)) : null;
+}
+
+/** The titles of the steps she has used, with how often: her usual steps, offered as buttons. */
+export async function loadUsedStepTitles(
+  supabase: SupabaseClient,
+): Promise<{ title: string; times: number }[]> {
+  const { data, error } = await supabase.from('task').select('title').limit(5000);
+  if (error) fail('her steps', error);
+  const counts = new Map<string, { title: string; times: number }>();
+  for (const { title } of z.array(z.object({ title: z.string() })).parse(data)) {
+    const key = title.trim().toLowerCase();
+    const seen = counts.get(key);
+    if (seen) seen.times += 1;
+    else counts.set(key, { title: title.trim(), times: 1 });
+  }
+  return [...counts.values()];
 }
 
 // ---------------------------------------------------------------------------------------------

@@ -5,8 +5,6 @@ import { StepEditor } from '@/components/steps/StepEditor';
 import { TickButton } from '@/components/steps/TickButton';
 import { formatDay } from '@/domain/dates';
 import { isUuid } from '@/domain/form-input';
-import { KIND_WORDS } from '@/domain/jobs/kinds';
-import { pickTemplate } from '@/domain/jobs/templates';
 import { isClosed } from '@/domain/orders/status';
 import { isOverdue, jobWarnings, lastDayOf } from '@/domain/steps/agenda';
 import { daysLabel, timeLabel } from '@/domain/steps/words';
@@ -14,11 +12,12 @@ import { loadClients } from '@/server/clients';
 import { getOrder } from '@/server/orders';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
-import { loadJobSteps, loadTemplates } from '@/server/steps';
+import { loadJobSteps, loadTemplates, loadUsedStepTitles } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
 import { OrderDetailsForm } from './OrderDetailsForm';
 import { TemplateStepsForm } from './TemplateStepsForm';
-import { deleteDraft } from './actions';
+import { usualSteps } from '@/domain/steps/usual';
+import { deleteJob } from './actions';
 
 /** A job's steps, each on its day, and the job itself (docs/calendar-first.md). */
 export default async function JobStepsPage({ params }: { params: Promise<{ id: string }> }) {
@@ -29,21 +28,20 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
   if (!order) notFound();
 
   const supabase = await createSupabase();
-  const [steps, templates, clients, prefs] = await Promise.all([
+  const [steps, templates, clients, prefs, used] = await Promise.all([
     loadJobSteps(supabase, order.id),
     loadTemplates(supabase),
     loadClients(supabase),
     loadPreferences(supabase),
+    loadUsedStepTitles(supabase),
   ]);
   const closed = isClosed(order.status);
   const warnings = closed ? [] : jobWarnings(steps, order.deliveryOn, prefs.today);
   const done = steps.filter((s) => s.doneOn !== null).length;
-  const ofKind = templates.filter((t) => t.kind === order.kind);
-  const preferred = pickTemplate(templates, order.kind, order.garments[0]?.garmentType ?? '')?.id ?? null;
-  const templateOptions = [...ofKind, ...templates.filter((t) => t.kind !== order.kind)].map((t) => ({
-    id: t.id,
-    label: `${t.name} (${t.steps.length} step${t.steps.length === 1 ? '' : 's'})`,
-  }));
+  const templateOptions = templates
+    .filter((t) => t.steps.length > 0)
+    .map((t) => ({ id: t.id, label: `${t.name}: ${t.steps.map((x) => x.title).join(', ')}` }));
+  const usual = usualSteps(used);
 
   return (
     <>
@@ -70,8 +68,8 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
         {steps.length === 0 ? (
           <div className="card">
             <p>No steps yet.</p>
-            {!closed && templates.length > 0 && (
-              <TemplateStepsForm orderId={order.id} templates={templateOptions} preferred={preferred} />
+            {!closed && templateOptions.length > 0 && (
+              <TemplateStepsForm orderId={order.id} templates={templateOptions} preferred={null} />
             )}
           </div>
         ) : (
@@ -112,12 +110,18 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
 
         {!closed && (
           <>
-            <AddStepForm orderId={order.id} day={prefs.today} summary="Add a step" idPrefix="new-step" />
-            {steps.length > 0 && templates.length > 0 && (
+            <AddStepForm
+              orderId={order.id}
+              day={prefs.today}
+              summary="Add a step"
+              idPrefix="new-step"
+              usual={usual}
+            />
+            {steps.length > 0 && templateOptions.length > 0 && (
               <details className="disclosure disclosure--link">
-                <summary>Add the steps of a template</summary>
+                <summary>Add the steps of a list</summary>
                 <div className="disclosure__panel">
-                  <TemplateStepsForm orderId={order.id} templates={templateOptions} preferred={preferred} />
+                  <TemplateStepsForm orderId={order.id} templates={templateOptions} preferred={null} />
                 </div>
               </details>
             )}
@@ -131,11 +135,11 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
         </div>
         {closed && (
           <dl className="facts card">
-            <dt>Kind</dt>
-            <dd>{KIND_WORDS[order.kind].label}</dd>
-            <dt>Client</dt>
-            <dd>{order.client.name}</dd>
-            <dt>{KIND_WORDS[order.kind].dueLabel}</dt>
+            <dt>For</dt>
+            <dd>{order.client?.name ?? 'Nobody: an event'}</dd>
+            <dt>What it is</dt>
+            <dd>{order.title || '—'}</dd>
+            <dt>{order.client ? 'Delivery day' : 'Event day'}</dt>
             <dd>{formatDay(order.deliveryOn)}</dd>
           </dl>
         )}
@@ -143,8 +147,8 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
           order={{
             id: order.id,
             status: order.status,
-            kind: order.kind,
-            clientId: order.client.id,
+            clientId: order.client?.id ?? null,
+            title: order.title,
             dueOn: order.deliveryOn,
             notes: order.notes,
           }}
@@ -152,25 +156,23 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
         />
       </section>
 
-      {order.status === 'draft' && (
-        <section className="section" aria-labelledby="delete-heading">
-          <div className="section__head">
-            <h2 id="delete-heading">Delete this draft</h2>
-            <p className="hint">
-              A draft has made no promise, so it can be deleted completely. To keep a record of a job that is
-              called off, cancel it instead.
-            </p>
-          </div>
-          <ConfirmAction
-            action={deleteDraft}
-            fields={{ id: order.id }}
-            label="Delete this draft"
-            question={`Delete job #${order.number}, with its garments, steps and pictures? This cannot be undone.`}
-            confirmLabel="Yes, delete"
-            pendingText="Deleting…"
-          />
-        </section>
-      )}
+      <section className="section" aria-labelledby="delete-heading">
+        <div className="section__head">
+          <h2 id="delete-heading">Delete this job</h2>
+          <p className="hint">
+            For a job added by mistake: it goes completely, with its steps, pictures and history. To keep a
+            record of a job that is called off, cancel it instead.
+          </p>
+        </div>
+        <ConfirmAction
+          action={deleteJob}
+          fields={{ id: order.id }}
+          label="Delete this job"
+          question={`Delete job #${order.number} completely? This cannot be undone.`}
+          confirmLabel="Yes, delete"
+          pendingText="Deleting…"
+        />
+      </section>
     </>
   );
 }

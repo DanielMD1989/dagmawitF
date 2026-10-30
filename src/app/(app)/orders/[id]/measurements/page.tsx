@@ -24,9 +24,17 @@ export default async function OrderMeasurementsPage({ params }: { params: Promis
   const order = await getOrder(id);
   if (!order) notFound();
 
+  const client = order.client;
+  if (!client)
+    return (
+      <div className="card">
+        <p>This job is an event, for no client, so it has no measurements.</p>
+      </div>
+    );
+
   const supabase = await createSupabase();
   const [sets, fields] = await Promise.all([
-    loadMeasurementSets(supabase, order.client.id),
+    loadMeasurementSets(supabase, client.id),
     loadMeasurementFields(supabase),
   ]);
   const latest = sets[0];
@@ -96,18 +104,18 @@ export default async function OrderMeasurementsPage({ params }: { params: Promis
 
       <section className="section" aria-labelledby="versions-heading">
         <div className="section__head">
-          <h2 id="versions-heading">{order.client.name}&apos;s measurements</h2>
+          <h2 id="versions-heading">{client.name}&apos;s measurements</h2>
         </div>
         {sets.length === 0 ? (
           <div className="card">
-            <p>Nothing has been measured for {order.client.name} yet.</p>
+            <p>Nothing has been measured for {client.name} yet.</p>
           </div>
         ) : (
           <MeasurementVersions sets={sets} fields={fields} />
         )}
         <div className="btn-row">
           <Link
-            href={`/clients/${order.client.id}/measurements/new?order=${order.id}`}
+            href={`/clients/${client.id}/measurements/new?order=${order.id}`}
             className={sets.length === 0 ? 'btn' : 'btn btn--quiet'}
           >
             {sets.length === 0 ? 'Record measurements' : 'Record new measurements'}

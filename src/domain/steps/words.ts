@@ -1,13 +1,8 @@
 import { addDays, formatDay, type IsoDate } from '../dates';
-import { KIND_WORDS } from '../jobs/kinds';
-import type { Entry, JobRef, Step } from './agenda';
+import { jobHeadline } from '../jobs/words';
+import type { Entry, Step } from './agenda';
 
 /** The words her calendar shows for a step. One place, so the screens and the offline copy say the same. */
-
-/** "#7 · Hana · New order" */
-export function jobLabel(job: JobRef): string {
-  return `#${job.number} · ${job.clientName} · ${KIND_WORDS[job.kind].label}`;
-}
 
 /** A time on the 12-hour clock she reads: '14:30' → "2:30 PM", '00:15' → "12:15 AM". */
 export function clock(time: string): string {
@@ -45,7 +40,7 @@ export function daysLabel(step: Pick<Step, 'onDay' | 'untilDay'>): string {
 
 /** Why a step was not saved: the step whose time it would cross, named so she can find it. */
 export function clashMessage(other: Step): string {
-  const whose = other.job ? `${other.job.clientName}, #${other.job.number}` : 'your own';
+  const whose = other.job ? `${jobHeadline(other.job)}, #${other.job.number}` : 'your own';
   const day = other.untilDay ? daysLabel(other) : formatDay(other.onDay!);
   return `${timeLabel(other)} on ${day} is taken by “${other.title}” (${whose}). Choose another time.`;
 }

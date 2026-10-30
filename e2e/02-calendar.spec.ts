@@ -1,5 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { inspect, item, open, settled, signedInContext, text, watchErrors } from './support/app';
+import { fillNewJob, inspect, item, open, settled, signedInContext, text, watchErrors } from './support/app';
 import { orderId, value } from './support/db';
 import { env, inDays, today } from './support/env';
 
@@ -30,8 +30,10 @@ test.afterAll(async () => ctx.close());
 
 test('Today lists today’s steps with their jobs, then the days ahead that have any', async () => {
   await page.goto('/');
-  const fix = item(section('Today'), 'Fix');
-  await expect(fix).toContainText('#3 · Yonas Alemu · Fix');
+  // The work comes first, the step under it (her Task 7).
+  const fix = item(section('Today'), 'Fix', 'Yonas Alemu · Suit alteration');
+  await expect(fix.locator('.item__step')).toHaveText('Fix');
+  await expect(fix).toContainText('#3');
   // The fix is delivered in two days: under that day, not today.
   await expect(item(page, 'Delivery').first()).toBeVisible();
   await expect(item(section('Today'), 'Delivery')).toHaveCount(0);
@@ -39,16 +41,20 @@ test('Today lists today’s steps with their jobs, then the days ahead that have
 });
 
 test('she ticks a step done, it tells the job’s history, and she can open it again', async () => {
-  await page.getByRole('button', { name: 'Mark Fix as done' }).click();
-  await page.getByRole('button', { name: 'Fix: done. Mark as not done' }).waitFor();
+  await page.getByRole('button', { name: 'Mark Fix, Yonas Alemu · Suit alteration as done' }).click();
+  await page
+    .getByRole('button', { name: 'Fix, Yonas Alemu · Suit alteration: done. Mark as not done' })
+    .waitFor();
   expect(
     await value(`select done_on::text from public.task where order_id = $1 and title = 'Fix'`, [ids.o3]),
   ).toBe(today());
   await page.goto(`/orders/${ids.o3}/history`);
   expect(await has('Done: Fix')).toBe(true);
   await page.goto('/');
-  await page.getByRole('button', { name: 'Fix: done. Mark as not done' }).click();
-  await page.getByRole('button', { name: 'Mark Fix as done' }).waitFor();
+  await page
+    .getByRole('button', { name: 'Fix, Yonas Alemu · Suit alteration: done. Mark as not done' })
+    .click();
+  await page.getByRole('button', { name: 'Mark Fix, Yonas Alemu · Suit alteration as done' }).waitFor();
   expect(await value(`select done_on from public.task where order_id = $1 and title = 'Fix'`, [ids.o3])).toBe(
     '',
   );
@@ -77,32 +83,35 @@ test('a refused step keeps what she typed and says why next to the field', async
   await settled(page);
 });
 
-test('an appointment is a job at a time on its day; a time already taken is refused, by name', async () => {
-  await page.goto('/orders/new?kind=appointment');
-  await page.getByLabel('Client', { exact: true }).selectOption({ label: 'Selam Bekele' });
-  await page.getByLabel('Day', { exact: true }).fill(today());
-  await page.getByLabel('From (optional)').fill('10:15');
-  await page.getByLabel('To (optional)').fill('11:00');
-  await expect(page.locator('#template option:checked')).toHaveText(/^Appointment/);
+test('an appointment is a step at a time on its day; a time already taken is refused, by name', async () => {
+  await fillNewJob(page, {
+    client: 'Selam Bekele',
+    title: 'Wedding guest dress',
+    due: inDays(20),
+    steps: [{ title: 'Appointment', day: today(), from: '10:15', to: '11:00' }],
+  });
   await page.getByRole('button', { name: 'Save the job' }).click();
   // 10:00 to 10:30 is already hers: sharpening the shears.
-  await expect(page.locator('#time-error')).toContainText('10:00–10:30 AM on ');
-  await expect(page.locator('#time-error')).toContainText('is taken by “Sharpen the shears” (your own).');
-  await expect(page.getByLabel('Client', { exact: true })).toHaveValue(/[0-9a-f-]{36}/);
+  const error = page.locator('#step-0-from-error');
+  await expect(error).toContainText('10:00–10:30 AM on ');
+  await expect(error).toContainText('is taken by “Sharpen the shears” (your own).');
+  await expect(page.getByLabel('For', { exact: true })).toHaveValue(/[0-9a-f-]{36}/);
+  await expect(page.getByLabel('What it is (optional)')).toHaveValue('Wedding guest dress');
   await settled(page);
   // Right after it is free: the end of one is the start of the next.
-  await page.getByLabel('From (optional)').fill('10:30');
+  await page.locator('.step-row').getByLabel('From (optional)').fill('10:30');
   await page.getByRole('button', { name: 'Save the job' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   ids.o4 = /\/orders\/([0-9a-f-]{36})/.exec(page.url())![1]!;
-  await expect(page.locator('h1')).toContainText('Appointment #4');
+  await expect(page.locator('h1')).toHaveText('Selam Bekele · Wedding guest dress');
+  await expect(page.locator('.lede')).toContainText('#4');
   await page.goto('/');
-  const appointment = item(section('Today'), 'Appointment');
-  await expect(appointment).toContainText('10:30–11:00 AM');
+  const appointment = item(section('Today'), 'Appointment', 'Selam Bekele · Wedding guest dress');
+  await expect(appointment.locator('.item__time')).toHaveText('10:30–11:00 AM');
   await expect(page.getByText('Its time crosses another step’s.')).toHaveCount(0);
-  // Timed steps come first, in time order.
+  // Timed steps come first, in time order; each headed by its work.
   const titles = await section('Today').locator('.item__title').allInnerTexts();
-  expect(titles.slice(0, 2)).toEqual(['Sharpen the shears', 'Appointment']);
+  expect(titles.slice(0, 2)).toEqual(['Sharpen the shears', 'Selam Bekele · Wedding guest dress']);
   await inspect(page, 'today with timed steps');
 });
 
@@ -112,7 +121,7 @@ test('a step’s time already taken is refused there too', async () => {
   await form.getByLabel('From (optional)').fill('10:45');
   await form.getByRole('button', { name: 'Add' }).click();
   await expect(form.locator('#own-from-error')).toContainText(
-    'is taken by “Appointment” (Selam Bekele, #4).',
+    'is taken by “Appointment” (Selam Bekele · Wedding guest dress, #4).',
   );
   await settled(page);
   await form.getByLabel('From (optional)').fill('11:00');
@@ -122,16 +131,16 @@ test('a step’s time already taken is refused there too', async () => {
 
 test('a step whose day has passed waits under “Not done yet”, and its job says so', async () => {
   await page.goto(`/orders/${ids.o1}`);
-  const step = item(page, 'Design agreed with the client');
+  const step = item(page, 'Sketch');
   const form = await open(step, 'Change');
   await form.getByLabel('Day', { exact: true }).fill(inDays(-2));
   await form.getByRole('button', { name: 'Save the step' }).click();
   await form.locator('.notice--success').waitFor();
-  await expect(page.locator('.card--warn')).toContainText(
-    '“Design agreed with the client” was due and is not done.',
-  );
+  await expect(page.locator('.card--warn')).toContainText('“Sketch” was due and is not done.');
   await page.goto('/');
-  await expect(item(section('Not done yet'), 'Design agreed with the client')).toContainText('not done yet');
+  await expect(item(section('Not done yet'), 'Sketch', 'Selam Bekele · Bridal gown')).toContainText(
+    'not done yet',
+  );
 });
 
 test('a step over several days shows on each of them', async () => {
@@ -149,7 +158,7 @@ test('a step over several days shows on each of them', async () => {
 });
 
 test('moving a job’s day moves its steps not done yet by as many days', async () => {
-  const fitting = await stepDay(ids.o1!, 'First fitting');
+  const fitting = await stepDay(ids.o1!, 'Fitting');
   expect(fitting).toBe(inDays(32));
   await page.goto(`/orders/${ids.o1}`);
   // Done steps stay where they were.
@@ -157,11 +166,25 @@ test('moving a job’s day moves its steps not done yet by as many days', async 
   await page.getByRole('button', { name: 'Beading: done. Mark as not done' }).waitFor();
   await page.getByLabel('Delivery day').fill(inDays(67));
   await page.getByRole('button', { name: 'Save', exact: true }).click();
-  await expect(page.locator('.notice--success').last()).toHaveText(/^Saved\. 11 steps moved with the day\.$/);
-  expect(await stepDay(ids.o1!, 'First fitting')).toBe(inDays(39));
+  // Seven: the eight steps with a day, less Beading, done. Lace work has no day and stays without one.
+  await expect(page.locator('.notice--success').last()).toHaveText(/^Saved\. 7 steps moved with the day\.$/);
+  expect(await stepDay(ids.o1!, 'Fitting')).toBe(inDays(39));
   expect(await stepDay(ids.o1!, 'Delivery')).toBe(inDays(67));
-  expect(await stepDay(ids.o1!, 'Design agreed with the client')).toBe(inDays(5));
+  expect(await stepDay(ids.o1!, 'Sketch')).toBe(inDays(5));
   expect(await stepDay(ids.o1!, 'Beading')).toBe(today());
+  expect(await stepDay(ids.o1!, 'Lace work')).toBe('');
+});
+
+test('the same step twice on the same day of a job is refused: she changes the one there is', async () => {
+  const form = await open(page.locator('main'), 'Add a step');
+  await form.getByLabel('Step').fill('Fitting');
+  await form.getByLabel('Day', { exact: true }).fill(inDays(39));
+  await form.getByRole('button', { name: 'Add' }).click();
+  await expect(form).toContainText('This job already has “Fitting” on that day. Change that one instead.');
+  expect(
+    await value(`select count(*)::text from public.task where order_id = $1 and title = 'Fitting'`, [ids.o1]),
+  ).toBe('1');
+  await settled(page);
 });
 
 test('a step after the job’s day is pointed out', async () => {
@@ -181,53 +204,78 @@ test('a step after the job’s day is pointed out', async () => {
   await press.waitFor({ state: 'detached' });
 });
 
-test('a job taken with no steps gets a template’s steps afterwards', async () => {
-  await page.goto('/orders/new?kind=sketch');
-  await page.getByLabel('Client', { exact: true }).selectOption({ label: 'Hanna Tesfaye' });
-  await page.getByLabel('Show the client on').fill(inDays(10));
-  await page.getByLabel('Use the steps of').selectOption({ label: 'No steps: I will add my own' });
+test('a job taken with no steps gets the steps of a list afterwards', async () => {
+  await fillNewJob(page, { client: 'Hanna Tesfaye', title: 'Party dress', due: inDays(10) });
   await page.getByRole('button', { name: 'Save the job' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   expect(await has('No steps yet.')).toBe(true);
-  await expect(page.getByLabel('Steps of')).toHaveValue(/[0-9a-f-]{36}/);
+  // With no steps yet, the lists are offered at once.
+  // Each list shows its steps, so she knows what she adds.
+  await page
+    .getByLabel('List')
+    .selectOption({ label: 'Dress: Buy fabric, Cutting, Sewing, Fitting, Finishing and pressing, Delivery' });
   await page.getByRole('button', { name: 'Add these steps' }).click();
-  // The steps take the place of the empty card.
-  await expect(page.locator('li.item .item__title')).toHaveText(['Sketch', 'Show the client']);
+  // The steps take the place of the empty card, with no days: she gives each its own.
+  await expect(page.locator('li.item .item__title')).toHaveText([
+    'Buy fabric',
+    'Cutting',
+    'Sewing',
+    'Fitting',
+    'Finishing and pressing',
+    'Delivery',
+  ]);
   expect(await has('No steps yet.')).toBe(false);
 });
 
-test('library: she changes when a step starts, and makes a template a new job then starts with', async () => {
+test('library: she makes a list of her own, puts it in order, and a new job takes it in one tap', async () => {
   await page.goto('/library');
   await inspect(page, 'library');
-  await page.getByRole('link', { name: /^Dress/ }).click();
-  const buy = item(page, 'Buy fabric');
-  const form = await open(buy, 'Change');
-  await form.getByLabel('Days before the job’s day').fill('30');
-  await form.getByRole('button', { name: 'Save the step' }).click();
-  await expect(item(page, 'Buy fabric')).toContainText('30 days before');
-  await inspect(page, 'template');
-
   await page.goto('/library/new');
   await page.getByLabel('Name').fill('Habesha kemis');
-  await page.getByRole('button', { name: 'Create template' }).click();
+  await page.getByRole('button', { name: 'Create the list' }).click();
   await page.waitForURL(/\/library\/[0-9a-f-]{36}$/);
-  for (const [title, before, span] of [
-    ['Weave the tibeb', '20', '10'],
-    ['Delivery', '0', '1'],
-  ] as const) {
-    const add = await open(page.locator('main'), 'Add a step');
-    await add.getByLabel('Step').fill(title);
-    await add.getByLabel('Days before the job’s day').fill(before);
-    await add.getByLabel('For how many days').fill(span);
-    await add.getByRole('button', { name: 'Add' }).click();
+  for (const title of ['Delivery', 'Weave the tibeb']) {
+    await page.getByLabel('Add a step').fill(title);
+    await page.getByRole('button', { name: 'Add', exact: true }).click();
     await item(page, title).waitFor();
-    await settled(page);
+    // Emptied once added. (The first step's ↑ stays disabled, so the page is never “settled”.)
+    await expect(page.getByLabel('Add a step')).toHaveValue('');
   }
-  await expect(item(page, 'Weave the tibeb')).toContainText('20 days before, for 10 days');
+  await page.getByRole('button', { name: 'Move Weave the tibeb earlier' }).click();
+  await expect(page.locator('li.item .item__title')).toHaveText(['Weave the tibeb', 'Delivery']);
+  await inspect(page, 'list');
 
   await page.goto('/orders/new');
-  await page.getByLabel('Garment', { exact: true }).fill('Habesha kemis');
-  await expect(page.locator('#template option:checked')).toHaveText(/^Habesha kemis \(2 steps\)/);
+  await page.getByLabel('Or all the steps of a list').selectOption({ label: 'Habesha kemis (2 steps)' });
+  await page.getByRole('button', { name: 'Add them' }).click();
+  const rows = page.locator('.step-row').getByRole('combobox');
+  await expect(rows).toHaveCount(2);
+  expect(await rows.evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value))).toEqual([
+    'Weave the tibeb',
+    'Delivery',
+  ]);
+});
+
+test('an event, such as a bazaar, is a job for nobody: its days are counted down on Today', async () => {
+  await page.goto('/orders/new');
+  await fillNewJob(page, {
+    client: 'event',
+    title: 'Bazaar at the Hyatt',
+    due: inDays(12),
+    steps: [{ title: 'Sew ten scarves', day: inDays(1), until: inDays(8) }],
+  });
+  await expect(page.getByLabel('Design brief (optional)')).toHaveCount(0);
+  await expect(page.getByText('That is 12 days left.')).toBeVisible();
+  await page.getByRole('button', { name: 'Save the job' }).click();
+  await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
+  await expect(page.locator('h1')).toHaveText('Bazaar at the Hyatt');
+  await expect(page.locator('.lede')).toContainText('12 days left');
+  await page.goto('/');
+  const coming = section('Coming up');
+  await expect(coming).toContainText('Bazaar at the Hyatt');
+  await expect(coming).toContainText('12 days left');
+  await expect(item(section('Tomorrow'), 'Sew ten scarves', 'Bazaar at the Hyatt')).toBeVisible();
+  await inspect(page, 'today with an event coming up');
 });
 
 test('the month: how many steps each day holds, and the list of the day she picks', async () => {

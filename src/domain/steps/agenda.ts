@@ -1,5 +1,4 @@
 import { addDays, daysBetween, type IsoDate } from '../dates';
-import type { JobKind } from '../jobs/kinds';
 import type { OrderStatus } from '../orders/status';
 
 /**
@@ -10,8 +9,10 @@ import type { OrderStatus } from '../orders/status';
 export interface JobRef {
   id: string;
   number: number;
-  kind: JobKind;
-  clientName: string;
+  /** What it is, in her words. */
+  title: string;
+  /** Null for an event, such as a bazaar. */
+  clientName: string | null;
   dueOn: IsoDate;
   status: OrderStatus;
 }

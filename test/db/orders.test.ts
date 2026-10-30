@@ -135,26 +135,31 @@ describe('what each status needs', () => {
     });
   });
 
-  it('confirms a job with no garment: an appointment or a sketch has none (decision 0066)', async () => {
+  it('confirms a job with no garment: an appointment has none (decision 0066)', async () => {
     await signedIn(async (c) => {
       const client = await addClient(c);
       const { rows } = await c.query(
-        `insert into public.orders (client_id, delivery_on, kind) values ($1, $2, 'appointment') returning id`,
+        `insert into public.orders (client_id, delivery_on) values ($1, $2) returning id`,
         [client, await inDays(c, 30)],
       );
       expect(await setStatus(c, rows[0]!.id, `status = 'active'`)).toMatchObject({ ok: true });
     });
   });
 
-  it('is a new order unless she says which kind, and knows only the five kinds', async () => {
+  it('may be for nobody, an event such as a bazaar, but then needs a name (decision 0068)', async () => {
     await signedIn(async (c) => {
-      const { orderId } = await addOrder(c);
-      const { rows } = await c.query(`select kind from public.orders where id = $1`, [orderId]);
-      expect(rows[0]!.kind).toBe('new_order');
-      for (const kind of ['fix', 'appointment', 'sketch', 'delivery', 'new_order']) {
-        expect((await setStatus(c, orderId, `kind = $2`, [kind])).ok, kind).toBe(true);
-      }
-      expect(await setStatus(c, orderId, `kind = 'repair'`)).toMatchObject({ ok: false, code: CHECK });
+      const day = await inDays(c, 30);
+      expect(await attempt(c, `insert into public.orders (delivery_on) values ($1)`, [day])).toMatchObject({
+        ok: false,
+        code: CHECK,
+      });
+      const { rows } = await c.query(
+        `insert into public.orders (delivery_on, title) values ($1, 'Bazaar at the Hyatt') returning id`,
+        [day],
+      );
+      expect(await setStatus(c, rows[0]!.id, `status = 'active'`)).toMatchObject({ ok: true });
+      expect(await setStatus(c, rows[0]!.id, `title = ''`)).toMatchObject({ ok: false, code: CHECK });
+      expect(await setStatus(c, rows[0]!.id, `title = ' Bazaar '`)).toMatchObject({ ok: false, code: CHECK });
     });
   });
 
@@ -284,7 +289,7 @@ describe('a delivered or cancelled order is a record', () => {
         ok: false,
         code: CHECK,
       });
-      expect(await setStatus(c, orderId, `kind = 'fix'`)).toMatchObject({ ok: false, code: CHECK });
+      expect(await setStatus(c, orderId, `title = 'Renamed'`)).toMatchObject({ ok: false, code: CHECK });
       expect(
         await setStatus(c, orderId, `client_id = $2`, [await addClient(c, 'Someone else')]),
       ).toMatchObject({
@@ -477,44 +482,41 @@ describe('deleting', () => {
     });
   });
 
-  it('is done for a draft by its own function, taking its garments and steps with it', async () => {
-    await signedIn(async (c) => {
-      const { orderId } = await addOrder(c);
-      await c.query(`insert into public.task (order_id, title) values ($1, 'Buy fabric')`, [orderId]);
-      expect((await attempt(c, `select public.delete_draft_order($1)`, [orderId])).ok).toBe(true);
-      for (const t of ['orders', 'order_item', 'task']) {
-        const { rows } = await c.query(`select count(*)::int as n from public.${t}`);
-        expect(rows[0]!.n, t).toBe(0);
-      }
-    });
-  });
-
-  it.each(['active', 'on_hold', 'delivered', 'cancelled'] as const)(
-    'refuses an order that is %s',
+  it.each(['draft', 'active', 'on_hold', 'delivered', 'cancelled'] as const)(
+    'is done by its own function for a job that is %s, taking its garments, steps and history with it',
     async (status) => {
       await signedIn(async (c) => {
-        const { orderId } = await orderIn(c, status);
-        expect(await attempt(c, `select public.delete_draft_order($1)`, [orderId])).toMatchObject({
-          ok: false,
-          code: CHECK,
+        const { orderId } = await orderIn(c, status, async (id) => {
+          await c.query(`insert into public.task (order_id, title) values ($1, 'Buy fabric')`, [id]);
         });
-        const { rows } = await c.query(`select count(*)::int as n from public.orders`);
-        expect(rows[0]!.n).toBe(1);
+        expect((await attempt(c, `select public.delete_job($1)`, [orderId])).ok).toBe(true);
+        for (const t of ['orders', 'order_item', 'task']) {
+          const { rows } = await c.query(`select count(*)::int as n from public.${t}`);
+          expect(rows[0]!.n, t).toBe(0);
+        }
+        await actAsOwner(c);
+        const { rows } = await c.query(
+          `select count(*)::int as n from public.activity_log where order_id = $1`,
+          [orderId],
+        );
+        expect(rows[0]!.n).toBe(0);
       });
     },
   );
 
-  it("cannot be used on someone else's draft", async () => {
+  it("cannot be used on someone else's job, nor on one that is not there", async () => {
     await inTransaction(async (c) => {
       const a = await createUser(c, 'a@example.test');
       const b = await createUser(c, 'b@example.test');
       await actAs(c, a);
       const { orderId } = await addOrder(c);
       await actAs(c, b);
-      expect(await attempt(c, `select public.delete_draft_order($1)`, [orderId])).toMatchObject({
-        ok: false,
-        code: CHECK,
-      });
+      for (const id of [orderId, '00000000-0000-0000-0000-000000000000']) {
+        expect(await attempt(c, `select public.delete_job($1)`, [id])).toMatchObject({
+          ok: false,
+          code: 'P0002',
+        });
+      }
       await actAsOwner(c);
       const { rows } = await c.query(`select count(*)::int as n from public.orders`);
       expect(rows[0]!.n).toBe(1);
@@ -528,7 +530,7 @@ describe('deleting', () => {
         ok: false,
         code: FOREIGN_KEY,
       });
-      await c.query(`select public.delete_draft_order($1)`, [orderId]);
+      await c.query(`select public.delete_job($1)`, [orderId]);
       expect((await attempt(c, `delete from public.client where id = $1`, [clientId])).ok).toBe(true);
     });
   });
@@ -659,14 +661,13 @@ describe('the functions the screens call', () => {
   };
   const create = (c: PoolClient, over: Record<string, unknown> = {}) => {
     const a = {
-      kind: 'new_order',
       client: null as string | null,
       name: 'New Client',
       phone: '0911 11 22 33',
       number: null as number | null,
       due: '2030-01-01',
       notes: 'Wedding in January',
-      garment: 'Bridal gown' as string | null,
+      title: 'Bridal gown',
       brief: 'Lace sleeves',
       steps: [
         { title: 'Buy fabric', on_day: '2029-12-01' },
@@ -678,16 +679,15 @@ describe('the functions the screens call', () => {
     };
     return attempt(
       c,
-      `select public.create_job($1, $2, $3, $4, $5, $6::date, $7, $8, $9, $10::jsonb, $11) as id`,
+      `select public.create_job($1, $2, $3, $4, $5, $6::date, $7, $8, $9::jsonb, $10) as id`,
       [
-        a.kind,
         a.client,
         a.name,
         a.phone,
         a.number,
+        a.title,
         a.due,
         a.notes,
-        a.garment,
         a.brief,
         JSON.stringify(a.steps),
         a.confirm,
@@ -707,13 +707,13 @@ describe('the functions the screens call', () => {
     await signedIn(async (c) => {
       expect((await create(c)).ok).toBe(true);
       const { rows } = await c.query(
-        `select o.number, o.kind, o.status, o.notes, c.name, c.phone, i.garment_type, i.brief
+        `select o.number, o.title, o.status, o.notes, c.name, c.phone, i.garment_type, i.brief
          from public.orders o join public.client c on c.id = o.client_id join public.order_item i on i.order_id = o.id`,
       );
       expect(rows).toEqual([
         {
           number: 1,
-          kind: 'new_order',
+          title: 'Bridal gown',
           status: 'draft',
           notes: 'Wedding in January',
           name: 'New Client',
@@ -754,11 +754,10 @@ describe('the functions the screens call', () => {
     });
   });
 
-  it('make an appointment with no garment', async () => {
+  it('make an appointment with no garment: a job with no title', async () => {
     await signedIn(async (c) => {
       const r = await create(c, {
-        kind: 'appointment',
-        garment: null,
+        title: '',
         brief: '',
         steps: [{ title: 'Appointment', on_day: '2030-01-01', starts_at: '14:00' }],
         confirm: true,
@@ -766,10 +765,30 @@ describe('the functions the screens call', () => {
       });
       expect(r.ok).toBe(true);
       const { rows } = await c.query(
-        `select kind, status, (select count(*)::int from public.order_item) as garments from public.orders`,
+        `select title, status, (select count(*)::int from public.order_item) as garments from public.orders`,
       );
-      expect(rows).toEqual([{ kind: 'appointment', status: 'active', garments: 0 }]);
+      expect(rows).toEqual([{ title: '', status: 'active', garments: 0 }]);
       expect((await steps(c)).map((s) => [s.title, s.for_garment])).toEqual([['Appointment', false]]);
+    });
+  });
+
+  it('make an event for nobody, with no client and no garment', async () => {
+    await signedIn(async (c) => {
+      const r = await create(c, {
+        name: null,
+        phone: null,
+        title: 'Bazaar at the Hyatt',
+        steps: [{ title: 'Make 10 dresses', on_day: '2029-12-15', until_day: '2029-12-28' }],
+      });
+      expect(r.ok).toBe(true);
+      const { rows } = await c.query(
+        `select client_id, title, (select count(*)::int from public.client) as clients,
+                (select count(*)::int from public.order_item) as garments from public.orders`,
+      );
+      expect(rows).toEqual([{ client_id: null, title: 'Bazaar at the Hyatt', clients: 0, garments: 0 }]);
+      // With no name, an event is refused whole.
+      const nameless = await create(c, { name: null, phone: null, title: '' });
+      expect(nameless).toMatchObject({ ok: false, code: CHECK });
     });
   });
 
@@ -898,10 +917,10 @@ describe('the functions the screens call', () => {
       await c.query(`reset role`);
       await c.query(`set local role anon`);
       for (const call of [
-        `select public.create_job('new_order', null, 'X', '', null, '2030-01-01', '', 'Gown', '', '[]', false)`,
+        `select public.create_job(null, 'X', '', null, 'Gown', '2030-01-01', '', '', '[]', false)`,
         `select public.move_due_day('00000000-0000-0000-0000-000000000000', '2030-01-01', true)`,
         `select public.add_garment('00000000-0000-0000-0000-000000000000', 'Veil', '')`,
-        `select public.delete_draft_order('00000000-0000-0000-0000-000000000000')`,
+        `select public.delete_job('00000000-0000-0000-0000-000000000000')`,
       ]) {
         expect(await attempt(c, call)).toMatchObject({ ok: false, code: NO_RIGHT });
       }
@@ -982,7 +1001,7 @@ describe('another designer cannot reach orders', () => {
       await actAs(c, b);
       const r = await attempt(
         c,
-        `select public.create_job('new_order', $1, '', '', null, '2030-01-01', '', 'Gown', '', '[]', false)`,
+        `select public.create_job($1, '', '', null, 'Gown', '2030-01-01', '', '', '[]', false)`,
         [clientId],
       );
       expect(r).toMatchObject({ ok: false, code: FOREIGN_KEY });

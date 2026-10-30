@@ -13,7 +13,7 @@ const step = (over: Partial<Step>): Step => ({
   job: {
     id: 'j',
     number: 3,
-    kind: 'appointment',
+    title: '',
     clientName: 'Megan',
     dueOn: '2026-11-03',
     status: 'active',

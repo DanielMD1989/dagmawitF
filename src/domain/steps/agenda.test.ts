@@ -14,7 +14,7 @@ const TODAY = '2026-11-02';
 const JOB: JobRef = {
   id: 'j1',
   number: 7,
-  kind: 'new_order',
+  title: 'Bridal gown',
   clientName: 'Hana',
   dueOn: '2026-11-20',
   status: 'active',

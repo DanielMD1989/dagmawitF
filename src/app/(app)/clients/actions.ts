@@ -133,7 +133,7 @@ async function makeUnmeasuredGarmentsUse(
   setId: string,
 ): Promise<void> {
   const order = await loadOrder(supabase, orderId);
-  if (!order || order.client.id !== clientId || isClosed(order.status)) return;
+  if (!order || order.client?.id !== clientId || isClosed(order.status)) return;
   const ids = order.garments.filter((g) => g.measurementSetId === null).map((g) => g.id);
   if (ids.length === 0) return;
   const { error } = await supabase.from('order_item').update({ measurement_set_id: setId }).in('id', ids);

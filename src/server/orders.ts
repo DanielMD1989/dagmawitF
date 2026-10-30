@@ -4,7 +4,6 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import type { IsoDate } from '@/domain/dates';
 import { compareAttachments, isAttachmentKind, type AttachmentKind } from '@/domain/files';
-import { isJobKind, type JobKind } from '@/domain/jobs/kinds';
 import { isHistoryAction, type HistoryAction } from '@/domain/orders/history';
 import { isOrderStatus, type OrderStatus } from '@/domain/orders/status';
 import { fail, isoDay, timestamp } from './rows';
@@ -12,19 +11,18 @@ import { createSupabase } from './supabase';
 
 const status = z.string().refine(isOrderStatus);
 
-const kind = z.string().refine(isJobKind);
-
 // ---------------------------------------------------------------------------------------------
 // The list of jobs
 
 export interface OrderListItem {
   id: string;
   number: number;
-  kind: JobKind;
+  title: string;
   status: OrderStatus;
   deliveryOn: IsoDate;
-  clientId: string;
-  clientName: string;
+  /** Null for an event. */
+  clientId: string | null;
+  clientName: string | null;
   garmentTypes: string[];
   /** Steps done, of all its steps. */
   done: number;
@@ -36,10 +34,10 @@ export interface OrderListItem {
 const listRow = z.object({
   id: z.string(),
   number: z.number().int(),
-  kind,
+  title: z.string(),
   status,
   delivery_on: isoDay,
-  client: z.object({ id: z.string(), name: z.string() }),
+  client: z.object({ id: z.string(), name: z.string() }).nullable(),
   order_item: z.array(z.object({ garment_type: z.string() })),
   task: z.array(z.object({ title: z.string(), on_day: isoDay.nullable(), done_on: isoDay.nullable() })),
 });
@@ -49,7 +47,7 @@ export async function loadOrders(supabase: SupabaseClient): Promise<OrderListIte
   const { data, error } = await supabase
     .from('orders')
     .select(
-      `id, number, kind, status, delivery_on, client:client(id, name), order_item(garment_type),
+      `id, number, title, status, delivery_on, client:client(id, name), order_item(garment_type),
        task(title, on_day, done_on)`,
     )
     .order('delivery_on')
@@ -67,11 +65,11 @@ export async function loadOrders(supabase: SupabaseClient): Promise<OrderListIte
       return {
         id: o.id,
         number: o.number,
-        kind: o.kind as JobKind,
+        title: o.title,
         status: o.status as OrderStatus,
         deliveryOn: o.delivery_on,
-        clientId: o.client.id,
-        clientName: o.client.name,
+        clientId: o.client?.id ?? null,
+        clientName: o.client?.name ?? null,
         garmentTypes: o.order_item.map((g) => g.garment_type),
         done: o.task.filter((t) => t.done_on !== null).length,
         steps: o.task.length,
@@ -94,28 +92,29 @@ export interface Garment {
 export interface OrderDetail {
   id: string;
   number: number;
-  kind: JobKind;
+  title: string;
   status: OrderStatus;
   deliveryOn: IsoDate;
   holdReason: string;
   cancelReason: string;
   deliveredOn: IsoDate | null;
   notes: string;
-  client: { id: string; name: string; phone: string };
+  /** Null for an event. */
+  client: { id: string; name: string; phone: string } | null;
   garments: Garment[];
 }
 
 const detailRow = z.object({
   id: z.string(),
   number: z.number().int(),
-  kind,
+  title: z.string(),
   status,
   delivery_on: isoDay,
   hold_reason: z.string(),
   cancel_reason: z.string(),
   delivered_on: isoDay.nullable(),
   notes: z.string(),
-  client: z.object({ id: z.string(), name: z.string(), phone: z.string() }),
+  client: z.object({ id: z.string(), name: z.string(), phone: z.string() }).nullable(),
   order_item: z.array(
     z.object({
       id: z.string(),
@@ -131,7 +130,7 @@ export async function loadOrder(supabase: SupabaseClient, id: string): Promise<O
   const { data, error } = await supabase
     .from('orders')
     .select(
-      `id, number, kind, status, delivery_on, hold_reason, cancel_reason, delivered_on, notes,
+      `id, number, title, status, delivery_on, hold_reason, cancel_reason, delivered_on, notes,
        client:client(id, name, phone), order_item(id, garment_type, brief, measurement_set_id)`,
     )
     .eq('id', id)
@@ -143,7 +142,7 @@ export async function loadOrder(supabase: SupabaseClient, id: string): Promise<O
   return {
     id: o.id,
     number: o.number,
-    kind: o.kind as JobKind,
+    title: o.title,
     status: o.status as OrderStatus,
     deliveryOn: o.delivery_on,
     holdReason: o.hold_reason,

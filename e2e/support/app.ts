@@ -51,13 +51,76 @@ export async function text(page: Page): Promise<string> {
 
 const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-/** The list item whose title is exactly `title`, on the page or inside one part of it. */
-export function item(scope: Page | Locator, title: string): Locator {
+/**
+ * The list item whose title, or whose step, is exactly `title`, on the page or inside one part of it. On Today a step
+ * of a job is shown under the job's name (her Task 7); `work` picks the job when several have that step.
+ */
+export function item(scope: Page | Locator, title: string, work?: string): Locator {
   const page = 'goto' in scope ? scope : scope.page();
-  return scope
+  let found = scope
     .locator('li.item')
-    .filter({ has: page.locator('.item__title', { hasText: new RegExp(`^${esc(title)}$`) }) })
-    .first();
+    .filter({ has: page.locator('.item__title, .item__step', { hasText: new RegExp(`^${esc(title)}$`) }) });
+  if (work)
+    found = found.filter({ has: page.locator('.item__title', { hasText: new RegExp(`^${esc(work)}$`) }) });
+  return found.first();
+}
+
+export interface NewStep {
+  title: string;
+  day?: string;
+  until?: string;
+  from?: string;
+  to?: string;
+}
+
+/**
+ * Fills the new-job form as she does (decision 0068): who it is for, what it is, the day, then a tap on each usual
+ * step (or "Another step" for one of her own) and its day and time. Does not save.
+ */
+export async function fillNewJob(
+  page: Page,
+  job: {
+    client?: string | { name: string; phone?: string } | 'event';
+    title?: string;
+    due: string;
+    brief?: string;
+    steps?: NewStep[];
+  },
+): Promise<void> {
+  // Already on the form (perhaps opened from a client's page, with her chosen): fill it as it is.
+  if (new URL(page.url()).pathname !== '/orders/new') await page.goto('/orders/new');
+  const forWhom = page.getByLabel('For', { exact: true });
+  if (job.client === 'event') await forWhom.selectOption({ label: 'Nobody: an event, such as a bazaar' });
+  else if (typeof job.client === 'object') {
+    if ((await forWhom.locator('option').count()) > 0)
+      await forWhom.selectOption({ label: '+ A new client' });
+    await page.getByLabel("Client's name").fill(job.client.name);
+    if (job.client.phone) await page.getByLabel('Phone (optional)').fill(job.client.phone);
+  } else if (job.client) await forWhom.selectOption({ label: job.client });
+  if (job.title !== undefined)
+    await page
+      .getByLabel(job.client === 'event' ? 'Name of the event' : 'What it is (optional)')
+      .fill(job.title);
+  if (job.brief) await page.getByLabel('Design brief (optional)').fill(job.brief);
+  await page.getByLabel(job.client === 'event' ? 'Event day' : 'Delivery day').fill(job.due);
+  for (const step of job.steps ?? []) {
+    const usual = page.getByRole('group', { name: 'Your usual steps' }).getByRole('button', {
+      name: `+ ${step.title}`,
+      exact: true,
+    });
+    const rows = page.locator('.step-row');
+    const before = await rows.count();
+    if ((await usual.count()) > 0) await usual.click();
+    else {
+      await page.getByRole('button', { name: '+ Another step', exact: true }).click();
+      await rows.nth(before).getByRole('combobox').fill(step.title);
+    }
+    const row = rows.nth(before);
+    if (step.day) await row.getByLabel('Day', { exact: true }).fill(step.day);
+    if (step.until) await row.getByLabel('Last day (optional)').fill(step.until);
+    if (step.from) await row.getByLabel('From (optional)').fill(step.from);
+    if (step.to) await row.getByLabel('To (optional)').fill(step.to);
+  }
 }
 
 /** Opens the disclosure whose summary starts with `summary`, inside `scope`, and returns it. */

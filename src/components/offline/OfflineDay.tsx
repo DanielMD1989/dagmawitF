@@ -6,6 +6,7 @@ import {
   addTap,
   isForToday,
   returnPath,
+  tapName,
   undoTap,
   withWaiting,
   type DaySnapshot,
@@ -131,6 +132,9 @@ function TryAgain({ from, signal }: { from: string; signal: boolean }) {
   );
 }
 
+/** What a tick is called: the step, and the work it is part of (as on Today). */
+const tickName = tapName;
+
 function Entry({
   entry,
   snapshot,
@@ -154,7 +158,7 @@ function Entry({
               type="button"
               className={entry.done ? 'tick tick--done' : 'tick'}
               aria-label={
-                entry.done ? `${entry.title}: done. Mark as not done` : `Mark ${entry.title} as done`
+                entry.done ? `${tickName(entry)}: done. Mark as not done` : `Mark ${tickName(entry)} as done`
               }
               onClick={tap}
             >
@@ -168,9 +172,12 @@ function Entry({
         )}
         <div className="item__main">
           {entry.time && <span className="item__time">{entry.time}</span>}
-          <span className={entry.done ? 'item__title today__done' : 'item__title'}>{entry.title}</span>
+          <span className={entry.done ? 'item__title today__done' : 'item__title'}>
+            {entry.work ?? entry.title}
+          </span>
           <span className="hint">
-            {[entry.part, entry.jobLabel ?? 'Your own'].filter(Boolean).join(' · ')}
+            {entry.work ? <span className="item__step">{entry.title}</span> : 'Your own'}
+            {entry.part && ` · ${entry.part}`}
           </span>
           {entry.clash && (
             <span className="item__note item__note--warn">
@@ -185,7 +192,7 @@ function Entry({
           <button
             type="button"
             className="btn btn--quiet btn--small"
-            aria-label={`Undo the last change to ${entry.title}`}
+            aria-label={`Undo the last change to ${tickName(entry)}`}
             onClick={() => saveWaiting(undoTap(waiting, entry.undoKey!))}
           >
             Undo

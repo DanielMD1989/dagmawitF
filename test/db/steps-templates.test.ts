@@ -227,31 +227,26 @@ describe('a new account', () => {
     });
   });
 
-  it('starts with a template for each kind of job, and a bridal gown', async () => {
+  it('starts with two lists of steps: a bridal gown and a dress', async () => {
     await signedIn(async (c) => {
       const { rows } = await c.query(
-        `select t.name, t.kind, t.version, count(s.id)::int as steps,
-                max(s.days_before) as first, min(s.days_before) as last
+        `select t.name, t.version, array_agg(s.title order by s.sort) as steps
          from public.template t join public.template_task s on s.template_id = t.id
          group by t.id order by t.name`,
       );
-      expect(rows).toEqual([
-        { name: 'Appointment', kind: 'appointment', version: 1, steps: 1, first: 0, last: 0 },
-        { name: 'Bridal gown', kind: 'new_order', version: 1, steps: 11, first: 56, last: 0 },
-        { name: 'Delivery', kind: 'delivery', version: 1, steps: 1, first: 0, last: 0 },
-        { name: 'Dress', kind: 'new_order', version: 1, steps: 8, first: 28, last: 0 },
-        { name: 'Fix', kind: 'fix', version: 1, steps: 2, first: 2, last: 0 },
-        { name: 'Sketch', kind: 'sketch', version: 1, steps: 2, first: 3, last: 0 },
+      expect(rows.map((r) => [r.name, r.version, r.steps.length])).toEqual([
+        ['Bridal gown', 1, 11],
+        ['Dress', 1, 6],
       ]);
-      const dress = (
-        await c.query(
-          `select s.title, s.days_before, s.span_days, s.with_client from public.template_task s
-           join public.template t on t.id = s.template_id where t.name = 'Dress' order by s.sort`,
-        )
-      ).rows;
-      expect(dress[0]).toEqual({ title: 'Buy fabric', days_before: 28, span_days: 1, with_client: false });
-      expect(dress.find((s) => s.title === 'Sewing')).toMatchObject({ days_before: 21, span_days: 7 });
-      expect(dress.find((s) => s.title === 'First fitting')).toMatchObject({ with_client: true });
+      expect(rows[0]!.steps.slice(0, 2)).toEqual(['Appointment', 'Sketch']);
+      expect(rows[1]!.steps).toEqual([
+        'Buy fabric',
+        'Cutting',
+        'Sewing',
+        'Fitting',
+        'Finishing and pressing',
+        'Delivery',
+      ]);
     });
   });
 });
@@ -270,14 +265,11 @@ describe('her library of templates', () => {
       await c.query(`update public.template set notes = 'Mine' where id = $1`, [id]);
       expect(await version(c, id)).toBe(2);
       await c.query(
-        `update public.template_task set days_before = 30 where template_id = $1 and title = 'Buy fabric'`,
+        `update public.template_task set title = 'Buy silk' where template_id = $1 and title = 'Buy fabric'`,
         [id],
       );
       expect(await version(c, id)).toBe(3);
-      await c.query(
-        `insert into public.template_task (template_id, title, days_before) values ($1, 'Embroidery', 15)`,
-        [id],
-      );
+      await c.query(`insert into public.template_task (template_id, title) values ($1, 'Embroidery')`, [id]);
       expect(await version(c, id)).toBe(4);
       expect(await attempt(c, `update public.template set version = 1 where id = $1`, [id])).toMatchObject({
         ok: false,
@@ -287,38 +279,25 @@ describe('her library of templates', () => {
   });
 
   it.each([
-    ['days before of -1', { days_before: -1 }],
-    ['days before of 366', { days_before: 366 }],
-    ['a span of 0 days', { span_days: 0 }],
-    ['a span of 61 days', { span_days: 61 }],
-  ])('refuses a step with %s', async (_, fields) => {
+    ['an empty title', ''],
+    ['a title of 121 letters', 'x'.repeat(121)],
+  ])('refuses a step with %s', async (_, title) => {
     await signedIn(async (c) => {
       const id = await dressId(c);
-      const names = Object.keys(fields);
       expect(
-        await attempt(
-          c,
-          `insert into public.template_task (template_id, title, ${names.join(', ')})
-           values ($1, 'X', ${names.map((_, i) => `$${i + 2}`).join(', ')})`,
-          [id, ...Object.values(fields)],
-        ),
+        await attempt(c, `insert into public.template_task (template_id, title) values ($1, $2)`, [
+          id,
+          title,
+        ]),
       ).toMatchObject({ ok: false, code: CHECK });
     });
   });
 
-  it('refuses two templates with the same name, in any capitals, and a kind it does not know', async () => {
+  it('refuses two lists with the same name, in any capitals', async () => {
     await signedIn(async (c) => {
-      expect(
-        await attempt(c, `insert into public.template (name, kind) values ('DRESS', 'new_order')`),
-      ).toMatchObject({
+      expect(await attempt(c, `insert into public.template (name) values ('DRESS')`)).toMatchObject({
         ok: false,
         code: UNIQUE,
-      });
-      expect(
-        await attempt(c, `insert into public.template (name, kind) values ('Gown', 'repair')`),
-      ).toMatchObject({
-        ok: false,
-        code: CHECK,
       });
     });
   });

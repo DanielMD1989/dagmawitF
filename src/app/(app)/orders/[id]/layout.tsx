@@ -4,8 +4,7 @@ import { notFound } from 'next/navigation';
 import { StatusChip } from '@/components/StatusChip';
 import { formatDay } from '@/domain/dates';
 import { isUuid } from '@/domain/form-input';
-import { KIND_WORDS } from '@/domain/jobs/kinds';
-import { describeHandover, orderTitle } from '@/domain/orders/display';
+import { daysLeft, jobHeadline } from '@/domain/jobs/words';
 import { isClosed } from '@/domain/orders/status';
 import { getOrder } from '@/server/orders';
 import { loadPreferences } from '@/server/preferences';
@@ -34,9 +33,6 @@ export default async function OrderLayout({
   if (!order) notFound();
   const prefs = await loadPreferences(await createSupabase());
 
-  const handover = describeHandover(order.deliveryOn, prefs.today);
-  const garments = order.garments.map((g) => g.garmentType);
-
   return (
     <>
       <div className="page-head">
@@ -45,17 +41,26 @@ export default async function OrderLayout({
         </p>
         <div className="title-row">
           <h1>
-            {KIND_WORDS[order.kind].label} {orderTitle(order.number, garments)}
+            {jobHeadline({
+              number: order.number,
+              title: order.title,
+              clientName: order.client?.name ?? null,
+            })}
           </h1>
           <StatusChip status={order.status} />
         </div>
         <p className="lede">
-          <Link href={`/clients/${order.client.id}`}>{order.client.name}</Link> ·{' '}
-          {KIND_WORDS[order.kind].dueLabel} {formatDay(order.deliveryOn)}
+          #{order.number} ·{' '}
+          {order.client ? <Link href={`/clients/${order.client.id}`}>{order.client.name}</Link> : 'Event'} ·{' '}
+          {order.client ? 'Delivery' : 'On'} {formatDay(order.deliveryOn)}
           {!isClosed(order.status) && (
             <>
               {' '}
-              (<span className={handover.past ? 'late' : undefined}>{handover.text}</span>)
+              (
+              <span className={order.deliveryOn < prefs.today ? 'late' : undefined}>
+                {daysLeft(order.deliveryOn, prefs.today)}
+              </span>
+              )
             </>
           )}
         </p>

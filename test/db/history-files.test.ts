@@ -62,7 +62,7 @@ describe('history', () => {
     await signedIn(async (c) => {
       const delivery = await inDays(c, 20);
       const { rows } = await c.query<{ id: string }>(
-        `select public.create_job('new_order', null, 'Hana', '', 105, $1::date, '', 'Evening dress', '', '[]', true) as id`,
+        `select public.create_job(null, 'Hana', '', 105, 'Evening dress', $1::date, '', '', '[]', true) as id`,
         [delivery],
       );
       expect(await history(c, rows[0]!.id)).toEqual([
@@ -125,7 +125,7 @@ describe('history', () => {
       const { orderId } = await addOrder(c);
       const before = (await history(c, orderId)).length;
       await c.query(`update public.orders set notes = 'Client likes ivory' where id = $1`, [orderId]);
-      await c.query(`update public.orders set kind = kind, delivery_on = delivery_on where id = $1`, [
+      await c.query(`update public.orders set title = title, delivery_on = delivery_on where id = $1`, [
         orderId,
       ]);
       expect((await history(c, orderId)).length).toBe(before);
@@ -265,7 +265,7 @@ describe('history', () => {
       const { orderId } = await addOrder(c);
       await c.query(`insert into public.task (order_id, title) values ($1, 'Buy fabric')`, [orderId]);
       await insertAttachment(c, orderId, { id: randomUUID() });
-      expect((await attempt(c, `select public.delete_draft_order($1)`, [orderId])).ok).toBe(true);
+      expect((await attempt(c, `select public.delete_job($1)`, [orderId])).ok).toBe(true);
       const { rows } = await c.query(
         `select count(*)::int as n from public.activity_log where order_id = $1`,
         [orderId],

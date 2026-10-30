@@ -1,7 +1,7 @@
 import { isIsoDate, type IsoDate } from '../dates';
 import { chars, isUuid, parseWholeNumber, text, ticked, type FieldErrors, type Result } from '../form-input';
 import { clientProblems } from '../clients/forms';
-import { KIND_WORDS, isJobKind, type JobKind } from '../jobs/kinds';
+import { parseStepRows, type StepFields } from '../steps/forms';
 import { canMove, isOrderStatus, type OrderStatus } from './status';
 
 /**
@@ -42,41 +42,41 @@ function readDay(data: FormData, name: string, errors: FieldErrors): IsoDate {
 
 const PAST_DAY = 'That day has already passed. Choose today or a later day.';
 
-export type ClientChoice = { kind: 'existing'; id: string } | { kind: 'new'; name: string; phone: string };
+export type ClientChoice =
+  | { kind: 'existing'; id: string }
+  | { kind: 'new'; name: string; phone: string }
+  /** No client: an event, such as a bazaar (decision 0068). */
+  | { kind: 'none' };
 
 export interface NewJob {
-  kind: JobKind;
   client: ClientChoice;
   /** Empty means "her next number". */
   number: number | null;
+  /** What it is, in her words: "Bridal gown", "Bazaar at the Hyatt". */
+  title: string;
   dueOn: IsoDate;
-  /** A time on the due day, for an appointment or a delivery, and when it ends. */
-  time: string | null;
-  timeEnd: string | null;
   notes: string;
-  /** Null when the job has no garment (an appointment, a sketch). */
-  garment: GarmentFields | null;
-  /** The template whose steps it starts with, or null for none. */
-  templateId: string | null;
+  /** What the client asked for; for a client's job with a title. */
+  brief: string;
+  /** The steps she picked, each with the day she gave it. */
+  steps: StepFields[];
 }
 
 export const NEW_CLIENT = 'new';
-export const NO_TEMPLATE = 'none';
+/** The choice of no client: an event. */
+export const NO_CLIENT = 'none';
+
+const TITLE_TOO_LONG = 'Keep this under 120 characters.';
 
 /**
- * Reads the new-job form. The kind decides which fields matter: a new order and a fix ask what is being made; an
- * appointment and a delivery may have a time. The client is one she has (`client` holds its id) or a new one
- * (`client` is "new", with `client-name` and `client-phone`).
+ * Reads the new-job form: who it is for (a client she has, a new one, or nobody: an event), what it is, its day, and
+ * the steps she built with their days. An event needs a name; a client's job may go without.
  */
 export function parseNewJob(data: FormData, context: { today: IsoDate }): Result<NewJob> {
   const errors: FieldErrors = {};
 
-  const kind = text(data, 'kind');
-  if (!isJobKind(kind)) return { ok: false, errors: { kind: 'Choose what kind of job it is.' } };
-  const words = KIND_WORDS[kind];
-
   const chosen = text(data, 'client');
-  let client: ClientChoice = { kind: 'existing', id: '' };
+  let client: ClientChoice = { kind: 'none' };
   if (chosen === NEW_CLIENT) {
     const fields = { name: text(data, 'client-name'), phone: text(data, 'client-phone'), notes: '' };
     const problems = clientProblems(fields);
@@ -85,9 +85,14 @@ export function parseNewJob(data: FormData, context: { today: IsoDate }): Result
     client = { kind: 'new', name: fields.name, phone: fields.phone };
   } else if (isUuid(chosen)) {
     client = { kind: 'existing', id: chosen };
-  } else {
-    errors.client = 'Choose a client, or add a new one.';
+  } else if (chosen !== NO_CLIENT) {
+    errors.client = 'Choose a client, add a new one, or choose an event.';
   }
+
+  const title = text(data, 'title');
+  if (chars(title) > 120) errors.title = TITLE_TOO_LONG;
+  else if (client.kind === 'none' && chosen === NO_CLIENT && title === '')
+    errors.title = 'Give the event a name, for example “Bazaar at the Hyatt”.';
 
   let number: number | null = null;
   const rawNumber = text(data, 'number');
@@ -100,40 +105,16 @@ export function parseNewJob(data: FormData, context: { today: IsoDate }): Result
   const dueOn = readDay(data, 'due-on', errors);
   if (!errors['due-on'] && dueOn < context.today) errors['due-on'] = PAST_DAY;
 
-  const readTime = (name: string): string | null => {
-    const raw = text(data, name);
-    if (!words.atTime || raw === '') return null;
-    const hhmm = raw.length === 8 && raw.endsWith(':00') ? raw.slice(0, 5) : raw;
-    if (/^([01]\d|2[0-3]):[0-5]\d$/.test(hhmm)) return hhmm;
-    errors[name] = 'Use a time such as 10:30.';
-    return null;
-  };
-  const time = readTime('time');
-  const timeEnd = readTime('time-to');
-  if (timeEnd && !errors.time) {
-    if (!time) errors['time-to'] = 'Give the start time too.';
-    else if (timeEnd <= time) errors['time-to'] = 'The end comes after the start.';
-  }
-
   const notes = text(data, 'notes');
   if (chars(notes) > 4000) errors.notes = NOTES_TOO_LONG;
+  const brief = client.kind === 'none' ? '' : text(data, 'brief');
+  if (chars(brief) > 4000) errors.brief = 'Keep the brief under 4000 characters.';
 
-  const typed = { garmentType: text(data, 'garment-type'), brief: text(data, 'brief') };
-  let garment: GarmentFields | null = null;
-  if (words.garment || typed.garmentType !== '') {
-    Object.assign(errors, garmentProblems(typed));
-    garment = typed;
-  } else if (chars(typed.brief) > 4000) errors.brief = 'Keep the brief under 4000 characters.';
+  const steps = parseStepRows(data);
+  if (!steps.ok) Object.assign(errors, steps.errors);
 
-  const rawTemplate = text(data, 'template');
-  let templateId: string | null = null;
-  if (rawTemplate !== '' && rawTemplate !== NO_TEMPLATE) {
-    if (isUuid(rawTemplate)) templateId = rawTemplate;
-    else errors.template = 'Choose the steps it starts with.';
-  }
-
-  if (Object.keys(errors).length > 0) return { ok: false, errors };
-  return { ok: true, value: { kind, client, number, dueOn, time, timeEnd, notes, garment, templateId } };
+  if (Object.keys(errors).length > 0 || !steps.ok) return { ok: false, errors };
+  return { ok: true, value: { client, number, title, dueOn, notes, brief, steps: steps.value } };
 }
 
 /** An order's notes. The one thing that can still be changed on a delivered or cancelled order. */
@@ -143,8 +124,9 @@ export function parseOrderNotes(data: FormData): Result<string> {
 }
 
 export interface OrderDetails {
-  clientId: string;
-  kind: JobKind;
+  /** Null for an event. */
+  clientId: string | null;
+  title: string;
   dueOn: IsoDate;
   /** Move the steps not done yet by as many days as the due day moved. */
   moveSteps: boolean;
@@ -152,19 +134,21 @@ export interface OrderDetails {
 }
 
 /**
- * Reads the form that changes a job. For an active job a new due day cannot be in the past (the database says the
- * same); a draft or paused one may keep an old one until it is confirmed.
+ * Reads the form that changes a job. For an active job a new day cannot be in the past (the database says the same);
+ * a draft or paused one may keep an old one until it is confirmed. An event (no client) needs a name.
  */
 export function parseOrderDetails(
   data: FormData,
   current: { status: OrderStatus; dueOn: IsoDate; today: IsoDate },
 ): Result<OrderDetails> {
   const errors: FieldErrors = {};
-  const clientId = text(data, 'client');
-  if (!isUuid(clientId)) errors.client = 'Choose a client.';
+  const chosen = text(data, 'client');
+  const clientId = chosen === NO_CLIENT ? null : chosen;
+  if (clientId !== null && !isUuid(clientId)) errors.client = 'Choose a client, or none for an event.';
 
-  const kind = text(data, 'kind');
-  if (!isJobKind(kind)) errors.kind = 'Choose what kind of job it is.';
+  const title = text(data, 'title');
+  if (chars(title) > 120) errors.title = TITLE_TOO_LONG;
+  else if (clientId === null && title === '') errors.title = 'Give the event a name.';
 
   const dueOn = readDay(data, 'due-on', errors);
   if (!errors['due-on'] && current.status === 'active' && dueOn !== current.dueOn && dueOn < current.today)
@@ -175,10 +159,7 @@ export function parseOrderDetails(
 
   return Object.keys(errors).length > 0
     ? { ok: false, errors }
-    : {
-        ok: true,
-        value: { clientId, kind: kind as JobKind, dueOn, moveSteps: ticked(data, 'move-steps'), notes },
-      };
+    : { ok: true, value: { clientId, title, dueOn, moveSteps: ticked(data, 'move-steps'), notes } };
 }
 
 /** The changes to make for one move between statuses. Only the fields the move needs are present. */

@@ -6,10 +6,12 @@ import { StepEntry } from '@/components/steps/StepEntry';
 import { openDayRule } from '@/domain/calendar/open';
 import { formatDay, formatDayLong, hourIn } from '@/domain/dates';
 import { greetingFor } from '@/domain/greeting';
+import { comingUp, jobHeadline } from '@/domain/jobs/words';
 import { buildAgenda } from '@/domain/steps/agenda';
 import { makeSnapshot } from '@/domain/steps/offline';
 import { dayHeading, partLabel } from '@/domain/steps/words';
 import { loadCalendarSettings } from '@/server/calendar';
+import { loadOrders } from '@/server/orders';
 import { requireUser } from '@/server/session';
 import { loadCalendarSteps } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
@@ -21,7 +23,11 @@ export default async function TodayPage() {
   const user = await requireUser();
   const supabase = await createSupabase();
   const { profile, week, exceptions, today } = await loadCalendarSettings(supabase);
-  const steps = await loadCalendarSteps(supabase, today);
+  const [steps, jobs] = await Promise.all([loadCalendarSteps(supabase, today), loadOrders(supabase)]);
+  const upcoming = comingUp(
+    jobs.map((j) => ({ ...j, dueOn: j.deliveryOn })),
+    today,
+  );
   const agenda = buildAgenda(steps, today, 7);
   const isOpen = openDayRule(
     week.map((d) => d.weekday),
@@ -60,6 +66,37 @@ export default async function TodayPage() {
           </Link>
         </div>
       </div>
+
+      {upcoming.length > 0 && (
+        <section className="section" aria-labelledby="coming-heading">
+          <div className="section__head">
+            <h2 id="coming-heading" className="eyebrow">
+              Coming up
+            </h2>
+          </div>
+          <ul className="rows rows--links">
+            {upcoming.map(({ job, day, left }) => (
+              <li key={job.id}>
+                <Link href={`/orders/${job.id}`} className="row-link">
+                  <span className="row-link__title">{jobHeadline(job)}</span>
+                  <span className="hint">
+                    {job.clientName ? 'Delivery' : 'Event'} {day}
+                  </span>
+                  <span className="row-link__side">
+                    <span
+                      className={
+                        left === 'today' || left === 'tomorrow' ? 'chip chip--sand' : 'chip chip--line'
+                      }
+                    >
+                      {left}
+                    </span>
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
       {agenda.overdue.length > 0 && (
         <section className="section" aria-labelledby="overdue-heading">

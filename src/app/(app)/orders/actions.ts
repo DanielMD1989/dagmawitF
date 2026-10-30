@@ -6,13 +6,12 @@ import { z } from 'zod';
 import { failure, typedIn, type ActionState } from '@/lib/action-state';
 import { violates } from '@/lib/database-errors';
 import { parseNewJob } from '@/domain/orders/forms';
-import { findClash } from '@/domain/steps/agenda';
+import { findClash, type Step } from '@/domain/steps/agenda';
 import { clashMessage } from '@/domain/steps/words';
 import { saveFailed } from '@/server/action-errors';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
 import { loadCalendarSteps } from '@/server/steps';
-import { suggestFromTemplate } from '@/server/suggest';
 import { createSupabase } from '@/server/supabase';
 
 // Every action does the same four things, in this order:
@@ -20,8 +19,9 @@ import { createSupabase } from '@/server/supabase';
 //   4. refresh what the screens show
 
 /**
- * Takes a job in one step: the client (new or existing), the job, its garment if it has one, and its steps on the
- * days counted back from its day (decision 0066). She is taken to the job, where every day can be changed.
+ * Takes a job in one step (decision 0068): the client (new, existing, or none for an event), the job, a garment when it
+ * is made for a client, and the steps she built with the days she gave them. A step's time already taken on her
+ * calendar, or by another step of this job, is refused at that step (decision 0067).
  */
 export async function createJob(_previous: ActionState, formData: FormData): Promise<ActionState> {
   await requireUser();
@@ -32,58 +32,33 @@ export async function createJob(_previous: ActionState, formData: FormData): Pro
   if (!parsed.ok) return failure('Check the fields marked below.', parsed.errors, typed);
   const job = parsed.value;
 
-  let steps: {
-    title: string;
-    on_day: string;
-    until_day: string | null;
-    starts_at: string | null;
-    ends_at: string | null;
-  }[] = [];
-  if (job.templateId) {
-    const suggestion = await suggestFromTemplate(supabase, job.templateId, job.dueOn);
-    if (!suggestion)
-      return failure(
-        'Check the fields marked below.',
-        { template: 'That template could not be found.' },
-        typed,
-      );
-    steps = suggestion.steps.map((s) => {
-      // The time she gave is the time of what happens with the client on the day itself.
-      const timed = job.time !== null && s.withClient && s.onDay === job.dueOn;
-      return {
-        title: s.title,
-        on_day: s.onDay,
-        until_day: s.untilDay,
-        starts_at: timed ? job.time : null,
-        ends_at: timed ? job.timeEnd : null,
-      };
-    });
-  }
-
-  // Her time is hers once (decision 0067): a time already taken on that day is not given twice.
-  if (job.time) {
-    const calendar = await loadCalendarSteps(supabase, prefs.today);
-    for (const s of steps.filter((x) => x.starts_at)) {
-      const other = findClash(
-        { onDay: s.on_day, untilDay: s.until_day, startsAt: s.starts_at, endsAt: s.ends_at },
-        calendar,
-      );
-      if (other) return failure('That time is taken.', { time: clashMessage(other) }, typed);
+  if (job.steps.some((s) => s.startsAt)) {
+    const taken: Step[] = await loadCalendarSteps(supabase, prefs.today);
+    for (const [i, s] of job.steps.entries()) {
+      const other = findClash(s, taken);
+      if (other) return failure('That time is taken.', { [`step-${i}-from`]: clashMessage(other) }, typed);
+      // The steps before it on this form are on her calendar too, once saved.
+      taken.push({ ...s, id: `new-${i}`, doneOn: null, job: null });
     }
   }
 
   const create = () =>
     supabase.rpc('create_job', {
-      p_kind: job.kind,
       p_client_id: job.client.kind === 'existing' ? job.client.id : null,
       p_client_name: job.client.kind === 'new' ? job.client.name : null,
       p_client_phone: job.client.kind === 'new' ? job.client.phone : null,
       p_number: job.number,
+      p_title: job.title,
       p_due_on: job.dueOn,
       p_notes: job.notes,
-      p_garment_type: job.garment?.garmentType ?? null,
-      p_brief: job.garment?.brief ?? '',
-      p_steps: steps,
+      p_brief: job.brief,
+      p_steps: job.steps.map((s) => ({
+        title: s.title,
+        on_day: s.onDay,
+        until_day: s.untilDay,
+        starts_at: s.startsAt,
+        ends_at: s.endsAt,
+      })),
       p_confirm: true,
     });
 

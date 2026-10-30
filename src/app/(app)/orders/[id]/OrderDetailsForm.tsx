@@ -5,60 +5,61 @@ import { FormNotice } from '@/components/FormNotice';
 import { SubmitButton } from '@/components/SubmitButton';
 import { SelectField, TextArea, TextField } from '@/components/fields';
 import { fieldTicked, fieldValue, idle } from '@/lib/action-state';
-import { JOB_KINDS, KIND_WORDS, isJobKind, type JobKind } from '@/domain/jobs/kinds';
+import { NO_CLIENT } from '@/domain/orders/forms';
 import { isClosed, type OrderStatus } from '@/domain/orders/status';
 import { saveOrderDetails } from './actions';
 
 /**
- * The job itself: its kind, the client, its day, and your notes. Moving the day can move the steps not done yet with
- * it. A delivered or cancelled job is a record, so only its notes can be changed there.
+ * The job itself: who it is for (or nobody: an event), what it is, its day, and your notes. Moving the day can move
+ * the steps not done yet with it. A finished or cancelled job is a record, so only its notes can be changed there.
  */
 export function OrderDetailsForm({
   order,
   clients,
 }: {
-  order: { id: string; status: OrderStatus; kind: JobKind; clientId: string; dueOn: string; notes: string };
+  order: {
+    id: string;
+    status: OrderStatus;
+    clientId: string | null;
+    title: string;
+    dueOn: string;
+    notes: string;
+  };
   clients: { id: string; name: string }[];
 }) {
   const [state, action] = useActionState(saveOrderDetails, idle);
   const closed = isClosed(order.status);
-  const typedKind = fieldValue(state, 'kind', order.kind);
-  const [kind, setKind] = useState<JobKind>(isJobKind(typedKind) ? typedKind : order.kind);
+  const [client, setClient] = useState(fieldValue(state, 'client', order.clientId ?? NO_CLIENT));
+  const event = client === NO_CLIENT;
 
   return (
     <form action={action} className="form" noValidate>
       <input type="hidden" name="id" value={order.id} />
       {!closed && (
         <>
-          <div className="form-grid form-grid--2">
-            <div className="field">
-              <label htmlFor="kind">Kind of job</label>
-              <select
-                id="kind"
-                name="kind"
-                className="select"
-                value={kind}
-                onChange={(e) => isJobKind(e.target.value) && setKind(e.target.value)}
-              >
-                {JOB_KINDS.map((k) => (
-                  <option key={k} value={k}>
-                    {KIND_WORDS[k].label}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <SelectField
-              name="client"
-              label="Client"
-              state={state}
-              saved={order.clientId}
-              options={clients.map((c) => ({ value: c.id, label: c.name }))}
-              hint="Changing the client clears the measurements chosen for the garments, because they are hers."
-            />
-          </div>
+          <SelectField
+            name="client"
+            label="For"
+            state={state}
+            saved={order.clientId ?? NO_CLIENT}
+            options={[
+              ...clients.map((c) => ({ value: c.id, label: c.name })),
+              { value: NO_CLIENT, label: 'Nobody: an event, such as a bazaar' },
+            ]}
+            onChange={setClient}
+            hint="Changing the client clears the measurements chosen for the garments, because they are hers."
+          />
+          <TextField
+            name="title"
+            label={event ? 'Name of the event' : 'What it is (optional)'}
+            state={state}
+            saved={order.title}
+            maxLength={120}
+            autoComplete="off"
+          />
           <TextField
             name="due-on"
-            label={KIND_WORDS[kind].dueLabel}
+            label={event ? 'Event day' : 'Delivery day'}
             type="date"
             state={state}
             saved={order.dueOn}

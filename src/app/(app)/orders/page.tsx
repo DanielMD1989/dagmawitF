@@ -2,8 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { StatusChip } from '@/components/StatusChip';
 import { formatDay } from '@/domain/dates';
-import { KIND_WORDS } from '@/domain/jobs/kinds';
-import { describeHandover, orderTitle } from '@/domain/orders/display';
+import { daysLeft, jobHeadline } from '@/domain/jobs/words';
 import { isClosed, isOrderStatus, STATUS_LABEL, type OrderStatus } from '@/domain/orders/status';
 import { loadOrders } from '@/server/orders';
 import { loadPreferences } from '@/server/preferences';
@@ -76,20 +75,21 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
       ) : (
         <ul className="rows rows--links">
           {shown.map((o) => {
-            const due = describeHandover(o.deliveryOn, prefs.today);
-            const words = KIND_WORDS[o.kind];
+            const late = !isClosed(o.status) && o.deliveryOn < prefs.today;
             return (
               <li key={o.id}>
                 <Link href={`/orders/${o.id}`} className="row-link">
-                  <span className="row-link__title">
-                    {orderTitle(o.number, o.garmentTypes)} · {o.clientName}
-                  </span>
+                  <span className="row-link__title">{jobHeadline(o)}</span>
                   <span className="hint">
-                    {words.label} · {words.dueLabel} {formatDay(o.deliveryOn)}
+                    #{o.number} · {o.clientName ? 'Delivery' : 'Event'} {formatDay(o.deliveryOn)}
                     {!isClosed(o.status) && (
                       <>
                         {' '}
-                        (<span className={due.past ? 'late' : undefined}>{due.text}</span>)
+                        (
+                        <span className={late ? 'late' : undefined}>
+                          {daysLeft(o.deliveryOn, prefs.today)}
+                        </span>
+                        )
                       </>
                     )}
                     {o.steps > 0 && ` · ${o.done} of ${o.steps} steps done`}

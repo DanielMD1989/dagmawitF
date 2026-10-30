@@ -39,17 +39,17 @@ A failed run leaves a trace for each failed step: `npx playwright show-trace tes
   it and signs in again.
 - **Her story, in order.** The specs run one after another in one worker, each on what the one before left:
 
-  | Spec                  | What she does                                                                            |
-  | --------------------- | ---------------------------------------------------------------------------------------- |
-  | `01-jobs.spec.ts`     | Her week; takes jobs of each kind with their steps, pictures and measurements; statuses. |
-  | `02-calendar.spec.ts` | Today and the month; ticks steps; her own work; times and clashes; moving days; library. |
-  | `03-harden.spec.ts`   | No signal and waiting ticks; export and the restore drill; tidying; CSP; keyboard.       |
-  | `04-sign-out.spec.ts` | Changes her password, signs out (last: it ends every session of hers).                   |
+  | Spec                  | What she does                                                                           |
+  | --------------------- | --------------------------------------------------------------------------------------- |
+  | `01-jobs.spec.ts`     | Her week; builds jobs step by step, with pictures and measurements; statuses; deleting. |
+  | `02-calendar.spec.ts` | Today and the month; ticks; her own work; times, clashes; moving days; lists; an event. |
+  | `03-harden.spec.ts`   | No signal and waiting ticks; export and the restore drill; tidying; CSP; keyboard.      |
+  | `04-sign-out.spec.ts` | Changes her password, signs out (last: it ends every session of hers).                  |
 
 - **Through the screens.** Data changes only through the app. The database is read to check what was stored; the
   one write is ageing a stored file for the tidy-up test.
 - **Dates from today.** Every day typed or expected is counted from today in her time zone, so the suite keeps
-  working as the calendar moves. Her week is set to every day, so suggested days fall where the suite expects them.
+  working as the calendar moves. Every step's day is the one the test gives it; nothing is suggested.
 - **Every screen, every look.** Each spec checks its screens for sideways scrolling and with axe (WCAG 2.2 A and AA)
   on a phone, on a desktop and at night; `03-harden` adds axe's best practices on every screen. Each spec fails if
   the browser reported an error it did not cause on purpose.

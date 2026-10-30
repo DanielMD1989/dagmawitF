@@ -95,7 +95,7 @@ test('signing out removes what Today kept on the phone, and ends the session', a
   await signInWith(page, readFileSync(PASSWORD_FILE, 'utf8'));
   await page.waitForURL(`${env.baseURL}/`);
   await page.goto('/');
-  await expect.poll(() => page.evaluate(() => localStorage.getItem('dagmawit.today.v2'))).not.toBeNull();
+  await expect.poll(() => page.evaluate(() => localStorage.getItem('dagmawit.today.v3'))).not.toBeNull();
   await page.goto('/settings');
   await page.getByRole('button', { name: 'Sign out' }).click();
   await page.waitForURL(`${env.baseURL}/sign-in`);

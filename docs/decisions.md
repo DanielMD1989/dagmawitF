@@ -456,14 +456,6 @@ What she had entered keeps its days (an appointment's day and time, a pinned day
 preparation not yet in became steps. The plan in full is [calendar-first.md](calendar-first.md). Cost: the app no longer
 checks whether her hours suffice; a clash of times and a step after its job's day are what it points out.
 
-## 0067. Her time is hers once: a taken time is refused
-
-The first rule took a step with a start and no end to last an hour, so appointments every half hour were all flagged as
-overlapping, which they were not. A time with no end is now only that moment; two steps clash when they start together
-or their from–to times cross. An appointment or a delivery can be given an end. Because the calendar is for using her
-time well, a new or changed step whose time crosses another open step on the same day is refused, naming the step that
-has it. Overlaps that arise indirectly (moving a job's day moves its steps) are still shown, not refused.
-
 ## 0067. A time is taken once; a time with no end is a moment
 
 A start time with no end counted as an hour, so appointments she booked every half hour (14:00, 14:30, 15:00) were all
@@ -473,3 +465,18 @@ well, a job or a step whose time crosses another is not saved; the message names
 (`findClash`, `clashMessage`). Appointments and deliveries can be given an end. An overlap that arises only
 indirectly (moving a job's day moves its steps) is still shown on Today, to be moved by hand. Cost: a time typed with
 no end does not stop a second one ten minutes later; give an end when it matters.
+
+## 0068. Jobs she builds: no kinds, her steps on her days, events, delete any job
+
+Replaces the kinds and suggested days of 0066. A day of use showed that "kind of job" does not fit how work moves: a
+new order may start with an appointment, then a sketch, then fabric and production, then delivery, and any of these
+may be missing; a fix may start with an appointment; a bazaar or a fashion show has no client. So a job is for a client
+or for nobody (an event, which then needs a name), says in a few words what it is ("Bridal gown"), and has the steps she
+builds on the form by tapping her usual ones (those she has used most, then common ones) or a whole list, each with the
+day she gives it, a last day and a time if she wants. Nothing is guessed: templates are now plain, ordered lists of step
+titles. On Today and the calendar the work is the headline ("Megan · Bridal gown") and the step sits under it, because
+every entry read "Appointment" before. Today shows what is coming up with days left: every event ahead, however far,
+because preparing for one takes weeks, and deliveries within 30 days. The same step on the same job and day is refused,
+since adding it twice was how one job appeared twice. Any job can be deleted, whatever its state, with its steps,
+garments, pictures and history; cancelling remains for a job she wants to keep on record. Existing jobs are named after
+their first garment. Cost: a new job gets no days unless she gives them, and deleting is final.

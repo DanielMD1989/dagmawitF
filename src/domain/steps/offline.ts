@@ -1,19 +1,21 @@
 import { formatDay, todayIn, type IsoDate } from '../dates';
 import type { Agenda, Entry, Step } from './agenda';
-import { dayHeading, jobLabel, partLabel, timeLabel } from './words';
+import { jobHeadline } from '../jobs/words';
+import { dayHeading, partLabel, timeLabel } from './words';
 
 /**
  * Today without signal (docs/harden.md, decision 0066): the calendar as she last saw it with signal, kept on the
  * phone, and the ticks that wait to be sent. Pure: the browser keeps the values, this says what they mean.
  */
 
-export const SNAPSHOT_VERSION = 2;
+export const SNAPSHOT_VERSION = 3;
 
 export interface SnapshotEntry {
   id: string;
+  /** The step: "Appointment". */
   title: string;
-  /** "#7 · Hana · New order", or null for her studio work. */
-  jobLabel: string | null;
+  /** The work it is part of, read first: "Megan · Bridal gown"; null for her own. */
+  work: string | null;
   time: string | null;
   /** "Day 2 of 5" */
   part: string | null;
@@ -45,7 +47,7 @@ function entryOf(step: Step, entry?: Entry): SnapshotEntry {
   return {
     id: step.id,
     title: step.title,
-    jobLabel: step.job ? jobLabel(step.job) : null,
+    work: step.job ? jobHeadline(step.job) : null,
     time: timeLabel(step),
     part: entry ? partLabel(entry) : overdue && step.onDay ? `From ${formatDay(step.onDay)}` : null,
     done: step.doneOn !== null,
@@ -90,6 +92,7 @@ export interface WaitingTap {
   key: string;
   ownerId: string;
   stepId: string;
+  /** What she reads for it, as its tick button names it: the step, then its work (`tapName`). */
   title: string;
   /** Whether she saw it done when she tapped (decision 0056). */
   sawDone: boolean;
@@ -126,6 +129,11 @@ export function withWaiting(
   };
 }
 
+/** A step as its tick names it: "Sewing, Megan · Bridal gown"; her own step by its title. */
+export function tapName(entry: Pick<SnapshotEntry, 'title' | 'work'>): string {
+  return entry.work ? `${entry.title}, ${entry.work}` : entry.title;
+}
+
 /** Ticks a step done, or opens it again, as she sees it now. */
 export function addTap(
   waiting: readonly WaitingTap[],
@@ -140,7 +148,7 @@ export function addTap(
       key,
       ownerId,
       stepId: entry.id,
-      title: entry.title,
+      title: tapName(entry),
       sawDone: entry.done,
       done: !entry.done,
       at: at.toISOString(),
