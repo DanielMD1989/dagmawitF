@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { byDueDay, comingUp, daysLeft, dueWord, jobHeadline, jobLabel } from './words';
+import { byDueDay, comingUp, daysLeft, dueNotShown, dueWord, jobHeadline, jobLabel } from './words';
 
 describe('what a job is called', () => {
   it('is who it is for and what it is; an event by its name', () => {
@@ -25,6 +25,12 @@ describe('a job’s own day', () => {
       ['2026-11-14', [1, 3]],
       ['2026-11-20', [2]],
     ]);
+  });
+
+  it('is listed as due only when no step of it shows that day', () => {
+    const due = [{ id: 'a' }, { id: 'b' }, { id: 'c' }];
+    expect(dueNotShown(due, ['b', null, 'b'])).toEqual([{ id: 'a' }, { id: 'c' }]);
+    expect(dueNotShown(due, [])).toEqual(due);
   });
 
   it('is a delivery for a client and an event for nobody', () => {

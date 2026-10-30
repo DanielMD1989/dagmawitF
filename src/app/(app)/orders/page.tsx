@@ -51,7 +51,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
       />
 
       <nav aria-label="Filter jobs">
-        <div className="segmented">
+        <div className="segmented segmented--swipe">
           {FILTERS.map((f) => (
             <Link
               key={f}

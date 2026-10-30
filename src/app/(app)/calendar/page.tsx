@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { AddStepForm } from '@/components/steps/AddStepForm';
 import { StepEntry } from '@/components/steps/StepEntry';
 import { formatDayLong, isIsoDate, WEEKDAY_NAMES } from '@/domain/dates';
-import { byDueDay, dueWord, jobHeadline } from '@/domain/jobs/words';
+import { byDueDay, dueNotShown, dueWord, jobHeadline } from '@/domain/jobs/words';
 import { entriesOn, isOverdue, monthCounts } from '@/domain/steps/agenda';
 import { monthGrid } from '@/domain/steps/month';
 import { partLabel } from '@/domain/steps/words';
@@ -46,26 +46,53 @@ export default async function CalendarPage({
         ? today
         : grid.first;
   const entries = entriesOn(steps, chosen);
-  const dueOnChosen = due.get(chosen) ?? [];
+  // A job whose step is in the day's list is not listed again as due.
+  const dueOnChosen = dueNotShown(
+    due.get(chosen) ?? [],
+    entries.map((e) => e.step.job?.id ?? null),
+  );
 
   return (
     <>
       <div className="page-head">
-        <p className="eyebrow">Calendar</p>
-        <div className="title-row">
-          <h1>{grid.title}</h1>
-        </div>
-        <nav className="btn-row" aria-label="Months">
-          <Link href={`/calendar?month=${grid.previous}`} className="btn btn--quiet btn--small">
-            Previous month
-          </Link>
-          <Link href="/calendar" className="btn btn--quiet btn--small">
+        <div className="month-head">
+          <p className="eyebrow">Calendar</p>
+          <Link href="/calendar" className="month-head__today">
             This month
           </Link>
-          <Link href={`/calendar?month=${grid.next}`} className="btn btn--quiet btn--small">
-            Next month
-          </Link>
-        </nav>
+        </div>
+        {/* The month between its arrows, as a phone calendar has it: one line at any phone width. */}
+        <div className="month-head">
+          <h1>{grid.title}</h1>
+          <nav className="month-head__nav" aria-label="Months">
+            <Link href={`/calendar?month=${grid.previous}`} className="icon-btn" aria-label="Previous month">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+            </Link>
+            <Link href={`/calendar?month=${grid.next}`} className="icon-btn" aria-label="Next month">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+            </Link>
+          </nav>
+        </div>
       </div>
 
       <section className="card" aria-label={`Days of ${grid.title}`}>

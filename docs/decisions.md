@@ -536,3 +536,11 @@ The theme cookie the root layout read was also what kept every page rendered per
 prebuilt the sign-in and offline pages, whose scripts then carried no nonce and were blocked by the
 Content-Security-Policy (0059). The root layout now asks for per-request rendering itself (`connection()`), so the
 policy no longer depends on an unrelated read.
+
+## 0074. A day lists each job once; phone-sized calendar and job filters
+
+On a day where every job had a step, the calendar listed each job twice: once as due, once through its step. A job is
+now listed as due on its day only when none of its steps shows that day (`dueNotShown`); otherwise its step, headed by
+the job, already shows it. The month still marks the day "Due". On a phone the calendar's three month buttons took two
+lines and the job filters three: the month now sits between two arrow buttons, with "This month" beside the Calendar
+label, and the filters are one row that swipes sideways.

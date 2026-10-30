@@ -40,6 +40,19 @@ export function byDueDay<J extends { dueOn: IsoDate }>(jobs: readonly J[]): Map<
   return days;
 }
 
+/**
+ * The jobs due on a day that its steps do not already show: a job with a step that day is listed through that step,
+ * so listing it again as due repeats it (her question, decision 0074). A job with no step that day would not appear
+ * at all without this.
+ */
+export function dueNotShown<J extends { id: string }>(
+  due: readonly J[],
+  shownJobIds: Iterable<string | null>,
+): J[] {
+  const shown = new Set(shownJobIds);
+  return due.filter((job) => !shown.has(job.id));
+}
+
 /** "Delivery" for a client's job, "Event" for an event. */
 export const dueWord = (job: { clientName: string | null }): string =>
   job.clientName ? 'Delivery' : 'Event';

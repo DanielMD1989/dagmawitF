@@ -556,6 +556,75 @@ a.btn {
   outline-offset: 2px;
 }
 
+/* A row of filters that stays one line on a phone and swipes sideways (the jobs list). */
+.segmented--swipe {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  margin: 0 -16px;
+  padding: 2px 16px 6px;
+  scrollbar-width: none;
+}
+.segmented--swipe::-webkit-scrollbar {
+  display: none;
+}
+.segmented--swipe a {
+  flex: none;
+  border-radius: 999px;
+}
+@media (min-width: 900px) {
+  .segmented--swipe {
+    flex-wrap: wrap;
+    margin: 0;
+    padding: 0;
+  }
+}
+
+/* The calendar's month between its arrows. */
+.month-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.month-head__nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+}
+.month-head h1 {
+  min-width: 0;
+}
+.month-head__today {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  padding: 0 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+.icon-btn {
+  width: var(--tap);
+  height: var(--tap);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+}
+.icon-btn:hover {
+  background: var(--tint);
+}
+.icon-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
 /* Working week */
 .week {
   display: flex;

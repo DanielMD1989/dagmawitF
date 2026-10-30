@@ -334,6 +334,12 @@ test('the month marks the days jobs and events are due, steps or none, and lists
   await expect(page.locator(`a[href$="day=${party}"] .month__mark`).first()).toHaveText('Due');
   await expect(page.getByRole('list', { name: 'Due this day' })).toContainText('Hanna Tesfaye · Party dress');
   await expect(page.getByRole('list', { name: 'Due this day' })).toContainText('Delivery');
+  // The suit alteration has its Delivery step on its day: listed once, by that step, not again as due.
+  const fix = inDays(2);
+  await page.goto(`/calendar?day=${fix}`);
+  await expect(page.locator(`a[href$="day=${fix}"] .month__mark`).first()).toHaveText('Due');
+  await expect(item(page, 'Delivery', 'Yonas Alemu · Suit alteration')).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Due this day' })).toHaveCount(0);
   await inspect(page, 'month with due days');
 });
 
