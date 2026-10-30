@@ -17,4 +17,5 @@ jobs:
           version: latest
       - name: Her project's region
         run: |
-          supabase projects list -o json | jq -r '.[] | select(.id == "iowwrmnfeaogocnspgvf") | "region=\(.region)"'
+          region=$(supabase projects list -o json | jq -r '.[] | select(.id == "iowwrmnfeaogocnspgvf") | .region')
+          echo "::notice title=Supabase region::$region"
