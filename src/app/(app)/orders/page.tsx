@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { QuickActions } from '@/components/QuickActions';
 import { StatusChip } from '@/components/StatusChip';
 import { formatDay } from '@/domain/dates';
 import { daysLeft, jobHeadline } from '@/domain/jobs/words';
@@ -41,17 +42,13 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         <p className="lede">Soonest first. Open a job for its steps, brief and measurements.</p>
       </div>
 
-      <div className="btn-row">
-        <Link href="/orders/new" className="btn">
-          New job
-        </Link>
-        <Link href="/orders/new?event=1" className="btn btn--quiet">
-          New event
-        </Link>
-        <Link href="/clients" className="btn btn--quiet">
-          Clients
-        </Link>
-      </div>
+      <QuickActions
+        actions={[
+          { href: '/orders/new', label: 'New job', icon: 'add' },
+          { href: '/orders/new?event=1', label: 'New event', icon: 'event' },
+          { href: '/clients', label: 'Clients', icon: 'clients' },
+        ]}
+      />
 
       <nav aria-label="Filter jobs">
         <div className="segmented">

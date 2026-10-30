@@ -24,7 +24,9 @@ const PAIRS: [foreground: string, background: string, minimum: number][] = [
   ['on-solid', 'solid-hover', 4.5], // the main button, pointed at
   ['nav-ink', 'nav-bg', 4.5], // the bottom bar's other pages
   ['nav-active', 'nav-bg', 4.5], // the open page
-  ['nav-active', 'nav-pill', 4.5], // the open page's icon on its pill
+  ['nav-active', 'nav-pill', 3], // the open page's icon (no words) on its forest-green pill
+  ['nav-active', 'nav-pill-wide', 4.5], // the open page's row on a wide screen, words and all
+  ['muted', 'icon-bg', 3], // icons in their grey circles
   ['warn', 'bg', 4.5],
   ['warn', 'surface', 4.5],
   ['warn', 'warn-bg', 4.5],

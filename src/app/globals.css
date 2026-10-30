@@ -17,12 +17,12 @@
   --line-strong: light-dark(#cdd4ca, #44544a);
   --ink: light-dark(#1a231a, #e6eee4);
   --muted: light-dark(#556355, #a8b8a7);
-  /* Her forest green #228B22, one step deeper where it carries text so it stays readable (5.4:1 on white). */
-  --accent: light-dark(#1e7b1e, #7fd883);
-  --accent-2: light-dark(#2e8b3a, #6cc470);
-  --tint: light-dark(#e7f3e5, #213622);
-  --solid: light-dark(#1e7b1e, #2e7d32);
-  --solid-hover: light-dark(#186618, #276b2b);
+  /* Her green, #0F3F00: buttons, green words, the bar. At night green words take a soft light green. */
+  --accent: light-dark(#0f3f00, #a6d39a);
+  --accent-2: light-dark(#4f7a3f, #6f9e60);
+  --tint: light-dark(#e8efe3, #22301d);
+  --solid: light-dark(#0f3f00, #0f3f00);
+  --solid-hover: light-dark(#1f5a10, #1f5a10);
   --on-solid: light-dark(#ffffff, #f3f7f1);
   --on-accent: light-dark(#ffffff, #131a14);
   --field: light-dark(#ffffff, #162017);
@@ -35,13 +35,17 @@
   --sand: light-dark(#e8dabb, #5a5130);
   --sand-ink: light-dark(#4a4333, #f0e6c4);
   --wait: light-dark(#b9a472, #c9b77f);
-  /* The bottom bar (the side bar on a wide screen): deep pine green, the open page in bright green. */
-  --nav-bg: light-dark(#0d3e0d, #0a2a0b);
-  --nav-ink: light-dark(#b9cbb9, #a8bca8);
-  --nav-active: light-dark(#7fd883, #8fe092);
-  --nav-pill: light-dark(#1f5a1f, #17451a);
+  /* The bottom bar (the side bar on a wide screen): her green #0F3F00. The open page: white, on a lighter shade of
+     the same green; never lime. */
+  --nav-bg: light-dark(#0f3f00, #0f3f00);
+  --nav-ink: light-dark(#bccbb5, #bccbb5);
+  --nav-active: light-dark(#ffffff, #ffffff);
+  --nav-pill: light-dark(#2f6420, #2f6420);
+  --nav-pill-wide: light-dark(#2f6420, #2f6420);
+  /* The light grey circle of an item's icon, as in her design. */
+  --icon-bg: light-dark(#eef0ec, #263327);
   /* Cards float a little above the page. */
-  --shadow-color: light-dark(rgb(13 62 13 / 7%), rgb(0 0 0 / 35%));
+  --shadow-color: light-dark(rgb(15 63 0 / 7%), rgb(0 0 0 / 35%));
   --shadow: 0 2px 10px var(--shadow-color), 0 1px 2px var(--shadow-color);
   --card-border: light-dark(transparent, #2e3b2f);
 
@@ -136,7 +140,7 @@ textarea {
   display: flex;
   background: var(--nav-bg);
   border-radius: 24px 24px 0 0;
-  box-shadow: 0 -4px 16px rgb(13 62 13 / 18%);
+  box-shadow: 0 -4px 16px rgb(15 63 0 / 18%);
   padding: 6px 4px env(safe-area-inset-bottom);
 }
 .nav__brand {
@@ -218,7 +222,7 @@ textarea {
     font-size: 15px;
   }
   .nav__link[aria-current='page'] {
-    background: var(--nav-pill);
+    background: var(--nav-pill-wide);
   }
   .nav__icon,
   .nav__link[aria-current='page'] .nav__icon {
@@ -244,6 +248,77 @@ textarea {
 .lede {
   color: var(--muted);
   max-width: 60ch;
+}
+/* Quick actions (decision 0071): green pill buttons with an icon, sideways-scrolling on a narrow phone. */
+.actions {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  margin: -4px -16px 0;
+  padding: 4px 16px 6px;
+  scrollbar-width: none;
+}
+.actions::-webkit-scrollbar {
+  display: none;
+}
+.action {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 20px;
+  border-radius: var(--radius);
+  background: var(--solid);
+  color: var(--on-solid);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  text-decoration: none;
+  box-shadow: 0 2px 6px rgb(15 63 0 / 22%);
+}
+.action:hover {
+  background: var(--solid-hover);
+}
+.action svg {
+  width: 18px;
+  height: 18px;
+}
+/* A section title with its link on the right ("See all"). */
+.section__head.section__head--row {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.see-all {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--accent);
+  text-decoration: none;
+}
+.see-all:hover {
+  text-decoration: underline;
+}
+/* The light grey circle holding a row's icon. */
+.row-icon {
+  flex: none;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--icon-bg);
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.row-icon svg {
+  width: 20px;
+  height: 20px;
 }
 .page-head {
   display: flex;
@@ -394,7 +469,7 @@ fieldset {
   color: var(--on-solid);
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 2px 6px rgb(30 123 30 / 22%);
+  box-shadow: 0 2px 6px rgb(15 63 0 / 22%);
 }
 .btn:hover {
   background: var(--solid-hover);
@@ -568,21 +643,20 @@ a.btn {
   padding: 0;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: var(--shadow);
+  gap: 10px;
 }
+/* Each row its own white card, as in her design (decision 0071). */
 .rows li {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 12px;
   padding: 12px 16px;
-  border-top: 1px solid var(--line);
-}
-.rows li:first-child {
-  border-top: 0;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+  overflow: hidden;
 }
 .rows__main {
   display: flex;
@@ -709,6 +783,16 @@ a.btn {
 }
 .row-link__title {
   font-weight: 600;
+}
+.row-link--icon {
+  grid-template-columns: auto 1fr auto;
+  column-gap: 14px;
+}
+.row-link--icon .row-icon {
+  grid-row: 1 / span 2;
+}
+.row-link--icon .row-link__side {
+  grid-column: 3;
 }
 .row-link__side {
   grid-row: 1 / span 2;
@@ -891,21 +975,18 @@ a.btn {
   padding: 0;
   display: flex;
   flex-direction: column;
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius);
-  background: var(--surface);
-  box-shadow: var(--shadow);
-  overflow: hidden;
+  gap: 10px;
 }
+/* Each step its own white card, as in her design (decision 0071). */
 .item {
   display: flex;
   flex-direction: column;
   gap: 12px;
   padding: 14px 16px;
-  border-top: 1px solid var(--line);
-}
-.item:first-child {
-  border-top: 0;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
 }
 .item--late {
   background: var(--warn-bg);
@@ -1392,8 +1473,8 @@ h4 {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  /* The mark is 26px; the tap area around it is the full 44. */
-  margin: -9px 0 -9px -9px;
+  /* The mark is 40px; the tap area around it is the full 44. */
+  margin: -2px 0 -2px -2px;
 }
 .tick {
   width: var(--tap);
@@ -1408,12 +1489,12 @@ h4 {
   color: transparent;
 }
 .tick svg {
-  width: 26px;
-  height: 26px;
-  padding: 5px;
+  width: 40px;
+  height: 40px;
+  padding: 10px;
   border-radius: 50%;
   border: 2px solid var(--line-strong);
-  background: var(--field);
+  background: var(--icon-bg);
 }
 .tick:hover svg {
   border-color: var(--accent);

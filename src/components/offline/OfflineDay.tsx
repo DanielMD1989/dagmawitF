@@ -84,9 +84,7 @@ export function OfflineDay() {
       {view.overdue.length > 0 && (
         <section className="section" aria-labelledby="offline-overdue">
           <div className="section__head">
-            <h2 id="offline-overdue" className="eyebrow">
-              Not done yet
-            </h2>
+            <h2 id="offline-overdue">Not done yet</h2>
           </div>
           <ul className="items">
             {view.overdue.map((e) => (

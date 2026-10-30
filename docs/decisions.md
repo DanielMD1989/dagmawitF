@@ -512,5 +512,16 @@ pine-black text (#1A231A) and slate green-grey secondary text (#556355), forest-
 pine-green bottom bar (#0D3E0D) with 24 px top corners whose open page shows in bright green, and Inter (titles 24 px
 bold, section headings 18 px semi-bold). It replaces the cream, serif and sage look of 0005 through the tokens in
 `globals.css`, so every screen follows. Two shades are one step deeper than given, where text sits on them: white on
-#228B22 is 4.4:1 and needs 4.5:1, so buttons and green text use #1E7B1E; the open page's green on the bar is #7FD883,
-because #4CAF50 there is 4.2:1. Night keeps the same design in deep green-charcoal. The contrast test covers the bar.
+#228B22 is 4.4:1 and needs 4.5:1, so buttons and green text use #1E7B1E. On the bar she wanted no lime green: the
+open page is white, on her forest green #228B22 behind its icon (on a wide screen the row's pill is one shade deeper,
+#1A6B1A, because its words sit on it). The layout follows her FinTrack screen too: each row and step is its own white
+card with a soft shadow, rows lead with a light grey icon circle, a section title carries its "See all" link on the
+right, and a page's main actions are green pill buttons with icons in a sideways-scrolling row. Night keeps the same
+design in deep green-charcoal. The contrast test covers the bar and the icon circles.
+
+## 0072. One dark green, #0F3F00
+
+Seeing 0071, she asked for a darker green, #0F3F00, in place of the forest greens. It is now the one green: buttons,
+quick actions, green words, links and the bar. The open page on the bar is white on a lighter shade of it (#2F6420),
+not a bright or lime green. At night green words take a soft light green (#A6D39A) so they stay readable on the dark
+page. White on #0F3F00 is 13:1, so the shades 0071 deepened for readability are no longer needed.

@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { QuickActions } from '@/components/QuickActions';
 import { SaveForOffline } from '@/components/offline/SaveForOffline';
 import { AddStepForm } from '@/components/steps/AddStepForm';
 import { StepEntry } from '@/components/steps/StepEntry';
@@ -57,30 +58,43 @@ export default async function TodayPage() {
             {firstName ? `, ${firstName}` : ''}.
           </h1>
         </div>
-        <div className="btn-row">
-          <Link href="/orders/new" className="btn">
-            New job
-          </Link>
-          <Link href="/orders/new?event=1" className="btn btn--quiet">
-            New event
-          </Link>
-          <Link href="/calendar" className="btn btn--quiet">
-            Month
-          </Link>
-        </div>
       </div>
+      <QuickActions
+        actions={[
+          { href: '/orders/new', label: 'New job', icon: 'add' },
+          { href: '/orders/new?event=1', label: 'New event', icon: 'event' },
+          { href: '/calendar', label: 'Month', icon: 'month' },
+        ]}
+      />
 
       {upcoming.length > 0 && (
         <section className="section" aria-labelledby="coming-heading">
-          <div className="section__head">
-            <h2 id="coming-heading" className="eyebrow">
-              Coming up
-            </h2>
+          <div className="section__head section__head--row">
+            <h2 id="coming-heading">Coming up</h2>
+            <Link href="/orders" className="see-all">
+              See all<span className="sr-only"> jobs</span>
+            </Link>
           </div>
           <ul className="rows rows--links">
             {upcoming.map(({ job, day, left }) => (
               <li key={job.id}>
-                <Link href={`/orders/${job.id}`} className="row-link">
+                <Link href={`/orders/${job.id}`} className="row-link row-link--icon">
+                  <span className="row-icon" aria-hidden="true">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.75"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      {job.clientName ? (
+                        <path d="M12 6a2 2 0 1 0-2-2 M12 6v2 M12 8 3 15h18z M3 15v2h18v-2" />
+                      ) : (
+                        <path d="M4 5h16v15H4z M4 10h16 M8 3v4 M16 3v4" />
+                      )}
+                    </svg>
+                  </span>
                   <span className="row-link__title">{jobHeadline(job)}</span>
                   <span className="hint">
                     {job.clientName ? 'Delivery' : 'Event'} {day}
@@ -104,9 +118,7 @@ export default async function TodayPage() {
       {agenda.overdue.length > 0 && (
         <section className="section" aria-labelledby="overdue-heading">
           <div className="section__head">
-            <h2 id="overdue-heading" className="eyebrow">
-              Not done yet
-            </h2>
+            <h2 id="overdue-heading">Not done yet</h2>
           </div>
           <ul className="items">
             {agenda.overdue.map((s) => (
@@ -166,9 +178,7 @@ export default async function TodayPage() {
       {agenda.undated.length > 0 && (
         <section className="section" aria-labelledby="undated-heading">
           <div className="section__head">
-            <h2 id="undated-heading" className="eyebrow">
-              Steps with no day yet
-            </h2>
+            <h2 id="undated-heading">Steps with no day yet</h2>
           </div>
           <ul className="items">
             {agenda.undated.map((s) => (
