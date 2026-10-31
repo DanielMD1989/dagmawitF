@@ -66,17 +66,27 @@ export interface Upcoming<J> {
 }
 
 /**
- * Her confirmed jobs coming up, soonest first: every event ahead, however far (a bazaar or a show needs work for weeks
- * before, so it is kept in sight from the day she adds it), and the deliveries within the next `days` days.
+ * Her confirmed jobs ahead, from tomorrow, soonest first: deliveries and events alike, however far (decision 0078).
+ * Today's are on Today, with their steps; this is the countdown to what is still to come.
  */
 export function comingUp<J extends JobName & { dueOn: IsoDate; status: string }>(
   jobs: readonly J[],
   today: IsoDate,
-  days = 30,
 ): Upcoming<J>[] {
-  const last = addDays(today, days);
   return jobs
-    .filter((j) => j.status === 'active' && j.dueOn >= today && (j.clientName === null || j.dueOn <= last))
+    .filter((j) => j.status === 'active' && j.dueOn > today)
     .sort((a, b) => (a.dueOn < b.dueOn ? -1 : a.dueOn > b.dueOn ? 1 : a.number - b.number))
     .map((job) => ({ job, day: formatDay(job.dueOn), left: daysLeft(job.dueOn, today) }));
+}
+
+/** What is coming up, split into the next seven days and later. */
+export function byHorizon<J extends { dueOn: IsoDate }>(
+  upcoming: readonly Upcoming<J>[],
+  today: IsoDate,
+): { week: Upcoming<J>[]; later: Upcoming<J>[] } {
+  const end = addDays(today, 7);
+  return {
+    week: upcoming.filter((u) => u.job.dueOn <= end),
+    later: upcoming.filter((u) => u.job.dueOn > end),
+  };
 }

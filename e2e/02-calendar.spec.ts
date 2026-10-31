@@ -284,12 +284,40 @@ test('an event, such as a bazaar or a show, is its name and its day, counted dow
   await form.getByRole('button', { name: 'Add' }).click();
   await item(page, 'Sew twenty pieces').waitFor();
   await page.goto('/');
-  // More than 30 days away, still in sight: an event needs her attention long before.
-  const coming = section('Coming up');
-  await expect(coming).toContainText('Fashion show at the Sheraton');
-  await expect(coming).toContainText('70 days left');
   await expect(item(section('Tomorrow'), 'Sew twenty pieces', 'Fashion show at the Sheraton')).toBeVisible();
-  await inspect(page, 'today with an event coming up');
+  // What is ahead is on its own page, from Today's "Coming up": however far, counted down.
+  await page.getByRole('link', { name: 'Coming up' }).click();
+  await page.waitForURL(`${env.baseURL}/coming-up`);
+  const later = section('Later');
+  await expect(later).toContainText('Fashion show at the Sheraton');
+  await expect(later).toContainText('70 days left');
+  await expect(section('This week')).toContainText('Yonas Alemu · Suit alteration');
+  await inspect(page, 'coming up');
+});
+
+test('a job due today shows once on Today: by its step when it has one, else as due today', async () => {
+  await fillNewJob(page, { client: 'Yonas Alemu', title: 'Hem trousers', due: today() });
+  await page.getByRole('button', { name: 'Save the job' }).click();
+  await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
+  const hem = page.url();
+  await page.goto('/');
+  // No step today: it is listed as due today, so it is not missed.
+  const due = page.getByRole('list', { name: 'Due today' });
+  await expect(due).toContainText('Yonas Alemu · Hem trousers');
+  await expect(due).toContainText('today');
+  // Not on Coming up, which starts tomorrow.
+  await page.goto('/coming-up');
+  await expect(page.locator('main')).not.toContainText('Hem trousers');
+  // Its delivery as a step today: shown by that step, and not again as due.
+  await page.goto(hem);
+  const form = await open(page.locator('main'), 'Add a step');
+  await form.getByLabel('Step').fill('Delivery');
+  await form.getByLabel('Day', { exact: true }).fill(today());
+  await form.getByRole('button', { name: 'Add' }).click();
+  await item(page, 'Delivery').waitFor();
+  await page.goto('/');
+  await expect(item(section('Today'), 'Delivery', 'Yonas Alemu · Hem trousers')).toBeVisible();
+  await expect(page.getByRole('list', { name: 'Due today' })).toHaveCount(0);
 });
 
 test('a step she typed once is not offered as a usual one', async () => {

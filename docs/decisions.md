@@ -576,3 +576,12 @@ With the loading screen a page starts before its data is read, so a job that is 
 status 200 rather than 404 (Next.js sends the status before it knows); for a private app the page is what matters.
 The browser tests now wait for the page itself (`ready`, `texts`), not only its address, and pass with every page
 slowed by 0.4 s.
+
+## 0078. Coming up is its own page; Today shows each job once
+
+Today listed the jobs due within 30 days under "Coming up", today's included, and today's steps under "Today": a job
+due today with a step today appeared twice. She asked for what is coming up to be on a page of its own. Today now
+shows only today and the week's steps; "Coming up" (a quick action on Today) is a page of every confirmed delivery and
+event from tomorrow on, however far, soonest first with the days left, in "This week" and "Later". A job due today
+shows once on Today: by its step when it has one that day, otherwise as "due today" above the steps, so it is not
+missed.

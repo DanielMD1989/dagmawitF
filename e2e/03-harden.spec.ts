@@ -469,6 +469,7 @@ test('every screen passes axe with best practices, on a phone and on a computer 
 }) => {
   const screens = [
     '/',
+    '/coming-up',
     '/calendar',
     '/orders',
     `/orders/${O1}`,

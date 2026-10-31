@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { JobDueRow } from '@/components/JobDueRow';
 import { QuickActions } from '@/components/QuickActions';
 import { SaveForOffline } from '@/components/offline/SaveForOffline';
 import { AddStepForm } from '@/components/steps/AddStepForm';
@@ -7,7 +8,7 @@ import { StepEntry } from '@/components/steps/StepEntry';
 import { openDayRule } from '@/domain/calendar/open';
 import { formatDay, formatDayLong, hourIn } from '@/domain/dates';
 import { greetingFor } from '@/domain/greeting';
-import { comingUp, jobHeadline } from '@/domain/jobs/words';
+import { dueNotShown } from '@/domain/jobs/words';
 import { buildAgenda } from '@/domain/steps/agenda';
 import { makeSnapshot } from '@/domain/steps/offline';
 import { dayHeading, partLabel } from '@/domain/steps/words';
@@ -19,7 +20,10 @@ import { createSupabase } from '@/server/supabase';
 
 export const metadata: Metadata = { title: 'Today' };
 
-/** Today and the week ahead: every step of her jobs and her own work, by day (docs/calendar-first.md). */
+/**
+ * Today and the week ahead: every step of her jobs and her own work, by day (docs/calendar-first.md). What is due
+ * further on is on its own page, Coming up (decision 0078).
+ */
 export default async function TodayPage() {
   const user = await requireUser();
   const supabase = await createSupabase();
@@ -27,10 +31,6 @@ export default async function TodayPage() {
   const jobsLoading = loadOrders(supabase);
   const { profile, week, exceptions, today } = await loadCalendarSettings(supabase);
   const [steps, jobs] = await Promise.all([loadCalendarSteps(supabase, today), jobsLoading]);
-  const upcoming = comingUp(
-    jobs.map((j) => ({ ...j, dueOn: j.deliveryOn })),
-    today,
-  );
   const agenda = buildAgenda(steps, today, 7);
   const isOpen = openDayRule(
     week.map((d) => d.weekday),
@@ -46,6 +46,11 @@ export default async function TodayPage() {
     agenda,
   });
   const [first, ...rest] = agenda.days;
+  // A job due today is shown once: by its step today when it has one, else here as due today (decision 0078).
+  const dueToday = dueNotShown(
+    jobs.filter((j) => j.status === 'active' && j.deliveryOn === today),
+    (first?.entries ?? []).map((e) => e.step.job?.id ?? null),
+  );
   const later = rest.filter((d) => d.entries.length > 0);
   const nothingAhead = agenda.days.every((d) => d.entries.length === 0) && agenda.overdue.length === 0;
 
@@ -65,57 +70,10 @@ export default async function TodayPage() {
         actions={[
           { href: '/orders/new', label: 'New job', icon: 'add' },
           { href: '/orders/new?event=1', label: 'New event', icon: 'event' },
+          { href: '/coming-up', label: 'Coming up', icon: 'upcoming' },
           { href: '/calendar', label: 'Month', icon: 'month' },
         ]}
       />
-
-      {upcoming.length > 0 && (
-        <section className="section" aria-labelledby="coming-heading">
-          <div className="section__head section__head--row">
-            <h2 id="coming-heading">Coming up</h2>
-            <Link href="/orders" className="see-all">
-              See all<span className="sr-only"> jobs</span>
-            </Link>
-          </div>
-          <ul className="rows rows--links">
-            {upcoming.map(({ job, day, left }) => (
-              <li key={job.id}>
-                <Link href={`/orders/${job.id}`} className="row-link row-link--icon">
-                  <span className="row-icon" aria-hidden="true">
-                    <svg
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="1.75"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      {job.clientName ? (
-                        <path d="M12 6a2 2 0 1 0-2-2 M12 6v2 M12 8 3 15h18z M3 15v2h18v-2" />
-                      ) : (
-                        <path d="M4 5h16v15H4z M4 10h16 M8 3v4 M16 3v4" />
-                      )}
-                    </svg>
-                  </span>
-                  <span className="row-link__title">{jobHeadline(job)}</span>
-                  <span className="hint">
-                    {job.clientName ? 'Delivery' : 'Event'} {day}
-                  </span>
-                  <span className="row-link__side">
-                    <span
-                      className={
-                        left === 'today' || left === 'tomorrow' ? 'chip chip--sand' : 'chip chip--line'
-                      }
-                    >
-                      {left}
-                    </span>
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
 
       {agenda.overdue.length > 0 && (
         <section className="section" aria-labelledby="overdue-heading">
@@ -138,6 +96,13 @@ export default async function TodayPage() {
             </h2>
             {!isOpen(today) && <span className="chip chip--muted">Not a working day</span>}
           </div>
+          {dueToday.length > 0 && (
+            <ul className="rows rows--links" aria-label="Due today">
+              {dueToday.map((job) => (
+                <JobDueRow key={job.id} job={job} day={formatDay(today)} left="today" />
+              ))}
+            </ul>
+          )}
           {first.entries.length > 0 ? (
             <ul className="items">
               {first.entries.map((e) => (
@@ -145,7 +110,7 @@ export default async function TodayPage() {
               ))}
             </ul>
           ) : (
-            <p className="day-list__empty">Nothing on today.</p>
+            dueToday.length === 0 && <p className="day-list__empty">Nothing on today.</p>
           )}
           <AddStepForm orderId={null} day={today} summary="Add something for yourself" idPrefix="own" />
         </section>
