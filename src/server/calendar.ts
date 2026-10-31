@@ -4,6 +4,7 @@ import { z } from 'zod';
 import { addDays, todayIn, type IsoDate } from '@/domain/dates';
 import { fromDatabaseTime } from '@/domain/calendar/time';
 import type { CalendarException, Profile, WorkDay } from '@/domain/calendar/types';
+import { requireUser } from './session';
 import { fail, isoDay } from './rows';
 
 // What the database sends back, checked at the boundary so the rest of the app can trust it.
@@ -39,8 +40,10 @@ export async function loadCalendarSettings(supabase: SupabaseClient): Promise<Ca
   // All three at once (decision 0077). Her days off are asked for from the earliest date that can be "today"
   // anywhere, since her time zone is not known yet, and trimmed to her today once it is.
   const earliest = addDays(todayIn('UTC'), -1);
+  const me = await requireUser();
   const [profileResult, weekResult, exceptionResult] = await Promise.all([
-    supabase.from('profile').select('name, timezone').single(),
+    // Her own profile: the people of a workspace can read each other's (decision 0081).
+    supabase.from('profile').select('name, timezone').eq('owner_id', me.id).single(),
     supabase.from('work_week').select('weekday, start_time, end_time, breaks').order('weekday'),
     supabase
       .from('calendar_exception')

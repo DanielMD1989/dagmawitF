@@ -6,6 +6,8 @@ import { env, ZONE } from './env';
 export const STATE = `${import.meta.dirname}/../.auth/her.json`;
 /** Her password, made afresh by the global setup for each run. */
 export const PASSWORD_FILE = `${import.meta.dirname}/../.auth/password.txt`;
+/** The second account's saved sign-in (decision 0081). */
+export const HELPER_STATE = `${import.meta.dirname}/../.auth/helper.json`;
 
 const PHONE = { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 2 };
 const DESKTOP = { viewport: { width: 1280, height: 900 } };
@@ -14,12 +16,16 @@ const DESKTOP = { viewport: { width: 1280, height: 900 } };
 export type Look = 'phone' | 'desktop' | 'phone-dark' | 'desktop-dark';
 
 /** A signed-in browser, the way she uses the app: on her phone by default, in her time zone. */
-export async function signedInContext(browser: Browser, look: Look = 'phone'): Promise<BrowserContext> {
+export async function signedInContext(
+  browser: Browser,
+  look: Look = 'phone',
+  who: 'her' | 'helper' = 'her',
+): Promise<BrowserContext> {
   const dark = look.endsWith('dark');
   const ctx = await browser.newContext({
     ...(look.startsWith('phone') ? PHONE : DESKTOP),
     baseURL: env.baseURL,
-    storageState: STATE,
+    storageState: who === 'her' ? STATE : HELPER_STATE,
     timezoneId: ZONE,
     locale: 'en-GB',
     colorScheme: dark ? 'dark' : 'light',

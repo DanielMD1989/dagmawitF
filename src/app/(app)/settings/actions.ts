@@ -8,8 +8,9 @@ import { parseException, parseProfile, parseWorkWeek } from '@/domain/calendar/f
 import { strayFiles } from '@/domain/files';
 import { parseMeasurementDefaults } from '@/domain/preferences';
 import { parsePasswordChange } from '@/domain/passwords';
+import { addPersonRefusal, parsePersonEmail } from '@/domain/people/forms';
 import { unexpected } from '@/server/action-errors';
-import { requireUser } from '@/server/session';
+import { requireUser, getWorkspaceId } from '@/server/session';
 import { createSupabase } from '@/server/supabase';
 
 // Every action does the same four things, in this order:
@@ -149,14 +150,14 @@ async function listAll(bucket: Bucket, prefix: string): Promise<Listed[] | null>
  * <her id>/<order id>/<picture>, so her folder holds one folder per order.
  */
 export async function tidyPictures(): Promise<ActionState> {
-  const user = await requireUser();
+  await requireUser();
   const supabase = await createSupabase();
   const recorded = await supabase.from('attachment').select('storage_path');
   if (recorded.error) return unexpected('the tidy-up', recorded.error, {});
   const known = new Set(recorded.data.map((r: { storage_path: string }) => r.storage_path));
 
   const bucket = supabase.storage.from('order-files');
-  const orders = await listAll(bucket, user.id);
+  const orders = await listAll(bucket, await getWorkspaceId());
   if (!orders)
     return failure('The stored pictures could not be listed. Nothing was removed. Try again later.');
   const stored: Listed[] = [];
@@ -211,4 +212,33 @@ export async function signOut(): Promise<void> {
   const supabase = await createSupabase();
   await supabase.auth.signOut();
   redirect('/sign-in');
+}
+
+/** She adds the account of someone who works with her (decision 0081): it then sees and changes everything she does. */
+export async function addPerson(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+  const typed = typedIn(formData);
+  const parsed = parsePersonEmail(formData);
+  if (!parsed.ok) return failure('Check the email.', parsed.errors, typed);
+  const supabase = await createSupabase();
+  const { error } = await supabase.rpc('add_member', { p_email: parsed.value });
+  if (error) {
+    const said = addPersonRefusal(error.code, error.message);
+    return failure(said, { email: said }, typed);
+  }
+  revalidatePath('/', 'layout');
+  return success('Added. They now see and work on everything here.');
+}
+
+/** She removes a person from her workspace; or a person leaves it. */
+export async function removePerson(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  const me = await requireUser();
+  const id = idSchema.safeParse(formData.get('id'));
+  if (!id.success) return failure('That person could not be found. Reload the page.');
+  const supabase = await createSupabase();
+  const { error } = await supabase.rpc('remove_member', { p_user: id.data });
+  if (error) return unexpected('the person', error, {});
+  revalidatePath('/', 'layout');
+  if (id.data === me.id) redirect('/');
+  return success('Removed. They no longer see anything here.');
 }

@@ -1,9 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { ConfirmAction } from '@/components/ConfirmAction';
 import { SignOutForm } from '@/components/offline/SignOutForm';
 import { formatMinutes } from '@/domain/duration';
 import { formatDay } from '@/domain/dates';
 import { loadCalendarSettings } from '@/server/calendar';
+import { loadPeople, personName } from '@/server/people';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
 import { createSupabase } from '@/server/supabase';
@@ -13,17 +15,21 @@ import { PasswordForm } from './PasswordForm';
 import { ProfileForm } from './ProfileForm';
 import { TidyForm } from './TidyForm';
 import { WorkWeekForm } from './WorkWeekForm';
-import { removeException, signOut } from './actions';
+import { AddPersonForm } from './PeopleForm';
+import { removeException, removePerson, signOut } from './actions';
 
 export const metadata: Metadata = { title: 'Settings' };
 
 export default async function SettingsPage() {
   const user = await requireUser();
   const supabase = await createSupabase();
-  const [{ profile, week, exceptions, today }, preferences] = await Promise.all([
+  const [{ profile, week, exceptions, today }, preferences, people] = await Promise.all([
     loadCalendarSettings(supabase),
     loadPreferences(supabase),
+    loadPeople(supabase),
   ]);
+  const owner = people.find((p) => p.isOwner);
+  const iAmOwner = owner?.isMe ?? true;
 
   const zones = Intl.supportedValuesOf('timeZone');
   const timeZones = zones.includes(profile.timezone) ? zones : [profile.timezone, ...zones];
@@ -106,25 +112,76 @@ export default async function SettingsPage() {
         </div>
       </section>
 
-      <section className="section" aria-labelledby="data-heading">
+      <section className="section" aria-labelledby="people-heading">
         <div className="section__head">
-          <h2 id="data-heading">Your data</h2>
+          <h2 id="people-heading">People</h2>
           <p className="hint">
-            Everything you have entered, and your pictures, in one file. Keep a copy somewhere safe, away from
-            your phone; whoever looks after the app can bring it back from that file.
+            {iAmOwner
+              ? 'Someone who works with you sees and changes everything here: clients, jobs, the calendar.'
+              : `You work in ${owner ? personName(owner) : 'another'}’s workspace: you see and change everything in it.`}
           </p>
         </div>
-        <div className="btn-row">
-          <a href="/api/export" className="btn" download>
-            Download everything
-          </a>
-        </div>
-        <p className="hint">
-          Pictures can be left stored with nothing pointing at them if a save was cut off halfway. Tidying
-          removes them; nothing you can see changes.
-        </p>
-        <TidyForm />
+        <ul className="rows" aria-label="People of this workspace">
+          {people.map((p) => (
+            <li key={p.id}>
+              <div className="rows__main">
+                <span className="rows__title">
+                  {personName(p)}
+                  {p.isMe && ' (you)'}
+                </span>
+                <span className="hint">
+                  {p.email}
+                  {p.isOwner ? ' · owner' : ''}
+                </span>
+              </div>
+              {!p.isOwner && (iAmOwner || p.isMe) && (
+                <ConfirmAction
+                  action={removePerson}
+                  fields={{ id: p.id }}
+                  label={p.isMe ? 'Leave' : 'Remove'}
+                  question={
+                    p.isMe
+                      ? 'Leave this workspace? You will no longer see its clients and jobs.'
+                      : `Remove ${personName(p)}? They will no longer see anything here.`
+                  }
+                  confirmLabel={p.isMe ? 'Yes, leave' : 'Yes, remove'}
+                />
+              )}
+            </li>
+          ))}
+        </ul>
+        {iAmOwner && (
+          <details className="disclosure disclosure--link">
+            <summary>Add a person</summary>
+            <div className="disclosure__panel">
+              <AddPersonForm />
+            </div>
+          </details>
+        )}
       </section>
+
+      {/* The workspace's file is its owner's to download (decision 0081). */}
+      {iAmOwner && (
+        <section className="section" aria-labelledby="data-heading">
+          <div className="section__head">
+            <h2 id="data-heading">Your data</h2>
+            <p className="hint">
+              Everything you have entered, and your pictures, in one file. Keep a copy somewhere safe, away
+              from your phone; whoever looks after the app can bring it back from that file.
+            </p>
+          </div>
+          <div className="btn-row">
+            <a href="/api/export" className="btn" download>
+              Download everything
+            </a>
+          </div>
+          <p className="hint">
+            Pictures can be left stored with nothing pointing at them if a save was cut off halfway. Tidying
+            removes them; nothing you can see changes.
+          </p>
+          <TidyForm />
+        </section>
+      )}
 
       <section className="section" aria-labelledby="account-heading">
         <div className="section__head">

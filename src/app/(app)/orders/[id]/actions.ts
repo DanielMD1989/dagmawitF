@@ -11,7 +11,7 @@ import { isClosed, moveDone } from '@/domain/orders/status';
 import { missing, saveFailed, unexpected } from '@/server/action-errors';
 import { loadOrder } from '@/server/orders';
 import { loadPreferences } from '@/server/preferences';
-import { requireUser } from '@/server/session';
+import { requireUser, getWorkspaceId } from '@/server/session';
 import { createSupabase } from '@/server/supabase';
 
 // Every action does the same four things, in this order:
@@ -244,7 +244,7 @@ export async function switchMeasurements(_previous: ActionState, formData: FormD
  * by a row. If the row is refused (a delivered order, too many pictures) the file is taken out again.
  */
 export async function uploadAttachment(_previous: ActionState, formData: FormData): Promise<ActionState> {
-  const user = await requireUser();
+  await requireUser();
   const typed = typedIn(formData);
   const orderId = idField(formData, 'order-id');
   if (!orderId) return missing('order', typed);
@@ -265,7 +265,8 @@ export async function uploadAttachment(_previous: ActionState, formData: FormDat
     return failure('This order is delivered or cancelled. Reopen it before adding pictures.', {}, typed);
 
   const id = crypto.randomUUID();
-  const path = storagePath(user.id, orderId, id, check.type);
+  // In the workspace's folder: hers, or the one she was added to (decision 0081).
+  const path = storagePath(await getWorkspaceId(), orderId, id, check.type);
   const stored = await supabase.storage
     .from(BUCKET)
     .upload(path, bytes, { contentType: check.type, upsert: false });
