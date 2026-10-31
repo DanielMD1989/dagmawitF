@@ -98,7 +98,7 @@ test('an appointment is a step at a time on its day; a time already taken is ref
     client: 'Selam Bekele',
     title: 'Wedding guest dress',
     due: inDays(20),
-    steps: [{ title: 'Appointment', day: today(), from: '10:15', to: '11:00' }],
+    steps: [{ title: 'Appointment', day: today(), from: '10:15' }],
   });
   await page.getByRole('button', { name: 'Save the job' }).click();
   // 10:00 to 10:30 is already hers: sharpening the shears.
@@ -109,7 +109,7 @@ test('an appointment is a step at a time on its day; a time already taken is ref
   await expect(page.getByLabel('What it is (optional)')).toHaveValue('Wedding guest dress');
   await settled(page);
   // Right after it is free: the end of one is the start of the next.
-  await page.locator('.step-row').getByLabel('From (optional)').fill('10:30');
+  await page.locator('.step-row').getByLabel('Time (optional)').fill('10:30');
   await page.getByRole('button', { name: 'Save the job' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   ids.o4 = /\/orders\/([0-9a-f-]{36})/.exec(page.url())![1]!;
@@ -117,7 +117,7 @@ test('an appointment is a step at a time on its day; a time already taken is ref
   await expect(page.locator('.lede')).toContainText('#4');
   await page.goto('/');
   const appointment = item(section('Today'), 'Appointment', 'Selam Bekele · Wedding guest dress');
-  await expect(appointment.locator('.item__time')).toHaveText('10:30–11:00 AM');
+  await expect(appointment.locator('.item__time')).toHaveText('10:30 AM');
   await expect(page.getByText('Its time crosses another step’s.')).toHaveCount(0);
   // Timed steps come first, in time order; each headed by its work.
   const titles = await texts(section('Today').locator('.item__title'));
@@ -128,7 +128,8 @@ test('an appointment is a step at a time on its day; a time already taken is ref
 test('a step’s time already taken is refused there too', async () => {
   const form = await open(section('Today'), 'Add something for yourself');
   await form.getByLabel('Step').fill('Call the lace supplier');
-  await form.getByLabel('From (optional)').fill('10:45');
+  // The appointment is at 10:30.
+  await form.getByLabel('From (optional)').fill('10:30');
   await form.getByRole('button', { name: 'Add' }).click();
   await expect(form.locator('#own-from-error')).toContainText(
     'is taken by “Appointment” (Selam Bekele · Wedding guest dress, #4).',

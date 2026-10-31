@@ -416,16 +416,61 @@ legend {
   font-weight: 600;
   color: var(--warn);
 }
+/* Text boxes (decision 0079): rounded like the cards, 16px text (a phone does not zoom in on it), a green ring when
+   in use. */
 .input,
 .select,
 .textarea {
-  min-height: var(--tap);
+  min-height: 48px;
   width: 100%;
-  padding: 0 12px;
+  padding: 0 14px;
   border: 1px solid var(--line-strong);
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   background: var(--field);
   color: var(--ink);
+  font-size: 16px;
+  transition: border-color 0.15s;
+}
+.input:focus,
+.select:focus,
+.textarea:focus {
+  border-color: var(--accent);
+  outline: 2px solid var(--tint);
+  outline-offset: 0;
+}
+.input:focus-visible,
+.select:focus-visible,
+.textarea:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 1px;
+}
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.8;
+}
+/* A phone's date and time boxes keep the height of the others and read from the left. */
+.input[type='date'],
+.input[type='time'] {
+  -webkit-appearance: none;
+  appearance: none;
+  display: flex;
+  align-items: center;
+  text-align: left;
+}
+.input[type='date']::-webkit-date-and-time-value,
+.input[type='time']::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+}
+.select {
+  -webkit-appearance: none;
+  appearance: none;
+  padding-right: 40px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23556355' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 18px;
 }
 .textarea {
   padding: 10px 12px;
@@ -1860,23 +1905,43 @@ h4 {
 .step-row__head {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
 }
+/* The step's number, in a small green circle. */
 .step-row__n {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--tint);
+  color: var(--accent);
+  font-size: 14px;
   font-weight: 700;
-  color: var(--muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 .step-row__title {
   flex: 1;
   min-width: 0;
+  font-weight: 600;
 }
-.step-row__tools {
-  display: flex;
-  gap: 2px;
+.step-row .field > label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
 }
-.step-row__tools .btn {
-  min-width: 36px;
-  padding-inline: 8px;
+/* A quiet round button inside a card (remove a step). */
+.icon-btn--quiet {
+  box-shadow: none;
+  border-color: transparent;
+  background: transparent;
+  color: var(--muted);
+  flex: none;
+}
+.icon-btn--quiet:hover {
+  background: var(--warn-bg);
+  color: var(--warn);
 }
 
 /* The page's shape while the next one loads (decision 0077). */

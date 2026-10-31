@@ -585,3 +585,13 @@ shows only today and the week's steps; "Coming up" (a quick action on Today) is 
 event from tomorrow on, however far, soonest first with the days left, in "This week" and "Later". A job due today
 shows once on Today: by its step when it has one that day, otherwise as "due today" above the steps, so it is not
 missed.
+
+## 0079. A simpler new-job form; better text boxes
+
+On a new job the delivery was asked twice (the delivery day, and "Delivery" among the steps), and each step opened
+four boxes (day, last day, from, to) and three small buttons. Now the delivery day has a time beside it; given a time,
+the delivery goes on the calendar at that hour as a "Delivery" step, and "Delivery" is not offered among the steps.
+Each step is its name with a remove button, then its day and a time. A step over several days, or an end time, is set
+afterwards with "Change" on the job; the order of steps is the order she taps them. Text boxes everywhere are rounded
+like the cards, 16 px (a phone does not zoom into them), with a green ring in use; a phone's date and time boxes keep
+the height of the rest; selects have their own arrow.

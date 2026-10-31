@@ -79,7 +79,7 @@ test('a refused form keeps what she typed, her steps too, and says what is missi
     title: 'Bridal gown',
     brief: 'Ivory lace, long sleeves, boat neckline',
     due: '',
-    steps: [{ title: 'Appointment', day: inDays(4), from: '14:00', to: '14:30' }],
+    steps: [{ title: 'Appointment', day: inDays(4), from: '14:00' }],
   });
   await page.getByRole('button', { name: 'Save the job' }).click();
   await expect(page.locator('#due-on-error')).toHaveText('Choose a day.');
@@ -93,19 +93,28 @@ test('a refused form keeps what she typed, her steps too, and says what is missi
 test('she takes job 1, a bridal gown, building its steps with a tap each and giving each its day', async () => {
   await page.getByLabel('Delivery day').fill(inDays(60));
   await expect(page.getByText('That is 60 days left.')).toBeVisible();
+  // The delivery has its own day and time; it is not offered again as a step.
+  await expect(
+    page.getByRole('group', { name: 'Your usual steps' }).getByRole('button', { name: '+ Delivery' }),
+  ).toHaveCount(0);
   for (const step of [
     { title: 'Sketch', day: inDays(7) },
     { title: 'Buy fabric', day: inDays(10) },
     { title: 'Cutting', day: inDays(14) },
-    { title: 'Sewing', day: inDays(16), until: inDays(25) },
-    { title: 'Fitting', day: inDays(32), from: '10:30', to: '11:30' },
+    { title: 'Sewing', day: inDays(16) },
+    { title: 'Fitting', day: inDays(32), from: '10:30' },
     { title: 'Lace work' },
-    { title: 'Delivery', day: inDays(60) },
   ])
     await fillNewJob(page, { due: inDays(60), steps: [step] });
-  // A step tapped twice, or in the wrong place, is put right before saving.
-  await page.getByRole('button', { name: 'Move step 7 earlier' }).click();
-  await expect(page.locator('.step-row').nth(5).getByRole('combobox')).toHaveValue('Lace work');
+  // Each step asks only its day and a time.
+  const row = page.locator('.step-row').first();
+  await expect(row.getByLabel('Last day (optional)')).toHaveCount(0);
+  await expect(row.getByLabel('To (optional)')).toHaveCount(0);
+  // A step added by mistake is taken out.
+  await fillNewJob(page, { due: inDays(60), steps: [{ title: 'Fix' }] });
+  await page.getByRole('button', { name: 'Remove step 8, Fix' }).click();
+  await expect(page.locator('.step-row')).toHaveCount(7);
+  await page.locator('#due-at').fill('15:00');
   await page.getByText('Notes and job number').click();
   await page.getByLabel('Notes (optional)').fill('Pays in two parts. Mother collects.');
   await page.getByRole('button', { name: 'Save the job' }).click();
@@ -121,8 +130,8 @@ test('she takes job 1, a bridal gown, building its steps with a tap each and giv
     'Buy fabric',
     'Cutting',
     'Sewing',
-    'Lace work',
     'Fitting',
+    'Lace work',
     'Delivery',
   ]);
   // Each on the day she gave it; nothing is guessed.
@@ -139,9 +148,13 @@ test('she takes job 1, a bridal gown, building its steps with a tap each and giv
     on_day: inDays(4),
     starts_at: '14:00:00',
   });
-  expect(days.find((d) => d.title === 'Sewing')).toMatchObject({ on_day: inDays(16), until_day: inDays(25) });
+  expect(days.find((d) => d.title === 'Sewing')).toMatchObject({ on_day: inDays(16), until_day: null });
   expect(days.find((d) => d.title === 'Lace work')).toMatchObject({ on_day: null });
-  expect(days.find((d) => d.title === 'Delivery')!.on_day).toBe(inDays(60));
+  // The delivery time made the Delivery step, on the delivery day at that time.
+  expect(days.find((d) => d.title === 'Delivery')).toMatchObject({
+    on_day: inDays(60),
+    starts_at: '15:00:00',
+  });
   await inspect(page, 'job steps');
 });
 
@@ -524,7 +537,7 @@ test('job 2: an evening dress for another new client, with a few steps', async (
     due: inDays(16),
     steps: [
       { title: 'Buy fabric', day: inDays(1) },
-      { title: 'Fitting', day: inDays(8), from: '15:00', to: '15:30' },
+      { title: 'Fitting', day: inDays(8), from: '15:00' },
       { title: 'Delivery', day: inDays(16) },
     ],
   });

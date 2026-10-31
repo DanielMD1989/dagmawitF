@@ -26,7 +26,8 @@ function day(data: FormData, name: string, errors: FieldErrors): IsoDate | null 
   return raw;
 }
 
-function time(data: FormData, name: string, errors: FieldErrors): string | null {
+/** A time field ("09:30"), or null when empty; a wrong one is noted in `errors` under its name. */
+export function readTime(data: FormData, name: string, errors: FieldErrors): string | null {
   const raw = text(data, name);
   if (raw === '') return null;
   // A browser's time field may send seconds ("09:00:00"); the minute is what she chose.
@@ -51,8 +52,8 @@ export function parseStep(data: FormData, prefix = ''): Result<StepFields> {
 
   const onDay = day(data, name('day'), errors);
   const untilDay = day(data, name('until'), errors);
-  const startsAt = time(data, name('from'), errors);
-  const endsAt = time(data, name('to'), errors);
+  const startsAt = readTime(data, name('from'), errors);
+  const endsAt = readTime(data, name('to'), errors);
 
   if (untilDay && !errors[name('day')]) {
     if (!onDay) errors[name('until')] = 'Choose the first day too.';

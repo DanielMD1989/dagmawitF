@@ -80,12 +80,11 @@ export function item(scope: Page | Locator, title: string, work?: string): Locat
   return found.first();
 }
 
+/** A step as the new-job form takes it: what, its day, and a time if it has one (decision 0079). */
 export interface NewStep {
   title: string;
   day?: string;
-  until?: string;
   from?: string;
-  to?: string;
 }
 
 /**
@@ -98,6 +97,8 @@ export async function fillNewJob(
     client?: string | { name: string; phone?: string } | 'event';
     title?: string;
     due: string;
+    /** The delivery's time, beside its day: it goes on the calendar as a Delivery step. */
+    dueAt?: string;
     brief?: string;
     steps?: NewStep[];
   },
@@ -118,6 +119,7 @@ export async function fillNewJob(
       .fill(job.title);
   if (job.brief) await page.getByLabel('Design brief (optional)').fill(job.brief);
   await page.getByLabel(job.client === 'event' ? 'Event day' : 'Delivery day').fill(job.due);
+  if (job.dueAt) await page.locator('#due-at').fill(job.dueAt);
   for (const step of job.steps ?? []) {
     const usual = page.getByRole('group', { name: 'Your usual steps' }).getByRole('button', {
       name: `+ ${step.title}`,
@@ -132,9 +134,7 @@ export async function fillNewJob(
     }
     const row = rows.nth(before);
     if (step.day) await row.getByLabel('Day', { exact: true }).fill(step.day);
-    if (step.until) await row.getByLabel('Last day (optional)').fill(step.until);
-    if (step.from) await row.getByLabel('From (optional)').fill(step.from);
-    if (step.to) await row.getByLabel('To (optional)').fill(step.to);
+    if (step.from) await row.getByLabel('Time (optional)').fill(step.from);
   }
 }
 

@@ -5,7 +5,8 @@ import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { failure, typedIn, type ActionState } from '@/lib/action-state';
 import { violates } from '@/lib/database-errors';
-import { parseNewJob } from '@/domain/orders/forms';
+import { DELIVERY_STEP, parseNewJob } from '@/domain/orders/forms';
+import type { StepFields } from '@/domain/steps/forms';
 import { findClash, type Step } from '@/domain/steps/agenda';
 import { clashMessage } from '@/domain/steps/words';
 import { saveFailed } from '@/server/action-errors';
@@ -32,11 +33,21 @@ export async function createJob(_previous: ActionState, formData: FormData): Pro
   if (!parsed.ok) return failure('Check the fields marked below.', parsed.errors, typed);
   const job = parsed.value;
 
-  if (job.steps.some((s) => s.startsAt)) {
+  // Her steps, then the delivery at its time when she gave one (decision 0079).
+  const steps: StepFields[] = job.deliveryAt
+    ? [
+        ...job.steps,
+        { title: DELIVERY_STEP, onDay: job.dueOn, untilDay: null, startsAt: job.deliveryAt, endsAt: null },
+      ]
+    : job.steps;
+  // A clash is said beside the field that holds the time: a step's, or the delivery's.
+  const timeField = (i: number) => (i < job.steps.length ? `step-${i}-from` : 'due-at');
+
+  if (steps.some((s) => s.startsAt)) {
     const taken: Step[] = await loadCalendarSteps(supabase, prefs.today);
-    for (const [i, s] of job.steps.entries()) {
+    for (const [i, s] of steps.entries()) {
       const other = findClash(s, taken);
-      if (other) return failure('That time is taken.', { [`step-${i}-from`]: clashMessage(other) }, typed);
+      if (other) return failure('That time is taken.', { [timeField(i)]: clashMessage(other) }, typed);
       // The steps before it on this form are on her calendar too, once saved.
       taken.push({ ...s, id: `new-${i}`, doneOn: null, job: null });
     }
@@ -52,7 +63,7 @@ export async function createJob(_previous: ActionState, formData: FormData): Pro
       p_due_on: job.dueOn,
       p_notes: job.notes,
       p_brief: job.brief,
-      p_steps: job.steps.map((s) => ({
+      p_steps: steps.map((s) => ({
         title: s.title,
         on_day: s.onDay,
         until_day: s.untilDay,

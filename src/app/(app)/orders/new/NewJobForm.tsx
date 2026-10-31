@@ -6,24 +6,23 @@ import { TextArea, TextField } from '@/components/fields';
 import { fieldValue, idle } from '@/lib/action-state';
 import { isIsoDate } from '@/domain/dates';
 import { daysLeft } from '@/domain/jobs/words';
-import { EVENT_LABEL, NEW_CLIENT, NO_CLIENT } from '@/domain/orders/forms';
+import { DELIVERY_STEP, EVENT_LABEL, NEW_CLIENT, NO_CLIENT } from '@/domain/orders/forms';
 import { createJob } from '../actions';
 
+/** A step as she builds it here: what, which day, and a time if it has one (decision 0079). */
 interface Row {
   key: number;
   title: string;
   day: string;
-  until: string;
   from: string;
-  to: string;
 }
 type RowField = Exclude<keyof Row, 'key'>;
 
-const blank = (key: number, title = ''): Row => ({ key, title, day: '', until: '', from: '', to: '' });
+const blank = (key: number, title = ''): Row => ({ key, title, day: '', from: '' });
 
 /**
- * A new job (decisions 0068, 0075): who it is for; what it is; its day; and the steps she builds by tapping her usual
- * ones, giving each its day. Nothing is guessed: the days are hers. An event (a bazaar, a fashion show) is
+ * A new job (decisions 0068, 0075, 0079): who it is for; what it is; its delivery day, with a time if she has one; and
+ * the steps she builds by tapping her usual ones, each with its day and, if it has one, its time. Nothing is guessed: the days are hers. An event (a bazaar, a fashion show) is
  * only its name and its day, counted down on Today; the tailoring steps are not for it.
  */
 export function NewJobForm({
@@ -60,14 +59,10 @@ export function NewJobForm({
   const add = (...titles: string[]) => setRows((r) => [...r, ...titles.map((t) => blank(next.current++, t))]);
   const change = (key: number, field: RowField, value: string) =>
     setRows((r) => r.map((row) => (row.key === key ? { ...row, [field]: value } : row)));
-  const move = (index: number, by: -1 | 1) =>
-    setRows((r) => {
-      const copy = [...r];
-      [copy[index], copy[index + by]] = [copy[index + by]!, copy[index]!];
-      return copy;
-    });
   const remove = (key: number) => setRows((r) => r.filter((row) => row.key !== key));
   const err = (i: number, field: string) => state.errors[`step-${i}-${field}`];
+  // The delivery has its own day and time above; offering it again as a step was confusing (decision 0079).
+  const offered = usual.filter((t) => t.trim().toLowerCase() !== DELIVERY_STEP.toLowerCase());
 
   return (
     <form onSubmit={submit} className="form" noValidate aria-busy={pending}>
@@ -151,15 +146,18 @@ export function NewJobForm({
             hint="What the client asked for: neckline, sleeves, fabric ideas, the occasion."
           />
         )}
-        <TextField
-          name="due-on"
-          label={event ? 'Event day' : 'Delivery day'}
-          type="date"
-          state={state}
-          min={today}
-          onChange={(e) => setDue(e.target.value)}
-          hint={isIsoDate(due) && due >= today ? `That is ${daysLeft(due, today)}.` : undefined}
-        />
+        <div className="form-grid form-grid--pair">
+          <TextField
+            name="due-on"
+            label={event ? 'Event day' : 'Delivery day'}
+            type="date"
+            state={state}
+            min={today}
+            onChange={(e) => setDue(e.target.value)}
+          />
+          {!event && <TextField name="due-at" label="Time (optional)" type="time" state={state} />}
+        </div>
+        {isIsoDate(due) && due >= today && <p className="hint">That is {daysLeft(due, today)}.</p>}
       </section>
 
       {event ? (
@@ -170,11 +168,9 @@ export function NewJobForm({
       ) : (
         <section className="section" aria-labelledby="steps-heading">
           <h2 id="steps-heading">Steps</h2>
-          <p className="hint">
-            Tap the steps this job needs and give each its day. A time is for anything with the client.
-          </p>
+          <p className="hint">Tap the steps this job needs, then give each its day.</p>
           <div className="chips" role="group" aria-label="Your usual steps">
-            {usual.map((t) => (
+            {offered.map((t) => (
               <button key={t} type="button" className="chip-button" onClick={() => add(t)}>
                 + {t}
               </button>
@@ -197,54 +193,41 @@ export function NewJobForm({
                     <legend className="sr-only">Step {i + 1}</legend>
                     <div className="step-row__head">
                       <span className="step-row__n" aria-hidden="true">
-                        {i + 1}.
+                        {i + 1}
                       </span>
-                      <div className="step-row__title">
-                        <label htmlFor={`step-${row.key}-title`} className="sr-only">
-                          Step {i + 1}
-                        </label>
-                        <input
-                          id={`step-${row.key}-title`}
-                          name={`step-${i}-title`}
-                          className="input"
-                          value={row.title}
-                          onChange={(e) => change(row.key, 'title', e.target.value)}
-                          placeholder="What is done"
-                          maxLength={120}
-                          list="usual-steps"
-                          autoComplete="off"
-                          aria-invalid={Boolean(err(i, 'title'))}
-                          aria-describedby={err(i, 'title') ? `step-${row.key}-title-error` : undefined}
-                        />
-                      </div>
-                      <div className="step-row__tools">
-                        <button
-                          type="button"
-                          className="btn btn--quiet btn--small"
-                          disabled={i === 0}
-                          onClick={() => move(i, -1)}
-                          aria-label={`Move step ${i + 1} earlier`}
+                      <label htmlFor={`step-${row.key}-title`} className="sr-only">
+                        Step {i + 1}
+                      </label>
+                      <input
+                        id={`step-${row.key}-title`}
+                        name={`step-${i}-title`}
+                        className="input step-row__title"
+                        value={row.title}
+                        onChange={(e) => change(row.key, 'title', e.target.value)}
+                        placeholder="What is done"
+                        maxLength={120}
+                        list="usual-steps"
+                        autoComplete="off"
+                        aria-invalid={Boolean(err(i, 'title'))}
+                        aria-describedby={err(i, 'title') ? `step-${row.key}-title-error` : undefined}
+                      />
+                      <button
+                        type="button"
+                        className="icon-btn icon-btn--quiet"
+                        onClick={() => remove(row.key)}
+                        aria-label={`Remove step ${i + 1}${row.title ? `, ${row.title}` : ''}`}
+                      >
+                        <svg
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          aria-hidden="true"
                         >
-                          ↑
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn--quiet btn--small"
-                          disabled={i === rows.length - 1}
-                          onClick={() => move(i, 1)}
-                          aria-label={`Move step ${i + 1} later`}
-                        >
-                          ↓
-                        </button>
-                        <button
-                          type="button"
-                          className="btn btn--quiet btn--small"
-                          onClick={() => remove(row.key)}
-                          aria-label={`Remove step ${i + 1}${row.title ? `, ${row.title}` : ''}`}
-                        >
-                          ×
-                        </button>
-                      </div>
+                          <path d="M6 6l12 12 M18 6 6 18" />
+                        </svg>
+                      </button>
                     </div>
                     {err(i, 'title') && (
                       <p id={`step-${row.key}-title-error`} className="error">
@@ -265,29 +248,10 @@ export function NewJobForm({
                       <RowInput
                         row={row}
                         i={i}
-                        field="until"
-                        label="Last day (optional)"
-                        type="date"
-                        min={row.day || today}
-                        error={err(i, 'until')}
-                        onChange={change}
-                      />
-                      <RowInput
-                        row={row}
-                        i={i}
                         field="from"
-                        label="From (optional)"
+                        label="Time (optional)"
                         type="time"
                         error={err(i, 'from')}
-                        onChange={change}
-                      />
-                      <RowInput
-                        row={row}
-                        i={i}
-                        field="to"
-                        label="To (optional)"
-                        type="time"
-                        error={err(i, 'to')}
                         onChange={change}
                       />
                     </div>
@@ -297,7 +261,7 @@ export function NewJobForm({
             </ol>
           )}
           <datalist id="usual-steps">
-            {usual.map((t) => (
+            {offered.map((t) => (
               <option key={t} value={t} />
             ))}
           </datalist>

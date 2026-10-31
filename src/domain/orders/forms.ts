@@ -1,7 +1,7 @@
 import { isIsoDate, type IsoDate } from '../dates';
 import { chars, isUuid, parseWholeNumber, text, ticked, type FieldErrors, type Result } from '../form-input';
 import { clientProblems } from '../clients/forms';
-import { parseStepRows, type StepFields } from '../steps/forms';
+import { parseStepRows, readTime, sameStep, type StepFields } from '../steps/forms';
 import { canMove, isOrderStatus, type OrderStatus } from './status';
 
 /**
@@ -60,7 +60,15 @@ export interface NewJob {
   brief: string;
   /** The steps she picked, each with the day she gave it. */
   steps: StepFields[];
+  /**
+   * The delivery's time, when she gave one beside the delivery day (decision 0079): the delivery then goes on her
+   * calendar at that time, as a "Delivery" step. Null for no time, and always for an event.
+   */
+  deliveryAt: string | null;
 }
+
+/** The step a delivery time makes. */
+export const DELIVERY_STEP = 'Delivery';
 
 export const NEW_CLIENT = 'new';
 /** The choice of no client: an event, such as a bazaar or a fashion show. */
@@ -115,8 +123,13 @@ export function parseNewJob(data: FormData, context: { today: IsoDate }): Result
   const steps = parseStepRows(data);
   if (!steps.ok) Object.assign(errors, steps.errors);
 
+  const deliveryAt = client.kind === 'none' ? null : readTime(data, 'due-at', errors);
+  if (deliveryAt && steps.ok && steps.value.some((s) => sameStep(s, { title: DELIVERY_STEP, onDay: dueOn })))
+    errors['due-at'] =
+      'There is already a Delivery step on that day; give the time there, or here, not both.';
+
   if (Object.keys(errors).length > 0 || !steps.ok) return { ok: false, errors };
-  return { ok: true, value: { client, number, title, dueOn, notes, brief, steps: steps.value } };
+  return { ok: true, value: { client, number, title, dueOn, notes, brief, steps: steps.value, deliveryAt } };
 }
 
 /** An order's notes. The one thing that can still be changed on a delivered or cancelled order. */

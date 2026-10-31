@@ -422,7 +422,7 @@ test('the keyboard alone: take a job', async () => {
   await tabTo(page.getByLabel('What it is (optional)'));
   await page.keyboard.type('Netela shawl');
   // A step is a tap: Enter on its button, then its day.
-  await tabTo(page.getByRole('button', { name: '+ Delivery', exact: true }));
+  await tabTo(page.getByRole('button', { name: '+ Fitting', exact: true }));
   await page.keyboard.press('Enter');
   const day = page.locator('.step-row').getByLabel('Day', { exact: true });
   await tabTo(day);
@@ -432,7 +432,7 @@ test('the keyboard alone: take a job', async () => {
   await page.keyboard.press('Enter');
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   await expect(page.locator('h1')).toHaveText('Hanna Tesfaye · Netela shawl');
-  await expect(page.locator('li.item .item__title')).toHaveText(['Delivery']);
+  await expect(page.locator('li.item .item__title')).toHaveText(['Fitting']);
 });
 
 test('the keyboard alone: tick a step done', async () => {

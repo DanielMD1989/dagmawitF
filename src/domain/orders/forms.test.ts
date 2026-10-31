@@ -69,8 +69,33 @@ describe('a new job', () => {
           { title: 'Appointment', onDay: '2026-10-27', untilDay: null, startsAt: '14:00', endsAt: '14:30' },
           { title: 'Delivery', onDay: '2026-11-20', untilDay: null, startsAt: null, endsAt: null },
         ],
+        deliveryAt: null,
       },
     });
+  });
+
+  it('takes a time for the delivery beside its day (decision 0079)', () => {
+    expect(parseNewJob(newJob({ steps: '1', 'due-at': '15:30' }), ctx)).toMatchObject({
+      ok: true,
+      value: { dueOn: '2026-11-20', deliveryAt: '15:30' },
+    });
+    expect(parseNewJob(newJob({ steps: '1', 'due-at': '25:00' }), ctx)).toMatchObject({
+      ok: false,
+      errors: { 'due-at': 'Use a time such as 09:30.' },
+    });
+  });
+
+  it('refuses a delivery time when a Delivery step is already on that day', () => {
+    expect(parseNewJob(newJob({ 'due-at': '15:30' }), ctx)).toMatchObject({
+      ok: false,
+      errors: { 'due-at': expect.stringContaining('already a Delivery step') },
+    });
+  });
+
+  it('gives an event no delivery time', () => {
+    expect(
+      parseNewJob(newJob({ client: NO_CLIENT, title: 'Bazaar', steps: '0', 'due-at': '10:00' }), ctx),
+    ).toMatchObject({ ok: true, value: { deliveryAt: null } });
   });
 
   it('for a client may go without a title or steps', () => {
