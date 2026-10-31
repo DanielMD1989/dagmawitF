@@ -595,3 +595,12 @@ Each step is its name with a remove button, then its day and a time. A step over
 afterwards with "Change" on the job; the order of steps is the order she taps them. Text boxes everywhere are rounded
 like the cards, 16 px (a phone does not zoom into them), with a green ring in use; a phone's date and time boxes keep
 the height of the rest; selects have their own arrow.
+
+## 0080. Unfinished steps move to today
+
+She wants a step not done on its day carried to the next day by default. When she opens Today, the calendar, the jobs
+list or a job, her unfinished steps whose day has passed move to her today (`public.carry_over()`, run as her, so only
+her own), keeping their time; a step over several days whose last day has passed moves as one day. Each remembers the
+day it was first meant for (`task.moved_from`), shown as "Moved from Fri 30 Oct" until it is done or she sets its day
+herself. Steps of a draft, a paused or a closed job stay where they are: those jobs are not on her calendar. It is
+safe to run any number of times: a moved step is on today, so it moves again only tomorrow.

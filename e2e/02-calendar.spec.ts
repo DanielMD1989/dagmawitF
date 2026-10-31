@@ -140,18 +140,28 @@ test('a step’s time already taken is refused there too', async () => {
   await expect(item(page, 'Call the lace supplier')).toContainText('11:00 AM');
 });
 
-test('a step whose day has passed waits under “Not done yet”, and its job says so', async () => {
+test('a step not done on its day moves to today, and says the day it was for', async () => {
   await page.goto(`/orders/${ids.o1}`);
   const step = item(page, 'Sketch');
   const form = await open(step, 'Change');
   await form.getByLabel('Day', { exact: true }).fill(inDays(-2));
   await form.getByRole('button', { name: 'Save the step' }).click();
   await form.locator('.notice--success').waitFor();
-  await expect(page.locator('.card--warn')).toContainText('“Sketch” was due and is not done.');
+  // The next morning, so to speak: opening the app moves it to today (decision 0080).
   await page.goto('/');
-  await expect(item(section('Not done yet'), 'Sketch', 'Selam Bekele · Bridal gown')).toContainText(
-    'not done yet',
-  );
+  const moved = item(section('Today'), 'Sketch', 'Selam Bekele · Bridal gown');
+  await expect(moved.locator('.item__note--moved')).toContainText('Moved from ');
+  expect(await stepDay(ids.o1!, 'Sketch')).toBe(today());
+  expect(
+    await value(`select moved_from::text from public.task where order_id = $1 and title = 'Sketch'`, [
+      ids.o1,
+    ]),
+  ).toBe(inDays(-2));
+  await expect(section('Not done yet')).toHaveCount(0);
+  // Its job no longer calls it late, and still says where it came from.
+  await page.goto(`/orders/${ids.o1}`);
+  await expect(page.getByText('“Sketch” was due and is not done.')).toHaveCount(0);
+  await expect(item(page, 'Sketch')).toContainText('Moved from ');
 });
 
 test('a step over several days shows on each of them', async () => {
@@ -181,7 +191,7 @@ test('moving a job’s day moves its steps not done yet by as many days', async 
   await expect(page.locator('.notice--success').last()).toHaveText(/^Saved\. 7 steps moved with the day\.$/);
   expect(await stepDay(ids.o1!, 'Fitting')).toBe(inDays(39));
   expect(await stepDay(ids.o1!, 'Delivery')).toBe(inDays(67));
-  expect(await stepDay(ids.o1!, 'Sketch')).toBe(inDays(5));
+  expect(await stepDay(ids.o1!, 'Sketch')).toBe(inDays(7));
   expect(await stepDay(ids.o1!, 'Beading')).toBe(today());
   expect(await stepDay(ids.o1!, 'Lace work')).toBe('');
 });

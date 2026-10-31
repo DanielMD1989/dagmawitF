@@ -10,7 +10,7 @@ import { partLabel } from '@/domain/steps/words';
 import { loadCalendarSettings } from '@/server/calendar';
 import { loadJobDays } from '@/server/orders';
 import { requireUser } from '@/server/session';
-import { loadStepsBetween } from '@/server/steps';
+import { carryOver, loadStepsBetween } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
 
 export const metadata: Metadata = { title: 'Calendar' };
@@ -28,7 +28,7 @@ export default async function CalendarPage({
   await requireUser();
   const params = await searchParams;
   const supabase = await createSupabase();
-  const { today } = await loadCalendarSettings(supabase);
+  const [{ today }] = await Promise.all([loadCalendarSettings(supabase), carryOver(supabase)]);
   const grid = monthGrid(
     params.month ?? (params.day && isIsoDate(params.day) ? params.day.slice(0, 7) : undefined),
     today,

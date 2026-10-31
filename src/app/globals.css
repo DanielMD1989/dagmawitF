@@ -1982,3 +1982,9 @@ h4 {
     animation: none;
   }
 }
+
+/* A step moved to today unfinished (decision 0080). */
+.item__note--moved {
+  color: var(--sand-ink);
+  font-weight: 600;
+}

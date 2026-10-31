@@ -50,7 +50,7 @@ beforeAll(async () => {
     [her, job],
   );
   await db.query(`update public.orders set status = 'active' where id = $1`, [job]);
-  await migrate(db, { from: BEFORE });
+  await migrate(db, { from: BEFORE, upTo: '20261103090000' });
 });
 
 afterAll(async () => {

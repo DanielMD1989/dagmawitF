@@ -6,6 +6,7 @@ import { formatDay } from '@/domain/dates';
 import { daysLeft, jobHeadline } from '@/domain/jobs/words';
 import { isClosed, isOrderStatus, STATUS_LABEL, type OrderStatus } from '@/domain/orders/status';
 import { loadOrders } from '@/server/orders';
+import { carryOver } from '@/server/steps';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
 import { createSupabase } from '@/server/supabase';
@@ -26,6 +27,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   await requireUser();
   const filter = readFilter((await searchParams).status);
   const supabase = await createSupabase();
+  // Unfinished steps move to today first (decision 0080), so each job's next step is where it now is.
+  await carryOver(supabase);
   const [prefs, orders] = await Promise.all([loadPreferences(supabase), loadOrders(supabase)]);
 
   const count = (f: Filter) => (f === 'all' ? orders.length : orders.filter((o) => o.status === f).length);

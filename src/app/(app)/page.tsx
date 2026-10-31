@@ -15,7 +15,7 @@ import { dayHeading, partLabel } from '@/domain/steps/words';
 import { loadCalendarSettings } from '@/server/calendar';
 import { loadOrders } from '@/server/orders';
 import { requireUser } from '@/server/session';
-import { loadCalendarSteps } from '@/server/steps';
+import { carryOver, loadCalendarSteps } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
 
 export const metadata: Metadata = { title: 'Today' };
@@ -29,7 +29,11 @@ export default async function TodayPage() {
   const supabase = await createSupabase();
   // Her jobs need nothing else, so they load while her day is worked out; the steps need her day.
   const jobsLoading = loadOrders(supabase);
-  const { profile, week, exceptions, today } = await loadCalendarSettings(supabase);
+  // Yesterday's unfinished steps move to today (decision 0080) while her day is worked out, before her steps are read.
+  const [{ profile, week, exceptions, today }] = await Promise.all([
+    loadCalendarSettings(supabase),
+    carryOver(supabase),
+  ]);
   const [steps, jobs] = await Promise.all([loadCalendarSteps(supabase, today), jobsLoading]);
   const agenda = buildAgenda(steps, today, 7);
   const isOpen = openDayRule(

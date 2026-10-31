@@ -39,6 +39,8 @@ const columns = (s: StepFields) => ({
   until_day: s.untilDay,
   starts_at: s.startsAt,
   ends_at: s.endsAt,
+  // She has set its day herself: it is no longer a step moved over (decision 0080).
+  moved_from: null,
 });
 
 /** Ticks a step done today, or opens it again: only if it is still as she saw it. */

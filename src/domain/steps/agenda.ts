@@ -26,6 +26,8 @@ export interface Step {
   startsAt: string | null;
   endsAt: string | null;
   doneOn: IsoDate | null;
+  /** The day it was meant for, when it was moved to today unfinished (decision 0080). */
+  movedFrom?: IsoDate | null;
   /** Null for her studio work. */
   job: JobRef | null;
 }

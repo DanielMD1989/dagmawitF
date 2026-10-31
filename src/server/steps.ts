@@ -1,4 +1,5 @@
 import 'server-only';
+import { cache } from 'react';
 import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { addDays, type IsoDate } from '@/domain/dates';
@@ -14,7 +15,7 @@ const time = z
   .regex(/^\d{2}:\d{2}(:\d{2})?$/)
   .transform((t) => t.slice(0, 5));
 
-const STEP_COLUMNS = `id, title, sort, order_item_id, on_day, until_day, starts_at, ends_at, done_on,
+const STEP_COLUMNS = `id, title, sort, order_item_id, on_day, until_day, starts_at, ends_at, done_on, moved_from,
   job:orders(id, number, title, status, delivery_on, client:client(name))`;
 
 const stepRow = z.object({
@@ -27,6 +28,7 @@ const stepRow = z.object({
   starts_at: time.nullable(),
   ends_at: time.nullable(),
   done_on: isoDay.nullable(),
+  moved_from: isoDay.nullable(),
   job: z
     .object({
       id: z.string(),
@@ -55,6 +57,7 @@ function toStep(r: z.infer<typeof stepRow>): JobStep {
     startsAt: r.starts_at,
     endsAt: r.ends_at,
     doneOn: r.done_on,
+    movedFrom: r.moved_from,
     job: r.job && {
       id: r.job.id,
       number: r.job.number,
@@ -165,3 +168,13 @@ export async function setDone(
       : 'It was opened again on another device.',
   };
 }
+
+/**
+ * Moves her unfinished steps whose day has passed to her today (decision 0080), before a page shows her steps. Once a
+ * request is enough; a second run the same day moves nothing.
+ */
+export const carryOver = cache(async (supabase: SupabaseClient): Promise<number> => {
+  const { data, error } = await supabase.rpc('carry_over');
+  if (error) fail('moving unfinished steps to today', error);
+  return z.number().int().parse(data);
+});

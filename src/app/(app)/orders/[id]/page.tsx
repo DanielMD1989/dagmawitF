@@ -12,7 +12,7 @@ import { loadClients } from '@/server/clients';
 import { getOrder } from '@/server/orders';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
-import { loadJobSteps, loadUsedStepTitles } from '@/server/steps';
+import { carryOver, loadJobSteps, loadUsedStepTitles } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
 import { OrderDetailsForm } from './OrderDetailsForm';
 import { usualSteps } from '@/domain/steps/usual';
@@ -30,6 +30,7 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
   if (!order) notFound();
 
   const supabase = await createSupabase();
+  await carryOver(supabase);
   const [steps, clients, prefs, used] = await Promise.all([
     loadJobSteps(supabase, order.id),
     loadClients(supabase),
@@ -103,6 +104,11 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
                         {s.doneOn && ` · done ${formatDay(s.doneOn)}`}
                       </span>
                       {late && <span className="item__note">Not done yet.</span>}
+                      {!s.doneOn && s.movedFrom && (
+                        <span className="item__note item__note--moved">
+                          Moved from {formatDay(s.movedFrom)}
+                        </span>
+                      )}
                       {after && <span className="item__note">After the job’s day.</span>}
                     </div>
                   </div>

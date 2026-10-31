@@ -49,6 +49,9 @@ export function StepEntry({
             {step.job && ` · #${step.job.number}`}
           </span>
           {overdue && last && <span className="item__note">Was for {formatDay(last)}, not done yet.</span>}
+          {!done && step.movedFrom && (
+            <span className="item__note item__note--moved">Moved from {formatDay(step.movedFrom)}</span>
+          )}
           {clash && (
             <span className="item__note item__note--warn">
               Its time crosses another step’s. Move one of them.
