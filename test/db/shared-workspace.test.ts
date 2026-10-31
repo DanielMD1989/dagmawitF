@@ -17,7 +17,9 @@ async function people(c: PoolClient) {
 }
 
 async function herJob(c: PoolClient) {
-  const client = (await one<{ id: string }>(c, `insert into public.client (name) values ('Megan') returning id`)).id;
+  const client = (
+    await one<{ id: string }>(c, `insert into public.client (name) values ('Megan') returning id`)
+  ).id;
   const order = (
     await one<{ id: string }>(
       c,
@@ -40,12 +42,17 @@ describe('a shared workspace', () => {
 
       await actAs(c, helper);
       expect(await all(c, `select title from public.orders`)).toEqual([{ title: 'Bridal gown' }]);
-      await c.query(`insert into public.task (order_id, title, on_day) values ($1, 'Cutting', current_date)`, [order]);
+      await c.query(
+        `insert into public.task (order_id, title, on_day) values ($1, 'Cutting', current_date)`,
+        [order],
+      );
       await c.query(`update public.orders set delivery_on = current_date + 31 where id = $1`, [order]);
 
       await actAs(c, her);
       // What the helper added is hers: in her workspace.
-      expect(await one(c, `select owner_id from public.task where title = 'Cutting'`)).toEqual({ owner_id: her });
+      expect(await one(c, `select owner_id from public.task where title = 'Cutting'`)).toEqual({
+        owner_id: her,
+      });
       expect(await all(c, `select title from public.task`)).toEqual([{ title: 'Cutting' }]);
     });
   });
