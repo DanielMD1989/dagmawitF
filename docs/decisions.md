@@ -605,6 +605,16 @@ day it was first meant for (`task.moved_from`), shown as "Moved from Fri 30 Oct"
 herself. Steps of a draft, a paused or a closed job stay where they are: those jobs are not on her calendar. It is
 safe to run any number of times: a moved step is on today, so it moves again only tomorrow.
 
+## 0081. A shared workspace
+
+She wants a second account to see and work on the same details. An account she adds in Settings (People, by its
+email; the account is made first) works in her workspace with her rights: it sees and changes the same clients, jobs,
+steps, pictures and calendar. Rows stay keyed by `owner_id`, which is now the workspace's owner whoever is signed in
+(`app.workspace()`, from `app.member`, kept out of the API and the export); pictures live in the workspace's folder.
+A person's profile (name, time zone, unit) stays their own, readable by the others of the workspace. Each history line
+keeps who made the change (`actor_id`), for the other to be told. Only the owner adds or removes people and downloads
+everything; a member may leave. A restore into another account carries her own history lines over to it.
+
 ## 0082. A database change goes live before the code that uses it
 
 The app is deployed the moment a commit reaches `main`, while the Database workflow applies migrations only after CI
