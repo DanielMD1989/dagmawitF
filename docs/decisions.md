@@ -604,3 +604,11 @@ her own), keeping their time; a step over several days whose last day has passed
 day it was first meant for (`task.moved_from`), shown as "Moved from Fri 30 Oct" until it is done or she sets its day
 herself. Steps of a draft, a paused or a closed job stay where they are: those jobs are not on her calendar. It is
 safe to run any number of times: a moved step is on today, so it moves again only tomorrow.
+
+## 0082. A database change goes live before the code that uses it
+
+The app is deployed the moment a commit reaches `main`, while the Database workflow applies migrations only after CI
+passes, some ten minutes later. When a commit held both a migration and code that needed it (0080), the new code ran
+for those minutes against the old database and pages failed. Now a change to the database is released in two
+commits: first the migration alone, written so the app already live keeps working with it, and CI tests exactly that;
+then, once the Database workflow has applied it, the code that uses it.
