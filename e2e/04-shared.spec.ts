@@ -103,6 +103,8 @@ test('the second account’s Settings say whose workspace it is, without her dow
   expect(await text(helper)).toContain('You work in Dagmawit’s workspace');
   await expect(helper.getByRole('link', { name: 'Download everything' })).toHaveCount(0);
   await expect(helper.getByText('Add a person')).toHaveCount(0);
+  // Each phone turns notifications on for itself; here, with no push service, they are not set up.
+  await expect(helper.getByRole('heading', { name: 'Notifications' })).toBeVisible();
   await inspect(helper, 'settings as a member');
 });
 

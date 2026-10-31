@@ -1,7 +1,7 @@
 'use server';
 
+import { changed } from '@/server/news';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { failure, success, typedIn, type ActionState } from '@/lib/action-state';
 import { violates } from '@/lib/database-errors';
@@ -32,7 +32,7 @@ export async function createClient(_previous: ActionState, formData: FormData): 
   const { data, error } = await supabase.from('client').insert(parsed.value).select('id').single();
   if (error) return saveFailed('the client', error, typed);
 
-  revalidatePath('/', 'layout');
+  changed('/', 'layout');
   redirect(`/clients/${String(data.id)}`);
 }
 
@@ -49,7 +49,7 @@ export async function saveClient(_previous: ActionState, formData: FormData): Pr
   if (error) return saveFailed('the client', error, typed);
   if (data.length !== 1) return missing('client', typed);
 
-  revalidatePath('/', 'layout');
+  changed('/', 'layout');
   return success('Details saved.');
 }
 
@@ -71,7 +71,7 @@ export async function deleteClient(_previous: ActionState, formData: FormData): 
   if (error) return unexpected('the client', error, typed);
   if (data.length !== 1) return missing('client', typed);
 
-  revalidatePath('/', 'layout');
+  changed('/', 'layout');
   redirect('/clients');
 }
 
@@ -118,7 +118,7 @@ export async function recordMeasurements(_previous: ActionState, formData: FormD
 
   if (orderId) await makeUnmeasuredGarmentsUse(supabase, orderId, clientId, saved.id);
 
-  revalidatePath('/', 'layout');
+  changed('/', 'layout');
   redirect(orderId ? `/orders/${orderId}/measurements` : `/clients/${clientId}`);
 }
 

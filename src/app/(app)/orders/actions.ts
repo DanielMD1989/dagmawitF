@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { changed } from '@/server/news';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { failure, typedIn, type ActionState } from '@/lib/action-state';
@@ -95,6 +95,6 @@ export async function createJob(_previous: ActionState, formData: FormData): Pro
   }
 
   const id = z.string().parse(result.data);
-  revalidatePath('/', 'layout');
+  changed('/', 'layout');
   redirect(`/orders/${id}`);
 }

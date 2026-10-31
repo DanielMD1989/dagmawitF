@@ -622,3 +622,14 @@ passes, some ten minutes later. When a commit held both a migration and code tha
 for those minutes against the old database and pages failed. Now a change to the database is released in two
 commits: first the migration alone, written so the app already live keeps working with it, and CI tests exactly that;
 then, once the Database workflow has applied it, the code that uses it.
+
+## 0083. Phone notifications of the others' changes
+
+With two people in one workspace, each wants to know when the other adds or changes a job, or ticks a step done.
+Each phone turns notifications on for itself in Settings (on an iPhone, once the app is on the Home Screen). After a
+change, the app takes the history lines its person made and has not yet announced (`claim_my_news`, at most ten
+minutes old), words them as the job's history does ("Hanna: Delivery moved … · Megan · Bridal gown"), and the `push`
+Edge Function sends them to the phones of the workspace's other people, which the database gives it as the signed-in
+person (`workspace_push_targets`), so a session reaches only its own workspace. The push signing key pair is made once
+by the Database workflow and kept only in the function's secrets. Subscriptions are in `app`, out of the API and the
+export. Sending runs after the answer has gone, and a failure only means no notification.

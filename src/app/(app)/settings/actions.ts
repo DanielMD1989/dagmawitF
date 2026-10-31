@@ -242,3 +242,40 @@ export async function removePerson(_previous: ActionState, formData: FormData): 
   if (id.data === me.id) redirect('/');
   return success('Removed. They no longer see anything here.');
 }
+
+const pushSubscription = z.object({
+  endpoint: z.url().startsWith('https://').max(1000),
+  keys: z.object({ p256dh: z.string().min(1).max(200), auth: z.string().min(1).max(100) }),
+});
+
+/** This phone gets notifications of the others' changes (decision 0083). */
+export async function savePushSubscription(subscription: unknown): Promise<{ ok: boolean }> {
+  await requireUser();
+  const parsed = pushSubscription.safeParse(subscription);
+  if (!parsed.success) return { ok: false };
+  const supabase = await createSupabase();
+  const { error } = await supabase.rpc('save_push_subscription', {
+    p_endpoint: parsed.data.endpoint,
+    p_p256dh: parsed.data.keys.p256dh,
+    p_auth: parsed.data.keys.auth,
+  });
+  return { ok: !error };
+}
+
+/** This phone stops getting them. */
+export async function dropPushSubscription(endpoint: string): Promise<{ ok: boolean }> {
+  await requireUser();
+  if (typeof endpoint !== 'string' || endpoint.length > 1000) return { ok: false };
+  const supabase = await createSupabase();
+  const { error } = await supabase.rpc('drop_push_subscription', { p_endpoint: endpoint });
+  return { ok: !error };
+}
+
+/** Whether this phone's subscription is the signed-in person's. */
+export async function hasPushSubscription(endpoint: string): Promise<boolean> {
+  await requireUser();
+  if (typeof endpoint !== 'string' || endpoint.length > 1000) return false;
+  const supabase = await createSupabase();
+  const { data } = await supabase.rpc('has_push_subscription', { p_endpoint: endpoint });
+  return data === true;
+}

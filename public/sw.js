@@ -13,7 +13,7 @@
  *
  * To change this file, bump VERSION so old caches are cleared.
  */
-const VERSION = 'v3';
+const VERSION = 'v4';
 const SHELL = `dagmawit-shell-${VERSION}`;
 const PLAIN_OFFLINE = '/offline.html';
 const OFFLINE = '/offline';
@@ -150,4 +150,40 @@ self.addEventListener('fetch', (event) => {
         .then((kept) => kept ?? fetch(request)),
     );
   }
+});
+
+// A change by someone else of her workspace (decision 0083): shown as a notification; tapping it opens that job.
+self.addEventListener('push', (event) => {
+  let message = { title: 'DAGMAWIT', body: '', url: '/' };
+  try {
+    message = { ...message, ...event.data.json() };
+  } catch {
+    // An empty or unreadable push still says something changed.
+  }
+  event.waitUntil(
+    self.registration.showNotification(message.title, {
+      body: message.body,
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      data: { url: message.url },
+      tag: message.url,
+    }),
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const url = new URL(event.notification.data?.url ?? '/', self.location.origin);
+  if (url.origin !== self.location.origin) return;
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      for (const w of windows) {
+        if (new URL(w.url).origin === self.location.origin && 'focus' in w) {
+          w.navigate(url.href);
+          return w.focus();
+        }
+      }
+      return self.clients.openWindow(url.href);
+    }),
+  );
 });

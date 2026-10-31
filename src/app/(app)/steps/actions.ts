@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { changed } from '@/server/news';
 import { idField, text } from '@/domain/form-input';
 import { findClash } from '@/domain/steps/agenda';
 import { parseStep, sameStep, type StepFields } from '@/domain/steps/forms';
@@ -15,10 +15,10 @@ import { createSupabase } from '@/server/supabase';
 /** Steps of her jobs and her studio work (docs/calendar-first.md). Every change refreshes Today and the job. */
 
 function refresh(orderId: string | null) {
-  revalidatePath('/');
-  revalidatePath('/calendar');
-  revalidatePath('/orders');
-  if (orderId) revalidatePath(`/orders/${orderId}`, 'layout');
+  changed('/');
+  changed('/calendar');
+  changed('/orders');
+  if (orderId) changed(`/orders/${orderId}`, 'layout');
 }
 
 /** The message for the field, when the step's time is already taken on her calendar (decision 0067). */

@@ -52,3 +52,23 @@ jobs:
       - run: supabase db push --dry-run
 
       - run: supabase db push
+
+      # Phone notifications (decision 0083): the signing key pair is made here once and kept only in the push
+      # function's secrets, then the function is deployed. A failure here leaves the app and the database as they are.
+      - name: Notification keys, made once
+        run: |
+          if supabase secrets list --project-ref "$SUPABASE_PROJECT_ID" | grep -q VAPID_PRIVATE_KEY; then
+            echo "The keys exist."
+          else
+            keys=$(npx --yes web-push@3.6.7 generate-vapid-keys --json)
+            private=$(echo "$keys" | jq -r .privateKey)
+            echo "::add-mask::$private"
+            supabase secrets set --project-ref "$SUPABASE_PROJECT_ID" \
+              "VAPID_PUBLIC_KEY=$(echo "$keys" | jq -r .publicKey)" \
+              "VAPID_PRIVATE_KEY=$private" \
+              "VAPID_SUBJECT=https://dagmawit-f.vercel.app" > /dev/null
+            echo "Made and stored the keys."
+          fi
+
+      - name: Deploy the push function
+        run: supabase functions deploy push --project-ref "$SUPABASE_PROJECT_ID" --no-verify-jwt --use-api

@@ -5,6 +5,7 @@ import { SignOutForm } from '@/components/offline/SignOutForm';
 import { formatMinutes } from '@/domain/duration';
 import { formatDay } from '@/domain/dates';
 import { loadCalendarSettings } from '@/server/calendar';
+import { pushPublicKey } from '@/server/news';
 import { loadPeople, personName } from '@/server/people';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
@@ -15,6 +16,7 @@ import { PasswordForm } from './PasswordForm';
 import { ProfileForm } from './ProfileForm';
 import { TidyForm } from './TidyForm';
 import { WorkWeekForm } from './WorkWeekForm';
+import { NotificationsSwitch } from './NotificationsSwitch';
 import { AddPersonForm } from './PeopleForm';
 import { removeException, removePerson, signOut } from './actions';
 
@@ -28,6 +30,7 @@ export default async function SettingsPage() {
     loadPreferences(supabase),
     loadPeople(supabase),
   ]);
+  const publicKey = await pushPublicKey();
   const owner = people.find((p) => p.isOwner);
   const iAmOwner = owner?.isMe ?? true;
 
@@ -110,6 +113,16 @@ export default async function SettingsPage() {
             </Link>
           </div>
         </div>
+      </section>
+
+      <section className="section" aria-labelledby="notify-heading">
+        <div className="section__head">
+          <h2 id="notify-heading">Notifications</h2>
+          <p className="hint">
+            When someone else of this workspace adds or changes a job, or ticks a step done.
+          </p>
+        </div>
+        <NotificationsSwitch publicKey={publicKey} />
       </section>
 
       <section className="section" aria-labelledby="people-heading">

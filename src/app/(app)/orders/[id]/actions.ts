@@ -1,6 +1,6 @@
 'use server';
 
-import { revalidatePath } from 'next/cache';
+import { changed } from '@/server/news';
 import { redirect } from 'next/navigation';
 import { failure, success, typedIn, type ActionState } from '@/lib/action-state';
 import { violates } from '@/lib/database-errors';
@@ -82,7 +82,7 @@ export async function saveOrderDetails(_previous: ActionState, formData: FormDat
   if (data.length !== 1)
     return failure('This job was changed in another window. Reload the page and try again.', {}, typed);
 
-  revalidatePath('/', 'layout');
+  changed('/', 'layout');
   return success(
     moved === null ? 'Saved.' : `Saved. ${moved} step${moved === 1 ? '' : 's'} moved with the day.`,
   );
@@ -122,7 +122,7 @@ export async function moveOrder(_previous: ActionState, formData: FormData): Pro
   if (data.length !== 1)
     return failure('This order was changed in another window. Reload the page and try again.', {}, typed);
 
-  revalidatePath('/', 'layout');
+  changed('/', 'layout');
   return success(moveDone(order.status, move.to));
 }
 
@@ -149,7 +149,7 @@ export async function deleteJob(_previous: ActionState, formData: FormData): Pro
     supabase,
     files.data.map((f: { storage_path: string }) => f.storage_path),
   );
-  revalidatePath('/', 'layout');
+  changed('/', 'layout');
   redirect('/orders');
 }
 
@@ -173,7 +173,7 @@ export async function addGarment(_previous: ActionState, formData: FormData): Pr
   if (error?.code === 'P0002') return missing('order', typed);
   if (error) return saveFailed('the garment', error, typed);
 
-  revalidatePath('/', 'layout');
+  changed('/', 'layout');
   return success('Garment added.');
 }
 
@@ -194,7 +194,7 @@ export async function saveGarment(_previous: ActionState, formData: FormData): P
   if (error) return saveFailed('the garment', error, typed);
   if (data.length !== 1) return missing('garment', typed);
 
-  revalidatePath('/', 'layout');
+  changed('/', 'layout');
   return success('Garment saved.');
 }
 
@@ -209,7 +209,7 @@ export async function removeGarment(_previous: ActionState, formData: FormData):
   if (error) return saveFailed('the garment', error, typed);
   if (data.length !== 1) return missing('garment', typed);
 
-  revalidatePath('/', 'layout');
+  changed('/', 'layout');
   return success('Garment removed.');
 }
 
@@ -232,7 +232,7 @@ export async function switchMeasurements(_previous: ActionState, formData: FormD
   if (error) return saveFailed('the garment', error, typed);
   if (data.length !== 1) return missing('garment', typed);
 
-  revalidatePath('/', 'layout');
+  changed('/', 'layout');
   return success('Garment now uses these measurements.');
 }
 
@@ -286,7 +286,7 @@ export async function uploadAttachment(_previous: ActionState, formData: FormDat
     return saveFailed('the picture', error, typed);
   }
 
-  revalidatePath('/', 'layout');
+  changed('/', 'layout');
   return success('Picture added.');
 }
 
@@ -311,7 +311,7 @@ export async function saveAttachmentCaption(
   if (error) return saveFailed('the caption', error, typed);
   if (data.length !== 1) return missing('picture', typed);
 
-  revalidatePath('/', 'layout');
+  changed('/', 'layout');
   return success('Caption saved.');
 }
 
@@ -332,7 +332,7 @@ export async function removeAttachment(_previous: ActionState, formData: FormDat
     supabase,
     data.map((f: { storage_path: string }) => f.storage_path),
   );
-  revalidatePath('/', 'layout');
+  changed('/', 'layout');
   return success('Picture removed.');
 }
 
