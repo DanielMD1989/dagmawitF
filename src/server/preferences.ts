@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { todayIn, type IsoDate } from '@/domain/dates';
 import { isMeasurementUnit, type MeasurementUnit } from '@/domain/measurements/sets';
+import { requireUser } from './session';
 import { fail } from './rows';
 
 const row = z.object({
@@ -21,7 +22,13 @@ export interface Preferences {
 }
 
 export async function loadPreferences(supabase: SupabaseClient): Promise<Preferences> {
-  const { data, error } = await supabase.from('profile').select('name, timezone, measurement_unit').single();
+  // Her own profile: the people of a workspace can read each other's (decision 0081).
+  const me = await requireUser();
+  const { data, error } = await supabase
+    .from('profile')
+    .select('name, timezone, measurement_unit')
+    .eq('owner_id', me.id)
+    .single();
   if (error) fail('her settings', error);
   const p = row.parse(data);
   return {

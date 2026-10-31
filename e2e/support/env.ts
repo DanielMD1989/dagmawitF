@@ -9,6 +9,8 @@ export const env = {
   databaseUrl: process.env.E2E_DATABASE_URL ?? 'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
   /** The account the suite creates afresh on every run, and deletes first if it exists. */
   email: process.env.E2E_EMAIL ?? 'dagmawit.e2e@example.test',
+  /** A second account, made the same way: the person she adds to her workspace (decision 0081). */
+  helperEmail: process.env.E2E_HELPER_EMAIL ?? 'hanna.e2e@example.test',
 };
 
 /** Her time zone: every day the suite types or expects is a day on her wall clock. */
