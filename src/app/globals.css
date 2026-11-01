@@ -36,6 +36,9 @@
   --sand: light-dark(#e8dabb, #5a5130);
   --sand-ink: light-dark(#4a4333, #f0e6c4);
   --wait: light-dark(#b9a472, #c9b77f);
+  /* An event in the month (decision 0086): told from a step by more than its hue, a lighter ground and darker ink. */
+  --event-bg: light-dark(#ece8f6, #2c2740);
+  --event-ink: light-dark(#3f3470, #d6cff2);
   /* The bottom bar (the side bar on a wide screen): her green #0F3F00. The open page: white, on a lighter shade of
      the same green; never lime. */
   --nav-bg: light-dark(#0f3f00, #0f3f00);
@@ -1748,108 +1751,149 @@ h4 {
 .month {
   display: grid;
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  gap: 4px;
   list-style: none;
-  margin: 0;
+  margin: 0 -8px;
   padding: 0;
 }
 .month__weekday {
   text-align: center;
   font-size: 12px;
+  font-weight: 600;
   color: var(--muted);
-  padding-bottom: 4px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
 }
+/* Each day by name (decision 0086): no box per day, the same height on every row, a line between the weeks. */
 .month__day {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: flex-start;
+  align-items: stretch;
   gap: 2px;
-  min-height: 52px;
-  padding: 6px 2px;
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  border: 1px solid var(--line);
+  height: 100%;
+  min-height: 84px;
+  box-sizing: border-box;
+  padding: 4px 1px 6px;
+  border-bottom: 1px solid var(--line);
   color: inherit;
   text-decoration: none;
   font-variant-numeric: tabular-nums;
+  overflow: hidden;
+}
+.month__num {
+  align-self: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
 }
 .month__day--other {
-  background: transparent;
-  border-color: transparent;
   color: var(--muted);
 }
-.month__day--today {
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px var(--accent);
+.month__day--today .month__num {
+  background: var(--solid);
+  color: var(--on-solid);
 }
+/* The day she picked: outlined, so its light-green steps still stand out. */
 .month__day[aria-current='date'] {
-  box-shadow: 0 0 0 2px var(--solid);
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 2px var(--accent);
 }
-/* A day that holds something stands out from an empty one at a glance. */
-.month__day--busy {
+.month__day:hover {
+  background: var(--bg);
+}
+.month__tags {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.month__tag {
+  display: block;
+  min-height: 10px;
+  padding: 1px 3px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  line-height: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.month__tag--due {
+  background: var(--solid);
+  color: var(--on-solid);
+}
+.month__tag--step {
   background: var(--tint);
-  border-color: var(--accent-2);
+  color: var(--accent);
 }
-.month__day--other.month__day--busy {
-  background: transparent;
+.month__tag--event {
+  background: var(--event-bg);
+  color: var(--event-ink);
 }
-/* A delivery or an event due that day (decision 0070). */
-.month__due {
-  max-width: 100%;
+.month__more {
+  padding-left: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.month__tag--wide,
+.month__more--wide {
+  display: none;
+}
+@media (min-width: 720px) {
+  .month {
+    margin: 0;
+  }
+  .month__day {
+    min-height: 104px;
+    padding: 6px 4px 8px;
+  }
+  .month__tag,
+  .month__more {
+    font-size: 12px;
+    line-height: 16px;
+    padding-inline: 6px;
+  }
+  .month__tag--wide {
+    display: block;
+  }
+  .month__more--wide {
+    display: inline;
+  }
+  .month__more--narrow {
+    display: none;
+  }
+}
+.month__key {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 2px;
+  gap: 6px 16px;
+  list-style: none;
+  margin: 10px 0 0;
+  padding: 0;
+  font-size: 12px;
+  color: var(--muted);
 }
-.month__mark {
-  padding: 0 4px;
-  border-radius: 4px;
-  background: var(--accent);
-  color: var(--surface);
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  line-height: 16px;
+.month__key li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
-.month__mark--event {
-  background: var(--warn);
-  /* An event by its name (decision 0084): up to two short lines in the day's box; the full name is in the day's list. */
-  max-width: 100%;
-  padding: 1px 3px;
-  overflow: hidden;
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  hyphens: auto;
-  font-size: 9px;
-  line-height: 11px;
-  text-align: center;
-  text-transform: none;
-  letter-spacing: 0;
-}
-@media (min-width: 720px) {
-  .month__mark--event {
-    font-size: 11px;
-    line-height: 14px;
-  }
+.month__key .month__tag {
+  width: 14px;
+  min-height: 10px;
+  padding: 0;
+  border: 1px solid var(--line-strong);
 }
 .day-list__due {
   margin-bottom: 12px;
-}
-.month__count {
-  min-width: 20px;
-  padding: 0 6px;
-  border-radius: 10px;
-  background: var(--solid);
-  color: var(--on-solid);
-  font-size: 12px;
-  font-weight: 600;
-  text-align: center;
 }
 .steps-preview {
   display: flex;

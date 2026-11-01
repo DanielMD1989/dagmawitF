@@ -650,3 +650,13 @@ drift. They are checked as on a new order: a step already on the order that day,
 beside its row, and the rows stay as she left them. "Delivery" is not a button (the order's day says it) but can be
 added as one of her own. A step over several days, or with an end time, is given that when she changes it. An event
 keeps "Add something to prepare".
+
+## 0086. The month shows each day's work by name
+
+She chose option C of the calendar designs: a day in the month shows what it holds by name, not a count and a "Due"
+badge. First the orders due that day, by the client's first name on solid green; then the events, by their name on
+violet; then the steps not done yet, by the step, on light green, in the order of the day's list. A phone shows two and
+counts the rest ("+3 more"); a wider screen shows three. An order's "Delivery" step is its due mark, so an order is
+never shown twice on its day. The days have no boxes: one height for every week, a line between the weeks, today a
+solid circle, the day she picked tinted. A key under the month says what the colours are, and a screen reader hears
+each day's labels in full. The day's list below is unchanged.

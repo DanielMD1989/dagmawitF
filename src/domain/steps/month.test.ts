@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { monthGrid } from './month';
+import type { JobRef, Step } from './agenda';
+import { dayMarks, monthGrid } from './month';
 
 describe('a month on her calendar', () => {
   it('runs from the Monday before the first to the Sunday after the last', () => {
@@ -29,5 +30,66 @@ describe('a month on her calendar', () => {
     for (const name of [undefined, '', '2026-13', 'soon', '1999-01']) {
       expect(monthGrid(name, '2026-10-29').month, String(name)).toBe('2026-10');
     }
+  });
+});
+
+const DAY = '2026-11-20';
+const YONAS: JobRef = {
+  id: 'j1',
+  number: 7,
+  title: 'Hem trousers',
+  clientName: 'Yonas Alemu',
+  dueOn: DAY,
+  status: 'active',
+};
+const SELAM: JobRef = { ...YONAS, id: 'j2', number: 4, title: 'Bridal gown', clientName: 'Selam Bekele' };
+const BAZAAR = { id: 'e1', number: 9, title: 'Holiday bazaar', clientName: null };
+let k = 0;
+const step = (over: Partial<Step>): Step => ({
+  id: `s${++k}`,
+  title: 'Fitting',
+  onDay: DAY,
+  untilDay: null,
+  startsAt: null,
+  endsAt: null,
+  doneOn: null,
+  job: SELAM,
+  ...over,
+});
+
+describe('the labels of a day in the month', () => {
+  it('names the orders due by first name, then the events, then the steps in the day’s order', () => {
+    const marks = dayMarks(
+      [
+        step({ title: 'Sewing', startsAt: '14:00' }),
+        step({ title: 'Call the lace supplier', job: null, startsAt: '09:00' }),
+      ],
+      [BAZAAR, YONAS],
+      DAY,
+    );
+    expect(marks).toEqual([
+      { kind: 'due', text: 'Yonas', full: 'Yonas Alemu · Hem trousers due' },
+      { kind: 'event', text: 'Holiday bazaar', full: 'Holiday bazaar' },
+      { kind: 'step', text: 'Call the lace supplier', full: 'Call the lace supplier' },
+      { kind: 'step', text: 'Sewing', full: 'Sewing · Selam Bekele' },
+    ]);
+  });
+
+  it('shows an order once on its day: its Delivery step is its due mark', () => {
+    const marks = dayMarks([step({ title: 'Delivery', job: YONAS, startsAt: '16:00' })], [YONAS], DAY);
+    expect(marks).toEqual([{ kind: 'due', text: 'Yonas', full: 'Yonas Alemu · Hem trousers due' }]);
+  });
+
+  it('leaves out what is done, and steps on other days; a step over several days is on each', () => {
+    const marks = dayMarks(
+      [
+        step({ title: 'Cutting', doneOn: DAY }),
+        step({ title: 'Sketch', onDay: '2026-11-21' }),
+        step({ title: 'Beading', onDay: '2026-11-19', untilDay: '2026-11-21' }),
+      ],
+      [],
+      DAY,
+    );
+    expect(marks.map((m) => m.text)).toEqual(['Beading']);
   });
 });

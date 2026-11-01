@@ -4,8 +4,8 @@ import { AddStepForm } from '@/components/steps/AddStepForm';
 import { StepEntry } from '@/components/steps/StepEntry';
 import { formatDayLong, isIsoDate, WEEKDAY_NAMES } from '@/domain/dates';
 import { byDueDay, dueNotShown, dueWord, jobHeadline } from '@/domain/jobs/words';
-import { entriesOn, isOverdue, monthCounts } from '@/domain/steps/agenda';
-import { monthGrid } from '@/domain/steps/month';
+import { entriesOn, isOverdue } from '@/domain/steps/agenda';
+import { dayMarks, monthGrid } from '@/domain/steps/month';
 import { partLabel } from '@/domain/steps/words';
 import { loadCalendarSettings } from '@/server/calendar';
 import { loadJobDays } from '@/server/orders';
@@ -16,9 +16,9 @@ import { createSupabase } from '@/server/supabase';
 export const metadata: Metadata = { title: 'Calendar' };
 
 /**
- * The month (docs/calendar-first.md): each day marked with what it holds, the deliveries and events due that day and
- * how many steps, and the list of the day she picks. A job's own day is marked whether or not it has steps
- * (decision 0070).
+ * The month (docs/calendar-first.md): each day shows what it holds by name, the orders due by the client's first name,
+ * the events, then the steps (decision 0086), and below it the list of the day she picks. An order's own day is
+ * marked whether or not it has steps (decision 0070).
  */
 export default async function CalendarPage({
   searchParams,
@@ -37,7 +37,6 @@ export default async function CalendarPage({
     loadStepsBetween(supabase, grid.from, grid.to),
     loadJobDays(supabase, grid.from, grid.to),
   ]);
-  const counts = monthCounts(steps, grid.from, grid.to);
   const due = byDueDay(jobDays);
   const chosen =
     params.day && isIsoDate(params.day) && params.day >= grid.from && params.day <= grid.to
@@ -103,22 +102,11 @@ export default async function CalendarPage({
             </li>
           ))}
           {grid.days.map(({ day, inMonth }) => {
-            const n = counts.get(day) ?? 0;
-            const jobs = due.get(day) ?? [];
-            // An event is marked by its own name, not the word "Event" (decision 0084).
-            const eventNames = jobs.filter((j) => !j.clientName).map((j) => j.title);
-            const events = eventNames.length;
-            const deliveries = jobs.length - events;
-            const said = [
-              deliveries > 0 && `${deliveries} deliver${deliveries === 1 ? 'y' : 'ies'}`,
-              events > 0 && eventNames.join(', '),
-              n > 0 && `${n} step${n === 1 ? '' : 's'}`,
-            ].filter(Boolean);
+            const marks = dayMarks(steps, due.get(day) ?? [], day);
             const classes = [
               'month__day',
               inMonth ? '' : 'month__day--other',
               day === today ? 'month__day--today' : '',
-              n > 0 || jobs.length > 0 ? 'month__day--busy' : '',
             ]
               .filter(Boolean)
               .join(' ');
@@ -129,25 +117,30 @@ export default async function CalendarPage({
                   className={classes}
                   aria-current={day === chosen ? 'date' : undefined}
                 >
-                  {Number(day.slice(8))}
+                  <span className="month__num">{Number(day.slice(8))}</span>
                   <span className="sr-only">
                     {' '}
                     {formatDayLong(day)}
-                    {day === today ? ', today' : ''}: {said.length === 0 ? 'nothing' : said.join(', ')}
+                    {day === today ? ', today' : ''}:{' '}
+                    {marks.length === 0 ? 'nothing' : marks.map((m) => m.full).join(', ')}
                   </span>
-                  {(events > 0 || deliveries > 0) && (
-                    <span className="month__due" aria-hidden="true">
-                      {eventNames.map((name, k) => (
-                        <span key={k} className="month__mark month__mark--event">
-                          {name}
+                  {marks.length > 0 && (
+                    // Two labels on a phone, three on a wider screen; the rest are counted (decision 0086).
+                    <span className="month__tags" aria-hidden="true">
+                      {marks.slice(0, 3).map((m, i) => (
+                        <span
+                          key={i}
+                          className={`month__tag month__tag--${m.kind}${i === 2 ? ' month__tag--wide' : ''}`}
+                        >
+                          {m.text}
                         </span>
                       ))}
-                      {deliveries > 0 && <span className="month__mark">Due</span>}
-                    </span>
-                  )}
-                  {n > 0 && (
-                    <span className="month__count" aria-hidden="true">
-                      {n}
+                      {marks.length > 2 && (
+                        <span className="month__more month__more--narrow">+{marks.length - 2} more</span>
+                      )}
+                      {marks.length > 3 && (
+                        <span className="month__more month__more--wide">+{marks.length - 3} more</span>
+                      )}
                     </span>
                   )}
                 </Link>
@@ -155,6 +148,17 @@ export default async function CalendarPage({
             );
           })}
         </ol>
+        <ul className="month__key" aria-label="What the labels are">
+          <li>
+            <span className="month__tag month__tag--due" aria-hidden="true" /> Order due
+          </li>
+          <li>
+            <span className="month__tag month__tag--step" aria-hidden="true" /> Step
+          </li>
+          <li>
+            <span className="month__tag month__tag--event" aria-hidden="true" /> Event
+          </li>
+        </ul>
       </section>
 
       <section className="section day-list" aria-labelledby="chosen-heading">

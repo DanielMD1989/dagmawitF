@@ -155,18 +155,6 @@ export function buildAgenda(steps: readonly Step[], today: IsoDate, days = 7): A
   };
 }
 
-/** How many open steps are on each day of a month, for the month view. Keys are days with at least one. */
-export function monthCounts(steps: readonly Step[], first: IsoDate, last: IsoDate): Map<IsoDate, number> {
-  const counts = new Map<IsoDate, number>();
-  for (const s of steps) {
-    if (!isOnCalendar(s) || s.onDay === null || s.doneOn !== null) continue;
-    const from = s.onDay < first ? first : s.onDay;
-    const to = lastDayOf(s)! > last ? last : lastDayOf(s)!;
-    for (let d = from; d <= to; d = addDays(d, 1)) counts.set(d, (counts.get(d) ?? 0) + 1);
-  }
-  return counts;
-}
-
 /** What to tell her about one job's steps, in plain words. */
 export function jobWarnings(steps: readonly Step[], dueOn: IsoDate, today: IsoDate): string[] {
   const out: string[] = [];

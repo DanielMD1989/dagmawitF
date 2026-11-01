@@ -30,6 +30,7 @@ const PAIRS: [foreground: string, background: string, minimum: number][] = [
   ['warn', 'bg', 4.5],
   ['warn', 'surface', 4.5],
   ['warn', 'warn-bg', 4.5],
+  ['event-ink', 'event-bg', 4.5], // an event's name in the month
   ['on-warn', 'warn', 4.5],
   ['sand-ink', 'sand', 4.5],
   ['accent', 'track', 3], // the meter fill on its track

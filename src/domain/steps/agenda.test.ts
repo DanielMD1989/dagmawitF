@@ -4,7 +4,6 @@ import {
   entriesOn,
   findClash,
   jobWarnings,
-  monthCounts,
   timesOverlap,
   type JobRef,
   type Step,
@@ -117,22 +116,6 @@ describe('her calendar', () => {
     expect(a.undated.map((s) => s.title)).toEqual(['No day']);
   });
 
-  it('counts open steps on each day of a month, steps over days on each', () => {
-    const counts = monthCounts(
-      [
-        step({ onDay: '2026-10-30', untilDay: '2026-11-02' }),
-        step({ onDay: '2026-11-02' }),
-        step({ onDay: '2026-11-02', doneOn: '2026-11-02' }),
-        step({ onDay: '2026-11-30', untilDay: '2026-12-02' }),
-      ],
-      '2026-11-01',
-      '2026-11-30',
-    );
-    expect(Object.fromEntries(counts)).toEqual({ '2026-11-01': 1, '2026-11-02': 2, '2026-11-30': 1 });
-  });
-});
-
-describe('what an order tells her', () => {
   it('names a step after its day, and one that was due and is not done', () => {
     expect(
       jobWarnings(

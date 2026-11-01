@@ -339,12 +339,16 @@ test('a step she typed once is not offered as a usual one', async () => {
   await expect(usual.getByRole('button', { name: '+ Fitting', exact: true })).toBeVisible();
 });
 
-test('the month: how many steps each day holds, and the list of the day she picks', async () => {
+test('the month: what each day holds, by name, and the list of the day she picks', async () => {
   await page.goto('/calendar');
   await inspect(page, 'month');
   const todayCell = page.locator('.month__day--today');
   await expect(todayCell).toHaveAttribute('aria-current', 'date');
-  await expect(todayCell.locator('.month__count')).toHaveText(/^\d+$/);
+  // By name (decision 0086): two labels on a phone, the rest counted; all of it said to a screen reader.
+  await expect(todayCell.locator('.month__tag:visible')).toHaveCount(2);
+  await expect(todayCell.locator('.month__more:visible')).toHaveText(/^\+\d+ more$/);
+  await expect(todayCell.locator('.sr-only')).toContainText('Appointment · Selam Bekele');
+  await expect(page.getByRole('list', { name: 'What the labels are' })).toContainText('Order due');
   await expect(
     section(new Date().toLocaleDateString('en-GB', { weekday: 'long', timeZone: 'Africa/Addis_Ababa' })),
   ).toContainText('Appointment');
@@ -360,8 +364,7 @@ test('the month marks the days orders and events are due, steps or none, and lis
   await page.goto(`/calendar?day=${show}`);
   const cell = page.locator(`a[href$="day=${show}"]`);
   // By its name, not the word "Event" (decision 0084).
-  await expect(cell.locator('.month__mark--event')).toHaveText('Fashion show at the Sheraton');
-  await expect(cell).toHaveClass(/month__day--busy/);
+  await expect(cell.locator('.month__tag--event')).toHaveText('Fashion show at the Sheraton');
   await expect(cell.locator('.sr-only')).toContainText('Fashion show at the Sheraton');
   const due = page.getByRole('list', { name: 'Due this day' });
   await expect(due).toContainText('Fashion show at the Sheraton');
@@ -369,13 +372,16 @@ test('the month marks the days orders and events are due, steps or none, and lis
   // The party dress, whose steps have no days yet, is still marked on its delivery day.
   const party = inDays(10);
   await page.goto(`/calendar?day=${party}`);
-  await expect(page.locator(`a[href$="day=${party}"] .month__mark`).first()).toHaveText('Due');
+  // An order due, by the client's first name.
+  await expect(page.locator(`a[href$="day=${party}"] .month__tag--due`)).toHaveText(['Hanna']);
   await expect(page.getByRole('list', { name: 'Due this day' })).toContainText('Hanna Tesfaye · Party dress');
   await expect(page.getByRole('list', { name: 'Due this day' })).toContainText('Delivery');
   // The suit alteration has its Delivery step on its day: listed once, by that step, not again as due.
   const fix = inDays(2);
   await page.goto(`/calendar?day=${fix}`);
-  await expect(page.locator(`a[href$="day=${fix}"] .month__mark`).first()).toHaveText('Due');
+  const fixCell = page.locator(`a[href$="day=${fix}"]`);
+  await expect(fixCell.locator('.month__tag--due')).toHaveText(['Yonas']);
+  await expect(fixCell.locator('.month__tag--step', { hasText: 'Delivery' })).toHaveCount(0);
   await expect(item(page, 'Delivery', 'Yonas Alemu · Suit alteration')).toBeVisible();
   await expect(page.getByRole('list', { name: 'Due this day' })).toHaveCount(0);
   await inspect(page, 'month with due days');
