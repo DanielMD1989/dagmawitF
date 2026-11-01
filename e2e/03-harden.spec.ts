@@ -398,7 +398,7 @@ test('the keyboard: the skip link comes first and lands on the content', async (
   expect(await page.evaluate(() => document.activeElement?.closest('main') !== null)).toBe(true);
 });
 
-test('the keyboard alone: take a job', async () => {
+test('the keyboard alone: take an order', async () => {
   // A date box takes day and month in the order of the browser's own language. Find which first, on a page of its
   // own, as she knows hers.
   await page.goto('/orders/new');
@@ -428,7 +428,7 @@ test('the keyboard alone: take a job', async () => {
   await tabTo(day);
   await page.keyboard.type(dayFirst ? `${d}${m}${y}` : `${m}${d}${y}`);
   await expect(day).toHaveValue(inDays(20));
-  await tabTo(page.getByRole('button', { name: 'Save the job' }));
+  await tabTo(page.getByRole('button', { name: 'Save the order' }));
   await page.keyboard.press('Enter');
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   await expect(page.locator('h1')).toHaveText('Hanna Tesfaye · Netela shawl');

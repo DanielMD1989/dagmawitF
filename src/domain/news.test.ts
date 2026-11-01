@@ -41,7 +41,7 @@ describe('what a phone is told', () => {
         'Hanna',
         headlineOf,
       ),
-    ).toEqual({ title: 'DAGMAWIT', body: 'Hanna changed 2 jobs.', url: '/orders' });
+    ).toEqual({ title: 'DAGMAWIT', body: 'Hanna changed 2 orders.', url: '/orders' });
   });
 
   it('says nothing for lines it cannot word', () => {

@@ -43,7 +43,7 @@ export default async function SettingsPage() {
         <p className="eyebrow">Settings</p>
         <h1>Your week and your days off</h1>
         <p className="lede">
-          When a new job’s steps are given their days, they go on the days you work. Nothing else depends on
+          When a new order’s steps are given their days, they go on the days you work. Nothing else depends on
           it.
         </p>
       </div>
@@ -119,7 +119,7 @@ export default async function SettingsPage() {
         <div className="section__head">
           <h2 id="notify-heading">Notifications</h2>
           <p className="hint">
-            When someone else of this workspace adds or changes a job, or ticks a step done.
+            When someone else of this workspace adds or changes an order, or ticks a step done.
           </p>
         </div>
         <NotificationsSwitch publicKey={publicKey} />
@@ -130,7 +130,7 @@ export default async function SettingsPage() {
           <h2 id="people-heading">People</h2>
           <p className="hint">
             {iAmOwner
-              ? 'Someone who works with you sees and changes everything here: clients, jobs, the calendar.'
+              ? 'Someone who works with you sees and changes everything here: clients, orders, the calendar.'
               : `You work in ${owner ? personName(owner) : 'another'}’s workspace: you see and change everything in it.`}
           </p>
         </div>
@@ -154,7 +154,7 @@ export default async function SettingsPage() {
                   label={p.isMe ? 'Leave' : 'Remove'}
                   question={
                     p.isMe
-                      ? 'Leave this workspace? You will no longer see its clients and jobs.'
+                      ? 'Leave this workspace? You will no longer see its clients and orders.'
                       : `Remove ${personName(p)}? They will no longer see anything here.`
                   }
                   confirmLabel={p.isMe ? 'Yes, leave' : 'Yes, remove'}

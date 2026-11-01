@@ -64,11 +64,11 @@ describe('her calendar', () => {
     expect(a.days[0]!.entries[0]!.step.doneOn).toBe(TODAY);
   });
 
-  it('orders a day by time first, then by the soonest job', () => {
+  it('orders a day by time first, then by the soonest order', () => {
     const later = { ...JOB, id: 'j2', dueOn: '2026-12-01' };
     const steps = [
-      step({ title: 'Untimed, later job', onDay: TODAY, job: later }),
-      step({ title: 'Untimed, sooner job', onDay: TODAY }),
+      step({ title: 'Untimed, later order', onDay: TODAY, job: later }),
+      step({ title: 'Untimed, sooner order', onDay: TODAY }),
       step({ title: 'At two', onDay: TODAY, startsAt: '14:00' }),
       step({ title: 'At nine', onDay: TODAY, startsAt: '09:00' }),
       step({ title: 'Studio', onDay: TODAY, job: null }),
@@ -76,8 +76,8 @@ describe('her calendar', () => {
     expect(entriesOn(steps, TODAY).map((e) => e.step.title)).toEqual([
       'At nine',
       'At two',
-      'Untimed, sooner job',
-      'Untimed, later job',
+      'Untimed, sooner order',
+      'Untimed, later order',
       'Studio',
     ]);
   });
@@ -103,7 +103,7 @@ describe('her calendar', () => {
     ]);
   });
 
-  it('shows only confirmed jobs and her studio work; lists steps with no day apart', () => {
+  it('shows only confirmed orders and her studio work; lists steps with no day apart', () => {
     const steps = [
       step({ title: 'Draft', onDay: TODAY, job: { ...JOB, status: 'draft' } }),
       step({ title: 'On hold', onDay: TODAY, job: { ...JOB, status: 'on_hold' } }),
@@ -132,7 +132,7 @@ describe('her calendar', () => {
   });
 });
 
-describe('what a job tells her', () => {
+describe('what an order tells her', () => {
   it('names a step after its day, and one that was due and is not done', () => {
     expect(
       jobWarnings(
@@ -147,8 +147,8 @@ describe('what a job tells her', () => {
         TODAY,
       ),
     ).toEqual([
-      '“Late lace” is after the job’s day.',
-      '“Long sewing” is after the job’s day.',
+      '“Late lace” is after the order’s day.',
+      '“Long sewing” is after the order’s day.',
       '“Missed” was due and is not done.',
     ]);
   });

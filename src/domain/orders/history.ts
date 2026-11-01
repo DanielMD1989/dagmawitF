@@ -76,16 +76,16 @@ const days = (n: number) => `${n} day${n === 1 ? '' : 's'}`;
 function statusSentence(from: OrderStatus, to: OrderStatus, d: Record<string, unknown>): string {
   const reason = str(d, 'reason');
   const because = reason ? `: ${reason}` : '';
-  if (from === 'draft' && to === 'active') return 'Job confirmed.';
-  if (from === 'on_hold' && to === 'active') return 'Job resumed.';
-  if (to === 'active') return 'Job reopened.';
+  if (from === 'draft' && to === 'active') return 'Order confirmed.';
+  if (from === 'on_hold' && to === 'active') return 'Order resumed.';
+  if (to === 'active') return 'Order reopened.';
   if (to === 'on_hold') return `Put on hold${because}.`;
   if (to === 'delivered') {
     const on = day(d, 'delivered_on');
     return on ? `Finished on ${formatDay(on)}.` : 'Finished.';
   }
-  if (to === 'cancelled') return `Job cancelled${because}.`;
-  return 'Job reopened as a draft.';
+  if (to === 'cancelled') return `Order cancelled${because}.`;
+  return 'Order reopened as a draft.';
 }
 
 function versionWord(n: number | null): string {
@@ -98,14 +98,14 @@ export function describeEvent(event: HistoryEvent): string {
   switch (event.action) {
     case 'order_created': {
       const n = num(d, 'number');
-      return n === null ? 'Job created.' : `Job #${n} created.`;
+      return n === null ? 'Order created.' : `Order #${n} created.`;
     }
     case 'status_changed': {
       const from = d.from;
       const to = d.to;
       return isOrderStatus(from) && isOrderStatus(to)
         ? statusSentence(from, to, d)
-        : 'The job changed status.';
+        : 'The order changed status.';
     }
     case 'delivery_changed':
       return `Day moved from ${dayText(day(d, 'from'))} to ${dayText(day(d, 'to'))}.`;

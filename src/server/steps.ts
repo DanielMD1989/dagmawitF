@@ -110,7 +110,7 @@ export async function loadJobSteps(supabase: SupabaseClient, orderId: string): P
     .order('sort')
     .order('created_at')
     .limit(500);
-  if (error) fail('the job’s steps', error);
+  if (error) fail('the order’s steps', error);
   return z.array(stepRow).parse(data).map(toStep);
 }
 

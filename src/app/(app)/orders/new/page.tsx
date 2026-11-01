@@ -11,7 +11,7 @@ import { loadUsedStepTitles } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
 import { NewJobForm } from './NewJobForm';
 
-export const metadata: Metadata = { title: 'New job or event' };
+export const metadata: Metadata = { title: 'New order or event' };
 
 export default async function NewJobPage({
   searchParams,
@@ -38,8 +38,8 @@ export default async function NewJobPage({
   return (
     <>
       <div className="page-head">
-        <BackLink href="/orders">Jobs</BackLink>
-        <h1>{event ? 'New event' : 'New job'}</h1>
+        <BackLink href="/orders">Orders</BackLink>
+        <h1>{event ? 'New event' : 'New order'}</h1>
         <p className="lede">
           {event
             ? 'A bazaar, a fashion show: its name and its day.'

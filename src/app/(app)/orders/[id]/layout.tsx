@@ -17,8 +17,8 @@ import { StatusActions } from './StatusActions';
 export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
   const { id } = await params;
   const order = isUuid(id) ? await getOrder(id) : null;
-  if (!order) return { title: 'Job' };
-  return { title: order.client ? `Job #${order.number}` : order.title };
+  if (!order) return { title: 'Order' };
+  return { title: order.client ? `Order #${order.number}` : order.title };
 }
 
 export default async function OrderLayout({
@@ -38,7 +38,7 @@ export default async function OrderLayout({
   return (
     <>
       <div className="page-head">
-        <BackLink href="/orders">Jobs</BackLink>
+        <BackLink href="/orders">Orders</BackLink>
         <div className="title-row">
           <h1>
             {jobHeadline({

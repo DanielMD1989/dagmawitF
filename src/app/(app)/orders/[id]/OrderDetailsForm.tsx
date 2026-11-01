@@ -1,11 +1,11 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState } from 'react';
 import { FormNotice } from '@/components/FormNotice';
 import { SubmitButton } from '@/components/SubmitButton';
 import { SelectField, TextArea, TextField } from '@/components/fields';
-import { fieldTicked, fieldValue, idle } from '@/lib/action-state';
-import { EVENT_LABEL, NO_CLIENT } from '@/domain/orders/forms';
+import { fieldTicked, idle } from '@/lib/action-state';
+import { NO_CLIENT } from '@/domain/orders/forms';
 import { isClosed, type OrderStatus } from '@/domain/orders/status';
 import { saveOrderDetails } from './actions';
 
@@ -29,30 +29,26 @@ export function OrderDetailsForm({
 }) {
   const [state, action] = useActionState(saveOrderDetails, idle);
   const closed = isClosed(order.status);
-  const [client, setClient] = useState(fieldValue(state, 'client', order.clientId ?? NO_CLIENT));
-  const event = client === NO_CLIENT;
+  const event = order.clientId === null;
 
   return (
     <form action={action} className="form" noValidate>
       <input type="hidden" name="id" value={order.id} />
       {!closed && (
         <>
-          <SelectField
-            name="client"
-            label="For"
-            state={state}
-            saved={order.clientId ?? NO_CLIENT}
-            options={[
-              ...clients.map((c) => ({ value: c.id, label: c.name })),
-              { value: NO_CLIENT, label: EVENT_LABEL },
-            ]}
-            onChange={setClient}
-            hint={
-              event
-                ? undefined
-                : 'Changing the client clears the measurements chosen on this job, because they are hers.'
-            }
-          />
+          {/* An event is for no customer: it is not asked (decision 0084). An order may change its customer. */}
+          {event ? (
+            <input type="hidden" name="client" value={NO_CLIENT} />
+          ) : (
+            <SelectField
+              name="client"
+              label="For"
+              state={state}
+              saved={order.clientId ?? ''}
+              options={clients.map((c) => ({ value: c.id, label: c.name }))}
+              hint="Changing the client clears the measurements chosen on this order, because they are hers."
+            />
+          )}
           <TextField
             name="title"
             label={event ? 'Name of the event' : 'What it is (optional)'}
@@ -88,7 +84,7 @@ export function OrderDetailsForm({
         maxLength={4000}
         hint={
           closed
-            ? `Notes can still be added to a finished ${event ? 'event' : 'job'}.`
+            ? `Notes can still be added to a finished ${event ? 'event' : 'order'}.`
             : event
               ? 'For you. For example: the stand number, what to bring.'
               : 'For you. For example: pays in two parts, collects with her mother.'

@@ -173,7 +173,7 @@ export function jobWarnings(steps: readonly Step[], dueOn: IsoDate, today: IsoDa
   for (const s of steps) {
     if (s.doneOn !== null) continue;
     const last = lastDayOf(s);
-    if (last !== null && last > dueOn) out.push(`“${s.title}” is after the job’s day.`);
+    if (last !== null && last > dueOn) out.push(`“${s.title}” is after the order’s day.`);
     else if (isOverdue(s, today)) out.push(`“${s.title}” was due and is not done.`);
   }
   return out;

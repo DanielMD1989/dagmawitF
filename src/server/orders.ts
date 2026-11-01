@@ -54,7 +54,7 @@ export async function loadOrders(supabase: SupabaseClient): Promise<OrderListIte
     .order('number')
     .order('created_at', { referencedTable: 'order_item' })
     .limit(2000);
-  if (error) fail('her jobs', error);
+  if (error) fail('her orders', error);
   return z
     .array(listRow)
     .parse(data)
@@ -139,7 +139,7 @@ export async function loadJobDays(
     .order('delivery_on')
     .order('number')
     .limit(2000);
-  if (error) fail('her jobs', error);
+  if (error) fail('her orders', error);
   return z
     .array(dueRow)
     .parse(data)
@@ -184,7 +184,7 @@ export async function loadOrder(supabase: SupabaseClient, id: string): Promise<O
     .eq('id', id)
     .order('created_at', { referencedTable: 'order_item' })
     .maybeSingle();
-  if (error) fail('the job', error);
+  if (error) fail('the order', error);
   if (!data) return null;
   const o = detailRow.parse(data);
   return {

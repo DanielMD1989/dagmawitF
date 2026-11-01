@@ -48,7 +48,7 @@ export const STATUS_LABEL: Readonly<Record<OrderStatus, string>> = {
 };
 
 /** What a person does to move a job (or an event) from one status to another, in the words on the button. */
-export function moveLabel(from: OrderStatus, to: OrderStatus, noun: 'job' | 'event' = 'job'): string {
+export function moveLabel(from: OrderStatus, to: OrderStatus, noun: 'order' | 'event' = 'order'): string {
   if (from === 'draft' && to === 'active') return `Confirm the ${noun}`;
   if (from === 'on_hold' && to === 'active') return `Resume the ${noun}`;
   if (to === 'active') return `Reopen the ${noun}`;
@@ -60,11 +60,11 @@ export function moveLabel(from: OrderStatus, to: OrderStatus, noun: 'job' | 'eve
 
 /** What is said once a move has been made. */
 export function moveDone(from: OrderStatus, to: OrderStatus): string {
-  if (from === 'draft' && to === 'active') return 'Job confirmed.';
-  if (from === 'on_hold' && to === 'active') return 'Job resumed.';
-  if (to === 'active') return 'Job reopened.';
-  if (to === 'on_hold') return 'Job put on hold.';
-  if (to === 'delivered') return 'Job marked as finished.';
-  if (to === 'cancelled') return 'Job cancelled.';
-  return 'Job reopened as a draft.';
+  if (from === 'draft' && to === 'active') return 'Order confirmed.';
+  if (from === 'on_hold' && to === 'active') return 'Order resumed.';
+  if (to === 'active') return 'Order reopened.';
+  if (to === 'on_hold') return 'Order put on hold.';
+  if (to === 'delivered') return 'Order marked as finished.';
+  if (to === 'cancelled') return 'Order cancelled.';
+  return 'Order reopened as a draft.';
 }

@@ -38,7 +38,7 @@ test.beforeAll(async ({ browser }) => {
 });
 test.afterAll(async () => ctx.close());
 
-test('Today lists today’s steps with their jobs, then the days ahead that have any', async () => {
+test('Today lists today’s steps with their orders, then the days ahead that have any', async () => {
   await page.goto('/');
   // The work comes first, the step under it (her Task 7).
   const fix = item(section('Today'), 'Fix', 'Yonas Alemu · Suit alteration');
@@ -50,7 +50,7 @@ test('Today lists today’s steps with their jobs, then the days ahead that have
   await inspect(page, 'today');
 });
 
-test('she ticks a step done, it tells the job’s history, and she can open it again', async () => {
+test('she ticks a step done, it tells the order’s history, and she can open it again', async () => {
   await page.getByRole('button', { name: 'Mark Fix, Yonas Alemu · Suit alteration as done' }).click();
   await page
     .getByRole('button', { name: 'Fix, Yonas Alemu · Suit alteration: done. Mark as not done' })
@@ -100,7 +100,7 @@ test('an appointment is a step at a time on its day; a time already taken is ref
     due: inDays(20),
     steps: [{ title: 'Appointment', day: today(), from: '10:15' }],
   });
-  await page.getByRole('button', { name: 'Save the job' }).click();
+  await page.getByRole('button', { name: 'Save the order' }).click();
   // 10:00 to 10:30 is already hers: sharpening the shears.
   const error = page.locator('#step-0-from-error');
   await expect(error).toContainText('10:00–10:30 AM on ');
@@ -110,7 +110,7 @@ test('an appointment is a step at a time on its day; a time already taken is ref
   await settled(page);
   // Right after it is free: the end of one is the start of the next.
   await page.locator('.step-row').getByLabel('Time (optional)').fill('10:30');
-  await page.getByRole('button', { name: 'Save the job' }).click();
+  await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   ids.o4 = /\/orders\/([0-9a-f-]{36})/.exec(page.url())![1]!;
   await expect(page.locator('h1')).toHaveText('Selam Bekele · Wedding guest dress');
@@ -178,7 +178,7 @@ test('a step over several days shows on each of them', async () => {
   await expect(item(section('Tomorrow'), 'Beading')).toContainText('Day 2 of 3');
 });
 
-test('moving a job’s day moves its steps not done yet by as many days', async () => {
+test('moving an order’s day moves its steps not done yet by as many days', async () => {
   const fitting = await stepDay(ids.o1!, 'Fitting');
   expect(fitting).toBe(inDays(32));
   await page.goto(`/orders/${ids.o1}`);
@@ -196,27 +196,27 @@ test('moving a job’s day moves its steps not done yet by as many days', async 
   expect(await stepDay(ids.o1!, 'Lace work')).toBe('');
 });
 
-test('the same step twice on the same day of a job is refused: she changes the one there is', async () => {
+test('the same step twice on the same day of an order is refused: she changes the one there is', async () => {
   const form = await open(page.locator('main'), 'Add a step');
   await form.getByLabel('Step').fill('Fitting');
   await form.getByLabel('Day', { exact: true }).fill(inDays(39));
   await form.getByRole('button', { name: 'Add' }).click();
-  await expect(form).toContainText('This job already has “Fitting” on that day. Change that one instead.');
+  await expect(form).toContainText('This order already has “Fitting” on that day. Change that one instead.');
   expect(
     await value(`select count(*)::text from public.task where order_id = $1 and title = 'Fitting'`, [ids.o1]),
   ).toBe('1');
   await settled(page);
 });
 
-test('a step after the job’s day is pointed out', async () => {
+test('a step after the order’s day is pointed out', async () => {
   await page.goto(`/orders/${ids.o3}`);
   const form = await open(page.locator('main'), 'Add a step');
   await form.getByLabel('Step').fill('Press');
   await form.getByLabel('Day', { exact: true }).fill(inDays(5));
   await form.getByRole('button', { name: 'Add' }).click();
   await item(page, 'Press').waitFor();
-  await expect(page.locator('.card--warn')).toContainText('“Press” is after the job’s day.');
-  await expect(item(page, 'Press')).toContainText('After the job’s day.');
+  await expect(page.locator('.card--warn')).toContainText('“Press” is after the order’s day.');
+  await expect(item(page, 'Press')).toContainText('After the order’s day.');
   // Removed again.
   const press = item(page, 'Press');
   await open(press, 'Change');
@@ -225,9 +225,9 @@ test('a step after the job’s day is pointed out', async () => {
   await press.waitFor({ state: 'detached' });
 });
 
-test('a job taken with no steps gets its steps afterwards, each on its day', async () => {
+test('an order taken with no steps gets its steps afterwards, each on its day', async () => {
   await fillNewJob(page, { client: 'Hanna Tesfaye', title: 'Party dress', due: inDays(10) });
-  await page.getByRole('button', { name: 'Save the job' }).click();
+  await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   expect(await has('No steps yet. Add them below, each on its day.')).toBe(true);
   for (const [title, day] of [
@@ -251,7 +251,7 @@ test('there is no Library: her steps are the same each time, so the step buttons
   await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link')).toHaveText([
     'Today',
     'Calendar',
-    'Jobs',
+    'Orders',
     'Clients',
     'Settings',
   ]);
@@ -270,7 +270,8 @@ test('an event, such as a bazaar or a show, is its name and its day, counted dow
   await page.getByRole('link', { name: 'New event' }).click();
   await page.waitForURL(/\/orders\/new\?event=1$/);
   await expect(page.locator('h1')).toHaveText('New event');
-  await expect(page.getByLabel('For', { exact: true })).toHaveValue('none');
+  // An event is for no customer: it is not asked which (decision 0084).
+  await expect(page.getByLabel('For', { exact: true })).toHaveCount(0);
   // None of a client's job: no brief, no tailoring steps, no lists.
   await expect(page.getByLabel('Design brief (optional)')).toHaveCount(0);
   await expect(page.getByRole('group', { name: 'Your usual steps' })).toHaveCount(0);
@@ -306,9 +307,9 @@ test('an event, such as a bazaar or a show, is its name and its day, counted dow
   await inspect(page, 'coming up');
 });
 
-test('a job due today shows once on Today: by its step when it has one, else as due today', async () => {
+test('an order due today shows once on Today: by its step when it has one, else as due today', async () => {
   await fillNewJob(page, { client: 'Yonas Alemu', title: 'Hem trousers', due: today() });
-  await page.getByRole('button', { name: 'Save the job' }).click();
+  await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   const hem = page.url();
   await page.goto('/');
@@ -354,14 +355,15 @@ test('the month: how many steps each day holds, and the list of the day she pick
   await page.waitForURL(`${env.baseURL}/calendar`);
 });
 
-test('the month marks the days jobs and events are due, steps or none, and lists them on the day', async () => {
+test('the month marks the days orders and events are due, steps or none, and lists them on the day', async () => {
   // The fashion show, 70 days ahead, has its own day marked though its only step is weeks earlier.
   const show = inDays(70);
   await page.goto(`/calendar?day=${show}`);
   const cell = page.locator(`a[href$="day=${show}"]`);
-  await expect(cell.locator('.month__mark--event')).toHaveText('Event');
+  // By its name, not the word "Event" (decision 0084).
+  await expect(cell.locator('.month__mark--event')).toHaveText('Fashion show at the Sheraton');
   await expect(cell).toHaveClass(/month__day--busy/);
-  await expect(cell.locator('.sr-only')).toContainText('1 event');
+  await expect(cell.locator('.sr-only')).toContainText('Fashion show at the Sheraton');
   const due = page.getByRole('list', { name: 'Due this day' });
   await expect(due).toContainText('Fashion show at the Sheraton');
   await expect(due).toContainText('Event · #');

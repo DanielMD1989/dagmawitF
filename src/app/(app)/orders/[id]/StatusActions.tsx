@@ -58,7 +58,7 @@ export function StatusActions({
   return (
     <div className="status-actions">
       {moves.map((to) => {
-        const label = moveLabel(order.status, to, order.event ? 'event' : 'job');
+        const label = moveLabel(order.status, to, order.event ? 'event' : 'order');
         const className = BUTTON[to];
         const dayPassed = to === 'active' && order.deliveryOn < today;
 
@@ -127,7 +127,7 @@ export function StatusActions({
                       <p>
                         {order.event
                           ? 'The event is kept, with its history, and leaves your calendar. It can be reopened as a draft.'
-                          : 'The job is kept, with its history and measurements, and leaves your calendar. It can be reopened as a draft.'}
+                          : 'The order is kept, with its history and measurements, and leaves your calendar. It can be reopened as a draft.'}
                       </p>
                       <TextField
                         name="reason"

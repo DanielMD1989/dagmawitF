@@ -21,7 +21,7 @@ const ICONS = {
 const LINKS = [
   { href: '/', label: 'Today', icon: 'day' },
   { href: '/calendar', label: 'Calendar', icon: 'planner' },
-  { href: '/orders', label: 'Jobs', icon: 'orders' },
+  { href: '/orders', label: 'Orders', icon: 'orders' },
   { href: '/clients', label: 'Clients', icon: 'clients' },
   { href: '/settings', label: 'Settings', icon: 'settings' },
 ] as const;

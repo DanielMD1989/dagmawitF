@@ -72,7 +72,7 @@ export default async function TodayPage() {
       </div>
       <QuickActions
         actions={[
-          { href: '/orders/new', label: 'New job', icon: 'add' },
+          { href: '/orders/new', label: 'New order', icon: 'add' },
           { href: '/orders/new?event=1', label: 'New event', icon: 'event' },
           { href: '/coming-up', label: 'Coming up', icon: 'upcoming' },
           { href: '/calendar', label: 'Month', icon: 'month' },
@@ -141,7 +141,7 @@ export default async function TodayPage() {
         <div className="card">
           <p>Nothing on the calendar for the coming week.</p>
           <p className="hint">
-            Take a job with <strong>New job</strong>: its steps get their days and show here.
+            Take an order with <strong>New order</strong>: its steps get their days and show here.
           </p>
         </div>
       )}

@@ -54,7 +54,7 @@ const newJob = (over: Record<string, string> = {}) =>
     ...over,
   });
 
-describe('a new job', () => {
+describe('a new order', () => {
   it('for a client: what it is, its day, and the steps she built with their days', () => {
     expect(parseNewJob(newJob(), ctx)).toEqual({
       ok: true,
@@ -188,7 +188,7 @@ describe('a new job', () => {
   });
 });
 
-describe('changing a job', () => {
+describe('changing an order', () => {
   const current = (status: 'draft' | 'active' | 'on_hold') => ({ status, dueOn: '2026-11-20', today });
   const details = (over: Record<string, string> = {}) =>
     form({ client: CLIENT_ID, title: 'Trousers', 'due-on': '2026-11-27', notes: ' Wedding ', ...over });
@@ -227,19 +227,19 @@ describe('changing a job', () => {
     });
   });
 
-  it('will not move an active job to a day that has passed', () => {
+  it('will not move an active order to a day that has passed', () => {
     expect(parseOrderDetails(details({ 'due-on': '2026-10-01' }), current('active'))).toMatchObject({
       ok: false,
       errors: { 'due-on': expect.any(String) },
     });
   });
 
-  it('lets an active job keep a day that has already passed, when it is not the one being changed', () => {
+  it('lets an active order keep a day that has already passed, when it is not the one being changed', () => {
     const passed = { status: 'active' as const, dueOn: '2026-10-01', today };
     expect(parseOrderDetails(details({ 'due-on': '2026-10-01' }), passed).ok).toBe(true);
   });
 
-  it('lets a draft or paused job be given any day', () => {
+  it('lets a draft or paused order be given any day', () => {
     expect(parseOrderDetails(details({ 'due-on': '2026-10-01' }), current('draft')).ok).toBe(true);
     expect(parseOrderDetails(details({ 'due-on': '2026-10-01' }), current('on_hold')).ok).toBe(true);
   });

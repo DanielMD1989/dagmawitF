@@ -93,7 +93,7 @@ export function NotificationsSwitch({ publicKey }: { publicKey: string | null })
   return (
     <div className="form">
       <p role="status" className="hint">
-        {state === 'on' && 'On for this phone: you are told when someone else changes a job.'}
+        {state === 'on' && 'On for this phone: you are told when someone else changes an order.'}
         {state === 'off' && 'Off for this phone.'}
         {state === 'working' && 'One moment…'}
         {state === 'failed' && 'That did not work. Try again.'}

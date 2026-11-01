@@ -105,11 +105,13 @@ export default async function CalendarPage({
           {grid.days.map(({ day, inMonth }) => {
             const n = counts.get(day) ?? 0;
             const jobs = due.get(day) ?? [];
-            const events = jobs.filter((j) => !j.clientName).length;
+            // An event is marked by its own name, not the word "Event" (decision 0084).
+            const eventNames = jobs.filter((j) => !j.clientName).map((j) => j.title);
+            const events = eventNames.length;
             const deliveries = jobs.length - events;
             const said = [
               deliveries > 0 && `${deliveries} deliver${deliveries === 1 ? 'y' : 'ies'}`,
-              events > 0 && `${events} event${events === 1 ? '' : 's'}`,
+              events > 0 && eventNames.join(', '),
               n > 0 && `${n} step${n === 1 ? '' : 's'}`,
             ].filter(Boolean);
             const classes = [
@@ -135,7 +137,11 @@ export default async function CalendarPage({
                   </span>
                   {(events > 0 || deliveries > 0) && (
                     <span className="month__due" aria-hidden="true">
-                      {events > 0 && <span className="month__mark month__mark--event">Event</span>}
+                      {eventNames.map((name, k) => (
+                        <span key={k} className="month__mark month__mark--event">
+                          {name}
+                        </span>
+                      ))}
                       {deliveries > 0 && <span className="month__mark">Due</span>}
                     </span>
                   )}

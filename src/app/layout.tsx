@@ -6,7 +6,7 @@ import { ServiceWorker } from '@/components/ServiceWorker';
 
 export const metadata: Metadata = {
   title: { default: 'DAGMAWIT', template: '%s · DAGMAWIT' },
-  description: 'Jobs, their steps and the calendar for one atelier.',
+  description: 'Orders, their steps and the calendar for one atelier.',
   applicationName: 'DAGMAWIT',
   appleWebApp: { capable: true, title: 'DAGMAWIT', statusBarStyle: 'default' },
   icons: {

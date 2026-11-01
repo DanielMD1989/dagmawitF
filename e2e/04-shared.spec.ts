@@ -53,7 +53,7 @@ test('she adds the second account in Settings, by its email', async () => {
   await inspect(her, 'settings with people');
 });
 
-test('the second account sees her jobs and works on them; what it does is hers', async () => {
+test('the second account sees her orders and works on them; what it does is hers', async () => {
   await helper.goto('/orders');
   await expect(helper.locator('main')).toContainText('Selam Bekele · Bridal gown');
   await helper.goto(`/orders/${o1}`);

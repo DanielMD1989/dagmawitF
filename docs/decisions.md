@@ -633,3 +633,10 @@ Edge Function sends them to the phones of the workspace's other people, which th
 person (`workspace_push_targets`), so a session reaches only its own workspace. The push signing key pair is made once
 by the Database workflow and kept only in the function's secrets. Subscriptions are in `app`, out of the API and the
 export. Sending runs after the answer has gone, and a failure only means no notification.
+
+## 0084. Orders, not jobs; an event is asked no customer and is shown by its name
+
+She calls them orders: every word she reads now says "order" ("New order", "Orders", "Save the order", "Delete this
+order"…); the code keeps its own names. An event is made from "New event" only, and its form, and its details
+afterwards, no longer show the "For" list of customers; an order's "For" lists only customers. On the month an event's
+day carries the event's name (cut to fit the day), not the word "Event".

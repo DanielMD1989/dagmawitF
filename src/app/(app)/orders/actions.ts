@@ -82,7 +82,7 @@ export async function createJob(_previous: ActionState, formData: FormData): Pro
     if (violates(result.error, 'orders_number_key'))
       return failure(
         'Check the fields marked below.',
-        { number: 'Another job already has this number.' },
+        { number: 'Another order already has this number.' },
         typed,
       );
     if (violates(result.error, 'orders_client_fk'))
@@ -91,7 +91,7 @@ export async function createJob(_previous: ActionState, formData: FormData): Pro
         { client: 'That client could not be found. Choose another.' },
         typed,
       );
-    return saveFailed('the job', result.error, typed);
+    return saveFailed('the order', result.error, typed);
   }
 
   const id = z.string().parse(result.data);

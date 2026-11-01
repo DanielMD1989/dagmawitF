@@ -28,7 +28,7 @@ export function OrderTabs({ orderId, event }: { orderId: string; event: boolean 
   }, [pathname]);
 
   return (
-    <nav aria-label={event ? 'This event' : 'This job'}>
+    <nav aria-label={event ? 'This event' : 'This order'}>
       <div className="tabs" ref={bar}>
         {TABS.filter((tab) => !event || tab.path === '' || tab.path === '/history').map((tab) => {
           const href = `${base}${tab.path}`;

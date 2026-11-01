@@ -2,7 +2,7 @@ import { daysBetween, type IsoDate } from '../dates';
 
 /** "Job #105, bridal gown": what a job is called in sentences. */
 export function orderLabel(number: number, garmentTypes: readonly string[]): string {
-  const base = `Job #${number}`;
+  const base = `Order #${number}`;
   if (garmentTypes.length === 0) return base;
   const first = garmentTypes[0]!;
   const lower = first.charAt(0).toLowerCase() + first.slice(1);

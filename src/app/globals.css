@@ -1796,6 +1796,7 @@ h4 {
 }
 /* A delivery or an event due that day (decision 0070). */
 .month__due {
+  max-width: 100%;
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
@@ -1814,6 +1815,28 @@ h4 {
 }
 .month__mark--event {
   background: var(--warn);
+  /* An event by its name (decision 0084): up to two short lines in the day's box; the full name is in the day's list. */
+  max-width: 100%;
+  padding: 1px 3px;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  hyphens: auto;
+  font-size: 9px;
+  line-height: 11px;
+  text-align: center;
+  text-transform: none;
+  letter-spacing: 0;
+}
+@media (min-width: 720px) {
+  .month__mark--event {
+    font-size: 11px;
+    line-height: 14px;
+  }
 }
 .day-list__due {
   margin-bottom: 12px;

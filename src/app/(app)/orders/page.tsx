@@ -11,7 +11,7 @@ import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
 import { createSupabase } from '@/server/supabase';
 
-export const metadata: Metadata = { title: 'Jobs' };
+export const metadata: Metadata = { title: 'Orders' };
 
 type Filter = OrderStatus | 'all';
 
@@ -39,20 +39,20 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   return (
     <>
       <div className="page-head">
-        <p className="eyebrow">Jobs</p>
-        <h1>Your jobs</h1>
+        <p className="eyebrow">Orders</p>
+        <h1>Your orders</h1>
         <p className="lede">Soonest first.</p>
       </div>
 
       <QuickActions
         actions={[
-          { href: '/orders/new', label: 'New job', icon: 'add' },
+          { href: '/orders/new', label: 'New order', icon: 'add' },
           { href: '/orders/new?event=1', label: 'New event', icon: 'event' },
           { href: '/clients', label: 'Clients', icon: 'clients' },
         ]}
       />
 
-      <nav aria-label="Filter jobs">
+      <nav aria-label="Filter orders">
         <div className="segmented segmented--swipe">
           {FILTERS.map((f) => (
             <Link
@@ -70,8 +70,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         <div className="card">
           <p>
             {orders.length === 0
-              ? 'No jobs yet. Press “New job” to take the first one.'
-              : `No ${filter === 'all' ? '' : STATUS_LABEL[filter].toLowerCase() + ' '}jobs.`}
+              ? 'No orders yet. Press “New order” to take the first one.'
+              : `No ${filter === 'all' ? '' : STATUS_LABEL[filter].toLowerCase() + ' '}orders.`}
           </p>
         </div>
       ) : (

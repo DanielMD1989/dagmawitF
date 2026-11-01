@@ -70,7 +70,7 @@ export function GarmentCard({
               action={removeGarment}
               fields={{ id: garment.id }}
               label={`Remove ${garment.garmentType}`}
-              question={`Remove ${garment.garmentType} from the job? Its brief is lost.`}
+              question={`Remove ${garment.garmentType} from the order? Its brief is lost.`}
               confirmLabel="Yes, remove"
             />
           </div>

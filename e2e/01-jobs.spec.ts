@@ -68,9 +68,9 @@ test('she works Sundays too: every day, nine to five with an hour for lunch', as
 });
 
 // ---------------------------------------------------------------- order 1: a bridal gown, new client
-test('the jobs list starts empty and says what to do', async () => {
+test('the orders list starts empty and says what to do', async () => {
   await page.goto('/orders');
-  expect(await has('No jobs yet')).toBe(true);
+  expect(await has('No orders yet')).toBe(true);
 });
 
 test('a refused form keeps what she typed, her steps too, and says what is missing', async () => {
@@ -81,16 +81,16 @@ test('a refused form keeps what she typed, her steps too, and says what is missi
     due: '',
     steps: [{ title: 'Appointment', day: inDays(4), from: '14:00' }],
   });
-  await page.getByRole('button', { name: 'Save the job' }).click();
+  await page.getByRole('button', { name: 'Save the order' }).click();
   await expect(page.locator('#due-on-error')).toHaveText('Choose a day.');
   await expect(page.getByLabel("Client's name")).toHaveValue('Selam Bekele');
   await expect(page.getByLabel('Design brief (optional)')).toHaveValue(/^Ivory/);
   await expect(page.locator('.step-row')).toHaveCount(1);
   await expect(page.locator('.step-row').getByLabel('Day', { exact: true })).toHaveValue(inDays(4));
-  await inspect(page, 'new job refused');
+  await inspect(page, 'new order refused');
 });
 
-test('she takes job 1, a bridal gown, building its steps with a tap each and giving each its day', async () => {
+test('she takes order 1, a bridal gown, building its steps with a tap each and giving each its day', async () => {
   await page.getByLabel('Delivery day').fill(inDays(60));
   await expect(page.getByText('That is 60 days left.')).toBeVisible();
   // The delivery has its own day and time; it is not offered again as a step.
@@ -115,9 +115,9 @@ test('she takes job 1, a bridal gown, building its steps with a tap each and giv
   await page.getByRole('button', { name: 'Remove step 8, Fix' }).click();
   await expect(page.locator('.step-row')).toHaveCount(7);
   await page.locator('#due-at').fill('15:00');
-  await page.getByText('Notes and job number').click();
+  await page.getByText('Notes and order number').click();
   await page.getByLabel('Notes (optional)').fill('Pays in two parts. Mother collects.');
-  await page.getByRole('button', { name: 'Save the job' }).click();
+  await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   ids.o1 = orderOfUrl();
   // The work is the title: who it is for and what it is.
@@ -155,14 +155,14 @@ test('she takes job 1, a bridal gown, building its steps with a tap each and giv
     on_day: inDays(60),
     starts_at: '15:00:00',
   });
-  await inspect(page, 'job steps');
+  await inspect(page, 'order steps');
 });
 
-test('from any page of a job, the way back to Jobs is at the top', async () => {
+test('from any page of an order, the way back to Orders is at the top', async () => {
   for (const path of ['', '/brief', '/measurements', '/history']) {
     await page.goto(`/orders/${ids.o1}${path}`);
     const back = page.locator('main .back-link');
-    await expect(back).toHaveText('← Jobs');
+    await expect(back).toHaveText('← Orders');
     await expect(back).toBeVisible();
     // Above the title, and big enough for a finger.
     const [link, title] = [await back.boundingBox(), await page.locator('h1').boundingBox()];
@@ -180,10 +180,10 @@ const group = (heading: string) => page.getByRole('group', { name: heading });
 /** Opens the add form of a kind of picture ("Add a sketch") and returns it. */
 const adding = (heading: string, button: string) => open(group(heading), button);
 
-test('brief: the tab and the page say the same, and a second piece goes on the same job', async () => {
+test('brief: the tab and the page say the same, and a second piece goes on the same order', async () => {
   await page.goto(`/orders/${ids.o1}`);
   await page
-    .getByRole('navigation', { name: 'This job' })
+    .getByRole('navigation', { name: 'This order' })
     .getByRole('link', { name: 'Design brief' })
     .click();
   await page.waitForURL(/\/brief$/);
@@ -529,7 +529,7 @@ test('settings: the time zone she saves is the one still shown', async () => {
 });
 
 // ---------------------------------------------------------------- jobs 2 and 3
-test('job 2: an evening dress for another new client, with a few steps', async () => {
+test('order 2: an evening dress for another new client, with a few steps', async () => {
   await fillNewJob(page, {
     client: { name: 'Hanna Tesfaye' },
     title: 'Evening dress',
@@ -541,19 +541,19 @@ test('job 2: an evening dress for another new client, with a few steps', async (
       { title: 'Delivery', day: inDays(16) },
     ],
   });
-  await page.getByRole('button', { name: 'Save the job' }).click();
+  await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   ids.o2 = orderOfUrl();
   await expect(page.locator('h1')).toHaveText('Hanna Tesfaye · Evening dress');
   expect(await stepTitles()).toEqual(['Buy fabric', 'Fitting', 'Delivery']);
 });
 
-test('job 2: garments of a new client have no measurements, and she is told', async () => {
+test('order 2: garments of a new client have no measurements, and she is told', async () => {
   await page.goto(`/orders/${ids.o2}/measurements`);
   expect(await has('No measurements have been recorded for this client yet.')).toBe(true);
 });
 
-test('job 3: a client added on her own, then a fix started from the client page', async () => {
+test('order 3: a client added on her own, then a fix started from the client page', async () => {
   await page.goto('/clients/new');
   await page.getByLabel('Name', { exact: true }).fill('Yonas Alemu');
   await page.getByLabel('Phone (optional)').fill('+251 911 000 111');
@@ -561,8 +561,8 @@ test('job 3: a client added on her own, then a fix started from the client page'
   await page.getByRole('button', { name: 'Add client' }).click();
   await page.waitForURL(/\/clients\/[0-9a-f-]{36}$/);
   ids.client3 = page.url().split('/').pop()!;
-  await inspect(page, 'client page (no jobs)');
-  await page.getByRole('link', { name: 'New job for Yonas Alemu' }).click();
+  await inspect(page, 'client page (no orders)');
+  await page.getByRole('link', { name: 'New order for Yonas Alemu' }).click();
   await page.waitForURL(/orders\/new\?client=/);
   await expect(page.getByLabel('For', { exact: true })).toHaveValue(ids.client3);
   await fillNewJob(page, {
@@ -574,23 +574,23 @@ test('job 3: a client added on her own, then a fix started from the client page'
       { title: 'Delivery', day: inDays(2) },
     ],
   });
-  await page.getByRole('button', { name: 'Save the job' }).click();
+  await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   ids.o3 = orderOfUrl();
   await expect(page.locator('h1')).toHaveText('Yonas Alemu · Suit alteration');
   expect(await stepTitles()).toEqual(['Fix', 'Delivery']);
 });
 
-test('job 3: a taken job number is refused at its field', async () => {
+test('order 3: a taken order number is refused at its field', async () => {
   await fillNewJob(page, { client: 'Yonas Alemu', title: 'Trousers hem', due: inDays(1) });
-  await page.getByText('Notes and job number').click();
-  await page.getByLabel('Job number').fill('1');
-  await page.getByRole('button', { name: 'Save the job' }).click();
+  await page.getByText('Notes and order number').click();
+  await page.getByLabel('Order number').fill('1');
+  await page.getByRole('button', { name: 'Save the order' }).click();
   await expect(page.locator('.error').first()).toHaveText(/already/i);
   await expect(page.getByLabel('What it is (optional)')).toHaveValue('Trousers hem');
 });
 
-test('job 3: a hold needs a reason, and the reason is shown', async () => {
+test('order 3: a hold needs a reason, and the reason is shown', async () => {
   await page.goto(`/orders/${ids.o3}`);
   await page.locator('summary', { hasText: 'Put on hold' }).click();
   await page.getByRole('button', { name: 'Put on hold' }).click();
@@ -601,18 +601,18 @@ test('job 3: a hold needs a reason, and the reason is shown', async () => {
   expect(await has('On hold: Client abroad until December')).toBe(true);
 });
 
-test('job 3: resumed, then finished on a day she chooses', async () => {
-  await page.getByRole('button', { name: 'Resume the job' }).click();
+test('order 3: resumed, then finished on a day she chooses', async () => {
+  await page.getByRole('button', { name: 'Resume the order' }).click();
   await page.locator('.chip', { hasText: 'Active' }).first().waitFor();
   await page.locator('summary', { hasText: 'Mark as finished' }).click();
   await expect(page.getByLabel('Finished on')).toHaveValue(today());
   await page.getByRole('button', { name: 'Mark as finished' }).click();
   await page.locator('.chip', { hasText: 'Finished' }).first().waitFor();
   expect(await has('Finished on')).toBe(true);
-  await inspect(page, 'finished job');
+  await inspect(page, 'finished order');
 });
 
-test('job 3: a finished job is a record: nothing on it can be edited', async () => {
+test('order 3: a finished order is a record: nothing on it can be edited', async () => {
   await page.goto(`/orders/${ids.o3}`);
   await expect(page.getByRole('button', { name: /^Mark .* as done$/ })).toHaveCount(0);
   await expect(page.getByText('Add a step')).toHaveCount(0);
@@ -626,19 +626,19 @@ test('job 3: a finished job is a record: nothing on it can be edited', async () 
   await expect(page.getByRole('button', { name: 'Use this version' })).toHaveCount(0);
 });
 
-test('job 3: reopened, cancelled with a reason, reopened as a draft and deleted', async () => {
+test('order 3: reopened, cancelled with a reason, reopened as a draft and deleted', async () => {
   await page.goto(`/orders/${ids.o3}`);
-  await page.getByRole('button', { name: 'Reopen the job' }).click();
+  await page.getByRole('button', { name: 'Reopen the order' }).click();
   await page.locator('.chip', { hasText: 'Active' }).first().waitFor();
-  await page.locator('summary', { hasText: 'Cancel the job' }).click();
+  await page.locator('summary', { hasText: 'Cancel the order' }).click();
   await page.getByLabel('Why? (optional)').fill('Client found another tailor');
-  await page.getByRole('button', { name: 'Cancel the job' }).click();
+  await page.getByRole('button', { name: 'Cancel the order' }).click();
   await page.locator('.chip', { hasText: 'Cancelled' }).first().waitFor();
   expect(await has('Cancelled: Client found another tailor')).toBe(true);
   await page.getByRole('button', { name: 'Reopen as draft' }).click();
   await page.locator('.chip', { hasText: 'Draft' }).first().waitFor();
   expect(await has('A draft is not on your calendar')).toBe(true);
-  await page.getByRole('button', { name: 'Delete this job' }).click();
+  await page.getByRole('button', { name: 'Delete this order' }).click();
   await page.getByRole('button', { name: 'Yes, delete' }).click();
   await page.waitForURL(`${env.baseURL}/orders`);
   expect(await has('Suit alteration')).toBe(false);
@@ -650,18 +650,18 @@ test('job 3: reopened, cancelled with a reason, reopened as a draft and deleted'
   errors.allow(null);
 });
 
-test('a job made by mistake is deleted at once, whatever its state', async () => {
+test('an order made by mistake is deleted at once, whatever its state', async () => {
   await fillNewJob(page, { client: 'Yonas Alemu', title: 'Typed by mistake', due: inDays(3) });
-  await page.getByRole('button', { name: 'Save the job' }).click();
+  await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   await expect(page.locator('.chip').first()).toHaveText('Active');
-  await page.getByRole('button', { name: 'Delete this job' }).click();
+  await page.getByRole('button', { name: 'Delete this order' }).click();
   await page.getByRole('button', { name: 'Yes, delete' }).click();
   await page.waitForURL(`${env.baseURL}/orders`);
   expect(await has('Typed by mistake')).toBe(false);
 });
 
-test('job 3 again: the same client, a second fix, kept this time', async () => {
+test('order 3 again: the same client, a second fix, kept this time', async () => {
   await page.goto(`/orders/new?client=${ids.client3}`);
   await fillNewJob(page, {
     title: 'Suit alteration',
@@ -671,7 +671,7 @@ test('job 3 again: the same client, a second fix, kept this time', async () => {
       { title: 'Delivery', day: inDays(2) },
     ],
   });
-  await page.getByRole('button', { name: 'Save the job' }).click();
+  await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   ids.o3 = orderOfUrl();
   // Deleted jobs promised nothing, so the next number is the one after the last kept.
@@ -682,12 +682,12 @@ test('job 3 again: the same client, a second fix, kept this time', async () => {
 test('history: order 1 tells its story in her words', async () => {
   await page.goto(`/orders/${ids.o1}/history`);
   const t = await text(page);
-  for (const words of ['Job #1 created', 'Bridesmaid dress', 'Sketch', 'version 2'])
+  for (const words of ['Order #1 created', 'Bridesmaid dress', 'Sketch', 'version 2'])
     expect(t).toContain(words);
   await inspect(page, 'history');
 });
 
-test('jobs list: soonest first, filters count, steps shown', async () => {
+test('orders list: soonest first, filters count, steps shown', async () => {
   await page.goto('/orders');
   const titles = await texts(page.locator('.row-link__title'));
   expect(titles).toEqual([
@@ -700,9 +700,9 @@ test('jobs list: soonest first, filters count, steps shown', async () => {
   expect(t).toContain('#3 · Delivery');
   expect(t).toContain('Next: Fix, ');
   expect(t).toContain('Active (3)');
-  await inspect(page, 'jobs list');
+  await inspect(page, 'orders list');
   await page.goto('/orders?status=delivered');
-  expect(await has('No finished jobs.')).toBe(true);
+  expect(await has('No finished orders.')).toBe(true);
   await page.goto('/orders?status=nonsense');
   expect(await has('Active (3)')).toBe(true);
 });
@@ -710,7 +710,7 @@ test('jobs list: soonest first, filters count, steps shown', async () => {
 test('clients: a client with orders cannot be deleted; one without can', async () => {
   await page.goto(`/clients/${ids.client1}`);
   await expect(page.getByRole('button', { name: 'Remove this client' })).toHaveCount(0);
-  expect(await has('jobs are kept as a record')).toBe(true);
+  expect(await has('orders are kept as a record')).toBe(true);
   await page.goto('/clients/new');
   await page.getByLabel('Name', { exact: true }).fill('Walk-in, no order');
   await page.getByRole('button', { name: 'Add client' }).click();
@@ -722,7 +722,7 @@ test('clients: a client with orders cannot be deleted; one without can', async (
   await inspect(page, 'clients list');
 });
 
-test('desktop, and a phone in dark mode: every job screen', async ({ browser }) => {
+test('desktop, and a phone in dark mode: every order screen', async ({ browser }) => {
   const screens = [
     '/orders',
     `/orders/${ids.o1}`,

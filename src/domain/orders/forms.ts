@@ -71,8 +71,6 @@ export interface NewJob {
 export const DELIVERY_STEP = 'Delivery';
 
 export const NEW_CLIENT = 'new';
-/** The choice of no client: an event, such as a bazaar or a fashion show. */
-export const EVENT_LABEL = 'An event';
 /** The choice of no client: an event. */
 export const NO_CLIENT = 'none';
 
@@ -96,7 +94,7 @@ export function parseNewJob(data: FormData, context: { today: IsoDate }): Result
   } else if (isUuid(chosen)) {
     client = { kind: 'existing', id: chosen };
   } else if (chosen !== NO_CLIENT) {
-    errors.client = 'Choose a client, add a new one, or choose an event.';
+    errors.client = 'Choose a client, or add a new one.';
   }
 
   const title = text(data, 'title');
@@ -159,7 +157,7 @@ export function parseOrderDetails(
   const errors: FieldErrors = {};
   const chosen = text(data, 'client');
   const clientId = chosen === NO_CLIENT ? null : chosen;
-  if (clientId !== null && !isUuid(clientId)) errors.client = 'Choose a client, or none for an event.';
+  if (clientId !== null && !isUuid(clientId)) errors.client = 'Choose a client.';
 
   const title = text(data, 'title');
   if (chars(title) > 120) errors.title = TITLE_TOO_LONG;

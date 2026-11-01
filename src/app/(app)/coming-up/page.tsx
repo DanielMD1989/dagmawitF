@@ -36,7 +36,7 @@ export default async function ComingUpPage() {
         <div className="card">
           <p>Nothing due after today.</p>
           <p className="hint">
-            A job&apos;s delivery day or an event&apos;s day shows here, counted down.{' '}
+            An order&apos;s delivery day or an event&apos;s day shows here, counted down.{' '}
             <Link href="/orders/new?event=1">Add an event</Link>
           </p>
         </div>

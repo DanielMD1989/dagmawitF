@@ -109,11 +109,18 @@ export async function fillNewJob(
     steps?: NewStep[];
   },
 ): Promise<void> {
-  // Already on the form (perhaps opened from a client's page, with her chosen): fill it as it is.
-  if (new URL(page.url()).pathname !== '/orders/new') await page.goto('/orders/new');
+  // An event is made from "New event" (decision 0084). Otherwise, already on the order form (perhaps opened from a
+  // client's page, with her chosen): fill it as it is.
+  const url = new URL(page.url());
+  if (job.client === 'event') {
+    if (url.pathname !== '/orders/new' || url.searchParams.get('event') !== '1')
+      await page.goto('/orders/new?event=1');
+  } else if (url.pathname !== '/orders/new' || url.searchParams.get('event') === '1')
+    await page.goto('/orders/new');
   const forWhom = page.getByLabel('For', { exact: true });
-  if (job.client === 'event') await forWhom.selectOption({ label: 'An event' });
-  else if (typeof job.client === 'object') {
+  if (job.client === 'event') {
+    // No customer is asked.
+  } else if (typeof job.client === 'object') {
     if ((await forWhom.locator('option').count()) > 0)
       await forWhom.selectOption({ label: '+ A new client' });
     await page.getByLabel("Client's name").fill(job.client.name);

@@ -28,7 +28,7 @@ export default async function OrderMeasurementsPage({ params }: { params: Promis
   if (!client)
     return (
       <div className="card">
-        <p>This job is an event, for no client, so it has no measurements.</p>
+        <p>This order is an event, for no client, so it has no measurements.</p>
       </div>
     );
 
@@ -56,7 +56,7 @@ export default async function OrderMeasurementsPage({ params }: { params: Promis
         </div>
         {order.garments.length === 0 && (
           <div className="card">
-            <p>Nothing is written on this job yet. Add what is made under Design brief.</p>
+            <p>Nothing is written on this order yet. Add what is made under Design brief.</p>
           </div>
         )}
         {order.garments.map((g) => {

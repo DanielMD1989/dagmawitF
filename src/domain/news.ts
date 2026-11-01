@@ -36,14 +36,14 @@ export function newsMessage(
     const first = said.find((l) => l.orderId === job)!;
     const more = said.length - 1;
     return {
-      title: headlineOf(job) ?? 'A job',
+      title: headlineOf(job) ?? 'An order',
       body: `${name}: ${sentence(first)}${more > 0 ? ` And ${more} more change${more === 1 ? '' : 's'}.` : ''}`,
       url: `/orders/${job}`,
     };
   }
   return {
     title: 'DAGMAWIT',
-    body: `${name} changed ${jobs.length || said.length} ${jobs.length === 1 ? 'job' : 'jobs'}.`,
+    body: `${name} changed ${jobs.length || said.length} ${jobs.length === 1 ? 'order' : 'orders'}.`,
     url: '/orders',
   };
 }

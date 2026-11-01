@@ -86,7 +86,7 @@ export async function addStep(_previous: ActionState, formData: FormData): Promi
     if (twice)
       return failure(
         'This step is already there.',
-        { title: `This job already has “${twice.title}” on that day. Change that one instead.` },
+        { title: `This order already has “${twice.title}” on that day. Change that one instead.` },
         typed,
       );
   }

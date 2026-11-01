@@ -42,7 +42,7 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
   const done = steps.filter((s) => s.doneOn !== null).length;
   const usual = usualSteps(used);
   const event = !order.client;
-  const noun = event ? 'event' : 'job';
+  const noun = event ? 'event' : 'order';
 
   return (
     <>
@@ -109,7 +109,7 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
                           Moved from {formatDay(s.movedFrom)}
                         </span>
                       )}
-                      {after && <span className="item__note">After the job’s day.</span>}
+                      {after && <span className="item__note">After the order’s day.</span>}
                     </div>
                   </div>
                   {!closed && <StepEditor orderId={order.id} step={s} />}
@@ -163,15 +163,15 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
         <div className="section__head">
           <h2 id="delete-heading">Delete this {noun}</h2>
           <p className="hint">
-            For {event ? 'an event' : 'a job'} added by mistake: it goes completely, with everything on it and
-            its history. To keep a record of one that is called off, cancel it instead.
+            For {event ? 'an event' : 'an order'} added by mistake: it goes completely, with everything on it
+            and its history. To keep a record of one that is called off, cancel it instead.
           </p>
         </div>
         <ConfirmAction
           action={deleteJob}
           fields={{ id: order.id }}
           label={`Delete this ${noun}`}
-          question={`Delete ${event ? `“${order.title}”` : `job #${order.number}`} completely? This cannot be undone.`}
+          question={`Delete ${event ? `“${order.title}”` : `order #${order.number}`} completely? This cannot be undone.`}
           confirmLabel="Yes, delete"
           pendingText="Deleting…"
         />

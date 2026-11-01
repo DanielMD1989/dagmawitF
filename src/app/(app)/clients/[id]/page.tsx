@@ -44,11 +44,11 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
 
       <section className="section" aria-labelledby="orders-heading">
         <div className="section__head">
-          <h2 id="orders-heading">Jobs</h2>
+          <h2 id="orders-heading">Orders</h2>
         </div>
         {client.orders.length === 0 ? (
           <div className="card">
-            <p>No jobs for {client.name} yet.</p>
+            <p>No orders for {client.name} yet.</p>
           </div>
         ) : (
           <ul className="rows rows--links">
@@ -67,7 +67,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
         )}
         <div className="btn-row">
           <Link href={`/orders/new?client=${client.id}`} className="btn">
-            New job for {client.name}
+            New order for {client.name}
           </Link>
         </div>
       </section>
@@ -107,9 +107,9 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
         </div>
         {client.orders.length > 0 ? (
           <p className="hint">
-            {client.name} has {client.orders.length === 1 ? 'a job' : 'jobs'} (
+            {client.name} has {client.orders.length === 1 ? 'an order' : 'orders'} (
             {orderLabel(client.orders[0]!.number, client.orders[0]!.garmentTypes)}
-            {client.orders.length > 1 ? ' and more' : ''}), and jobs are kept as a record, so she cannot be
+            {client.orders.length > 1 ? ' and more' : ''}), and orders are kept as a record, so she cannot be
             removed.
           </p>
         ) : (

@@ -42,7 +42,7 @@ export default async function OrderBriefPage({ params }: { params: Promise<{ id:
           <h2 id="made-heading">What is made</h2>
           <p className="hint">
             What the client asked for. Two pieces for one client, such as a matching outfit, go on the same
-            job.
+            order.
           </p>
         </div>
         {order.garments.length === 0 ? (

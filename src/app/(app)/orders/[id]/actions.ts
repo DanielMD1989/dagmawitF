@@ -32,11 +32,11 @@ export async function saveOrderDetails(_previous: ActionState, formData: FormDat
   await requireUser();
   const typed = typedIn(formData);
   const id = idField(formData, 'id');
-  if (!id) return missing('job', typed);
+  if (!id) return missing('order', typed);
 
   const supabase = await createSupabase();
   const [order, prefs] = await Promise.all([loadOrder(supabase, id), loadPreferences(supabase)]);
-  if (!order) return missing('job', typed);
+  if (!order) return missing('order', typed);
 
   let patch: Record<string, unknown>;
   let moved: number | null = null;
@@ -58,7 +58,7 @@ export async function saveOrderDetails(_previous: ActionState, formData: FormDat
         p_due_on: details.dueOn,
         p_move_steps: true,
       });
-      if (r.error) return saveFailed('the job', r.error, typed);
+      if (r.error) return saveFailed('the order', r.error, typed);
       moved = Number(r.data);
     }
     patch = {
@@ -78,9 +78,9 @@ export async function saveOrderDetails(_previous: ActionState, formData: FormDat
     .select('id');
   if (violates(error, 'orders_client_fk'))
     return failure(CHECK_FIELDS, { client: 'That client could not be found. Choose another.' }, typed);
-  if (error) return saveFailed('the job', error, typed);
+  if (error) return saveFailed('the order', error, typed);
   if (data.length !== 1)
-    return failure('This job was changed in another window. Reload the page and try again.', {}, typed);
+    return failure('This order was changed in another window. Reload the page and try again.', {}, typed);
 
   changed('/', 'layout');
   return success(
@@ -134,16 +134,16 @@ export async function deleteJob(_previous: ActionState, formData: FormData): Pro
   await requireUser();
   const typed = typedIn(formData);
   const id = idField(formData, 'id');
-  if (!id) return missing('job', typed);
+  if (!id) return missing('order', typed);
 
   const supabase = await createSupabase();
   // The pictures are removed with the job, so their files must be too. Read where they are first.
   const files = await supabase.from('attachment').select('storage_path').eq('order_id', id);
-  if (files.error) return unexpected('the job', files.error, typed);
+  if (files.error) return unexpected('the order', files.error, typed);
 
   const { error } = await supabase.rpc('delete_job', { p_order_id: id });
-  if (error?.code === 'P0002') return missing('job', typed);
-  if (error) return saveFailed('the job', error, typed);
+  if (error?.code === 'P0002') return missing('order', typed);
+  if (error) return saveFailed('the order', error, typed);
 
   await removeFiles(
     supabase,

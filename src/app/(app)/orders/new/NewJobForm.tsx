@@ -6,7 +6,7 @@ import { TextArea, TextField } from '@/components/fields';
 import { fieldValue, idle } from '@/lib/action-state';
 import { isIsoDate } from '@/domain/dates';
 import { daysLeft } from '@/domain/jobs/words';
-import { DELIVERY_STEP, EVENT_LABEL, NEW_CLIENT, NO_CLIENT } from '@/domain/orders/forms';
+import { DELIVERY_STEP, NEW_CLIENT, NO_CLIENT } from '@/domain/orders/forms';
 import { createJob } from '../actions';
 
 /** A step as she builds it here: what, which day, and a time if it has one (decision 0079). */
@@ -49,10 +49,12 @@ export function NewJobForm({
     startTransition(() => action(data));
   };
 
+  // An event is made from "New event", an order from "New order": the form is one or the other from the start, so an
+  // event is never asked which customer it is for (decision 0084).
+  const event = initialClient === NO_CLIENT;
   const [client, setClient] = useState(
-    fieldValue(state, 'client', initialClient ?? (clients.length ? '' : NEW_CLIENT)),
+    event ? NO_CLIENT : fieldValue(state, 'client', initialClient ?? (clients.length ? '' : NEW_CLIENT)),
   );
-  const event = client === NO_CLIENT;
   const [due, setDue] = useState('');
   const [rows, setRows] = useState<Row[]>([]);
   const next = useRef(0);
@@ -66,58 +68,61 @@ export function NewJobForm({
 
   return (
     <form onSubmit={submit} className="form" noValidate aria-busy={pending}>
-      <section className="section" aria-labelledby="who-heading">
-        <h2 id="who-heading">{event ? 'A job or an event' : 'Who it is for'}</h2>
-        <div className="field">
-          <label htmlFor="client">For</label>
-          <select
-            id="client"
-            name="client"
-            className="select"
-            value={client}
-            onChange={(e) => setClient(e.target.value)}
-            aria-invalid={Boolean(state.errors.client)}
-            aria-describedby={state.errors.client ? 'client-error' : undefined}
-          >
-            <option value="">Choose a client…</option>
-            {clients.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name}
-              </option>
-            ))}
-            <option value={NEW_CLIENT}>+ A new client</option>
-            <option value={NO_CLIENT}>{EVENT_LABEL}</option>
-          </select>
-          {state.errors.client && (
-            <p id="client-error" className="error">
-              {state.errors.client}
-            </p>
-          )}
-        </div>
-        {client === NEW_CLIENT && (
-          <div className="form-grid form-grid--2">
-            <TextField
-              name="client-name"
-              label="Client's name"
-              state={state}
-              autoComplete="off"
-              maxLength={120}
-            />
-            <TextField
-              name="client-phone"
-              label="Phone (optional)"
-              state={state}
-              type="tel"
-              inputMode="tel"
-              autoComplete="off"
-              maxLength={30}
-            />
+      {event ? (
+        <input type="hidden" name="client" value={NO_CLIENT} />
+      ) : (
+        <section className="section" aria-labelledby="who-heading">
+          <h2 id="who-heading">Who it is for</h2>
+          <div className="field">
+            <label htmlFor="client">For</label>
+            <select
+              id="client"
+              name="client"
+              className="select"
+              value={client}
+              onChange={(e) => setClient(e.target.value)}
+              aria-invalid={Boolean(state.errors.client)}
+              aria-describedby={state.errors.client ? 'client-error' : undefined}
+            >
+              <option value="">Choose a client…</option>
+              {clients.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.name}
+                </option>
+              ))}
+              <option value={NEW_CLIENT}>+ A new client</option>
+            </select>
+            {state.errors.client && (
+              <p id="client-error" className="error">
+                {state.errors.client}
+              </p>
+            )}
           </div>
-        )}
-      </section>
+          {client === NEW_CLIENT && (
+            <div className="form-grid form-grid--2">
+              <TextField
+                name="client-name"
+                label="Client's name"
+                state={state}
+                autoComplete="off"
+                maxLength={120}
+              />
+              <TextField
+                name="client-phone"
+                label="Phone (optional)"
+                state={state}
+                type="tel"
+                inputMode="tel"
+                autoComplete="off"
+                maxLength={30}
+              />
+            </div>
+          )}
+        </section>
+      )}
 
       <section className="section" aria-labelledby="what-heading">
-        <h2 id="what-heading">{event ? 'Its name and day' : 'What it is'}</h2>
+        <h2 id="what-heading">{event ? 'The event' : 'What it is'}</h2>
         <TextField
           name="title"
           label={event ? 'Name of the event' : 'What it is (optional)'}
@@ -168,7 +173,7 @@ export function NewJobForm({
       ) : (
         <section className="section" aria-labelledby="steps-heading">
           <h2 id="steps-heading">Steps</h2>
-          <p className="hint">Tap the steps this job needs, then give each its day.</p>
+          <p className="hint">Tap the steps this order needs, then give each its day.</p>
           <div className="chips" role="group" aria-label="Your usual steps">
             {offered.map((t) => (
               <button key={t} type="button" className="chip-button" onClick={() => add(t)}>
@@ -183,7 +188,7 @@ export function NewJobForm({
           <input type="hidden" name="steps" value={rows.length} />
           {rows.length === 0 ? (
             <p className="day-list__empty">
-              No steps yet. Tap one above, or save the job and add them later.
+              No steps yet. Tap one above, or save the order and add them later.
             </p>
           ) : (
             <ol className="step-rows">
@@ -270,7 +275,7 @@ export function NewJobForm({
       )}
 
       <details className="disclosure disclosure--link">
-        <summary>{event ? 'Notes and number' : 'Notes and job number'}</summary>
+        <summary>{event ? 'Notes and number' : 'Notes and order number'}</summary>
         <div className="disclosure__panel">
           <TextArea
             name="notes"
@@ -286,7 +291,7 @@ export function NewJobForm({
           />
           <TextField
             name="number"
-            label="Job number"
+            label="Order number"
             type="number"
             inputMode="numeric"
             min={1}
@@ -300,7 +305,7 @@ export function NewJobForm({
       <FormNotice state={state} />
       <div className="btn-row">
         <button type="submit" className="btn" disabled={pending}>
-          {pending ? 'Saving…' : event ? 'Save the event' : 'Save the job'}
+          {pending ? 'Saving…' : event ? 'Save the event' : 'Save the order'}
         </button>
       </div>
     </form>
