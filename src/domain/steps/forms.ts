@@ -74,7 +74,7 @@ export function parseStep(data: FormData, prefix = ''): Result<StepFields> {
 export const MAX_STEPS = 100;
 
 /**
- * Reads the rows of steps on the new-job form: "step-0-…", "step-1-…", in the order they are on the form, for as many
+ * Reads the rows of steps on the new-order form and on an order's page (decision 0085): "step-0-…", "step-1-…", in the order they are on the form, for as many
  * rows as `steps` says. Two rows with the same title on the same day are one step typed twice (her Task 6).
  */
 export function parseStepRows(data: FormData): Result<StepFields[]> {

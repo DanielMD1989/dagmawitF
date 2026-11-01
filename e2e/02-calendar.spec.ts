@@ -1,5 +1,6 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import {
+  addSteps,
   fillNewJob,
   inspect,
   item,
@@ -166,12 +167,14 @@ test('a step not done on its day moves to today, and says the day it was for', a
 
 test('a step over several days shows on each of them', async () => {
   await page.goto(`/orders/${ids.o1}`);
-  const form = await open(page.locator('main'), 'Add a step');
-  await form.getByLabel('Step').fill('Beading');
-  await form.getByLabel('Day', { exact: true }).fill(today());
-  await form.getByLabel('Last day (optional)').fill(inDays(2));
-  await form.getByRole('button', { name: 'Add' }).click();
-  await item(page, 'Beading').waitFor();
+  // Added with the step buttons on its day; its last day is given when she changes it.
+  await addSteps(page, [{ title: 'Beading', day: today() }]);
+  await settled(page);
+  const beading = item(page, 'Beading');
+  const change = await open(beading, 'Change');
+  await change.getByLabel('Last day (optional)').fill(inDays(2));
+  await change.getByRole('button', { name: 'Save the step' }).click();
+  await change.locator('.notice--success').waitFor();
   await expect(item(page, 'Beading')).toContainText('–');
   await page.goto('/');
   await expect(item(section('Today'), 'Beading')).toContainText('Day 1 of 3');
@@ -197,11 +200,10 @@ test('moving an order’s day moves its steps not done yet by as many days', asy
 });
 
 test('the same step twice on the same day of an order is refused: she changes the one there is', async () => {
-  const form = await open(page.locator('main'), 'Add a step');
-  await form.getByLabel('Step').fill('Fitting');
-  await form.getByLabel('Day', { exact: true }).fill(inDays(39));
-  await form.getByRole('button', { name: 'Add' }).click();
+  const form = await addSteps(page, [{ title: 'Fitting', day: inDays(39) }], false);
   await expect(form).toContainText('This order already has “Fitting” on that day. Change that one instead.');
+  // Her row stays as she left it, to change.
+  await expect(form.locator('.step-row')).toHaveCount(1);
   expect(
     await value(`select count(*)::text from public.task where order_id = $1 and title = 'Fitting'`, [ids.o1]),
   ).toBe('1');
@@ -210,11 +212,7 @@ test('the same step twice on the same day of an order is refused: she changes th
 
 test('a step after the order’s day is pointed out', async () => {
   await page.goto(`/orders/${ids.o3}`);
-  const form = await open(page.locator('main'), 'Add a step');
-  await form.getByLabel('Step').fill('Press');
-  await form.getByLabel('Day', { exact: true }).fill(inDays(5));
-  await form.getByRole('button', { name: 'Add' }).click();
-  await item(page, 'Press').waitFor();
+  await addSteps(page, [{ title: 'Press', day: inDays(5) }]);
   await expect(page.locator('.card--warn')).toContainText('“Press” is after the order’s day.');
   await expect(item(page, 'Press')).toContainText('After the order’s day.');
   // Removed again.
@@ -229,18 +227,22 @@ test('an order taken with no steps gets its steps afterwards, each on its day', 
   await fillNewJob(page, { client: 'Hanna Tesfaye', title: 'Party dress', due: inDays(10) });
   await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
-  expect(await has('No steps yet. Add them below, each on its day.')).toBe(true);
-  for (const [title, day] of [
-    ['Buy fabric', inDays(2)],
-    ['Sewing', inDays(5)],
-  ] as const) {
-    const form = await open(page.locator('main'), 'Add a step');
-    await form.getByLabel('Step').fill(title);
-    await form.getByLabel('Day', { exact: true }).fill(day);
-    await form.getByRole('button', { name: 'Add' }).click();
-    await item(page, title).waitFor();
-    await settled(page);
-  }
+  expect(await has('No steps yet. Tap the ones this order needs, and give each its day.')).toBe(true);
+  // The same step buttons as a new order, open by themselves (decision 0085): several at once, with a time if any.
+  const form = page.getByRole('form', { name: 'Add steps' });
+  await expect(form.getByRole('group', { name: 'Your usual steps' })).toBeVisible();
+  await expect(form.getByRole('button', { name: '+ Delivery' })).toHaveCount(0);
+  await inspect(page, 'order with no steps');
+  await addSteps(page, [
+    { title: 'Buy fabric', day: inDays(2) },
+    { title: 'Sewing', day: inDays(5), from: '10:00' },
+  ]);
+  await expect(form.locator('.notice--success')).toHaveText('Added 2 steps.');
+  // The builder is empty again, for more.
+  await expect(page.locator('.step-row')).toHaveCount(0);
+  const party = /\/orders\/([0-9a-f-]{36})/.exec(page.url())![1]!;
+  expect(await stepDay(party, 'Sewing')).toBe(inDays(5));
+  await settled(page);
   // The steps take the place of the empty card.
   await expect(page.locator('li.item .item__title')).toHaveText(['Buy fabric', 'Sewing']);
   expect(await has('No steps yet.')).toBe(false);
@@ -322,11 +324,8 @@ test('an order due today shows once on Today: by its step when it has one, else 
   await expect(page.locator('main')).not.toContainText('Hem trousers');
   // Its delivery as a step today: shown by that step, and not again as due.
   await page.goto(hem);
-  const form = await open(page.locator('main'), 'Add a step');
-  await form.getByLabel('Step').fill('Delivery');
-  await form.getByLabel('Day', { exact: true }).fill(today());
-  await form.getByRole('button', { name: 'Add' }).click();
-  await item(page, 'Delivery').waitFor();
+  // Not one of the buttons (the order's own day says it), but hers to add as one of her own.
+  await addSteps(page, [{ title: 'Delivery', day: today() }]);
   await page.goto('/');
   await expect(item(section('Today'), 'Delivery', 'Yonas Alemu · Hem trousers')).toBeVisible();
   await expect(page.getByRole('list', { name: 'Due today' })).toHaveCount(0);

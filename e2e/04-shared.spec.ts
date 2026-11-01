@@ -1,5 +1,5 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { inspect, item, open, ready, signedInContext, text, watchErrors } from './support/app';
+import { addSteps, inspect, item, open, ready, signedInContext, text, watchErrors } from './support/app';
 import { orderId, ownerId, sql, value } from './support/db';
 import { env } from './support/env';
 import { smallSwatch } from './support/pictures';
@@ -58,11 +58,7 @@ test('the second account sees her orders and works on them; what it does is hers
   await expect(helper.locator('main')).toContainText('Selam Bekele · Bridal gown');
   await helper.goto(`/orders/${o1}`);
   await ready(helper);
-  const form = await open(helper.locator('main'), 'Add a step');
-  await form.getByLabel('Step').fill('Embroidery');
-  await form.getByLabel('Day', { exact: true }).fill(await value(`select (current_date + 3)::text`));
-  await form.getByRole('button', { name: 'Add' }).click();
-  await item(helper, 'Embroidery').waitFor();
+  await addSteps(helper, [{ title: 'Embroidery', day: await value(`select (current_date + 3)::text`) }]);
   // In her workspace: she sees it too.
   await her.goto(`/orders/${o1}`);
   await expect(item(her, 'Embroidery')).toBeVisible();

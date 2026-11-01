@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { ConfirmAction } from '@/components/ConfirmAction';
 import { AddStepForm } from '@/components/steps/AddStepForm';
+import { AddStepsForm } from '@/components/steps/AddStepsForm';
 import { StepEditor } from '@/components/steps/StepEditor';
 import { TickButton } from '@/components/steps/TickButton';
 import { formatDay } from '@/domain/dates';
@@ -75,7 +76,7 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
         {steps.length === 0 ? (
           !event && (
             <div className="card">
-              <p>No steps yet.{!closed && ' Add them below, each on its day.'}</p>
+              <p>No steps yet.{!closed && ' Tap the ones this order needs, and give each its day.'}</p>
             </div>
           )
         ) : (
@@ -119,17 +120,18 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
           </ul>
         )}
 
-        {!closed && (
-          <>
+        {!closed &&
+          (event ? (
             <AddStepForm
               orderId={order.id}
               day={prefs.today}
-              summary={event ? 'Add something to prepare' : 'Add a step'}
+              summary="Add something to prepare"
               idPrefix="new-step"
-              usual={event ? [] : usual}
             />
-          </>
-        )}
+          ) : (
+            // The same step buttons as a new order, for an order taken in a hurry (decision 0085).
+            <AddStepsForm orderId={order.id} today={prefs.today} usual={usual} open={steps.length === 0} />
+          ))}
       </section>
 
       <section className="section" aria-labelledby="details-heading">

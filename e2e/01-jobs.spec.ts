@@ -616,6 +616,7 @@ test('order 3: a finished order is a record: nothing on it can be edited', async
   await page.goto(`/orders/${ids.o3}`);
   await expect(page.getByRole('button', { name: /^Mark .* as done$/ })).toHaveCount(0);
   await expect(page.getByText('Add a step')).toHaveCount(0);
+  await expect(page.getByRole('form', { name: 'Add steps' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Save notes' })).toHaveCount(1);
   await page.goto(`/orders/${ids.o3}/brief`);

@@ -640,3 +640,13 @@ She calls them orders: every word she reads now says "order" ("New order", "Orde
 order"…); the code keeps its own names. An event is made from "New event" only, and its form, and its details
 afterwards, no longer show the "For" list of customers; an order's "For" lists only customers. On the month an event's
 day carries the event's name (cut to fit the day), not the word "Event".
+
+## 0085. An order's steps are added on its page with the same step buttons
+
+An order is often taken in a hurry and its steps given afterwards. Its page now has the step buttons of a new order
+(her usual steps, "Another step", each row a day and a time), open by themselves while it has no steps and behind "Add
+steps" once it has some; several are saved at once. One builder (`StepBuilder`) is shared by both, so they cannot
+drift. They are checked as on a new order: a step already on the order that day, or a time already taken, is refused
+beside its row, and the rows stay as she left them. "Delivery" is not a button (the order's day says it) but can be
+added as one of her own. A step over several days, or with an end time, is given that when she changes it. An event
+keeps "Add something to prepare".

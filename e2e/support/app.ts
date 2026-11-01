@@ -133,22 +133,43 @@ export async function fillNewJob(
   if (job.brief) await page.getByLabel('Design brief (optional)').fill(job.brief);
   await page.getByLabel(job.client === 'event' ? 'Event day' : 'Delivery day').fill(job.due);
   if (job.dueAt) await page.locator('#due-at').fill(job.dueAt);
-  for (const step of job.steps ?? []) {
-    const usual = page.getByRole('group', { name: 'Your usual steps' }).getByRole('button', {
+  await buildSteps(page.locator('main'), job.steps ?? []);
+}
+
+/** Taps each usual step (or "Another step" for one of her own) in the step buttons within `scope`, and gives its day and time. */
+export async function buildSteps(scope: Locator, steps: NewStep[]): Promise<void> {
+  for (const step of steps) {
+    const usual = scope.getByRole('group', { name: 'Your usual steps' }).getByRole('button', {
       name: `+ ${step.title}`,
       exact: true,
     });
-    const rows = page.locator('.step-row');
+    const rows = scope.locator('.step-row');
     const before = await rows.count();
     if ((await usual.count()) > 0) await usual.click();
     else {
-      await page.getByRole('button', { name: '+ Another step', exact: true }).click();
+      await scope.getByRole('button', { name: '+ Another step', exact: true }).click();
       await rows.nth(before).getByRole('combobox').fill(step.title);
     }
     const row = rows.nth(before);
     if (step.day) await row.getByLabel('Day', { exact: true }).fill(step.day);
     if (step.from) await row.getByLabel('Time (optional)').fill(step.from);
   }
+}
+
+/**
+ * Adds steps on an order's page with its step buttons (decision 0085), opening "Add steps" when the order has some
+ * already, and waits until they are on it. Returns the form, for what it then says.
+ */
+export async function addSteps(page: Page, steps: NewStep[], wait = true): Promise<Locator> {
+  // Only once the page is there, not its loading screen: open by itself, or behind "Add steps".
+  await ready(page);
+  const main = page.locator('main');
+  const form = main.getByRole('form', { name: 'Add steps' });
+  if (!(await form.isVisible())) await open(main, 'Add steps');
+  await buildSteps(form, steps);
+  await form.getByRole('button', { name: 'Add these steps' }).click();
+  if (wait) for (const s of steps) await item(page, s.title).waitFor();
+  return form;
 }
 
 /** Opens the disclosure whose summary starts with `summary`, inside `scope`, and returns it. */

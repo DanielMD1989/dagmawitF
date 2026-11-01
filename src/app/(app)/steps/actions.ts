@@ -2,8 +2,8 @@
 
 import { changed } from '@/server/news';
 import { idField, text } from '@/domain/form-input';
-import { findClash } from '@/domain/steps/agenda';
-import { parseStep, sameStep, type StepFields } from '@/domain/steps/forms';
+import { findClash, type Step } from '@/domain/steps/agenda';
+import { parseStep, parseStepRows, sameStep, type StepFields } from '@/domain/steps/forms';
 import { clashMessage } from '@/domain/steps/words';
 import { failure, success, typedIn, type ActionState } from '@/lib/action-state';
 import { missing, saveFailed } from '@/server/action-errors';
@@ -98,6 +98,55 @@ export async function addStep(_previous: ActionState, formData: FormData): Promi
   if (error) return saveFailed('the step', error, typed);
   refresh(orderId);
   return success(`Added “${parsed.value.title}”.`);
+}
+
+/**
+ * Several steps added to an order at once, from the step buttons on its page (decision 0085): for an order taken in a
+ * hurry, its steps are given afterwards. Each must not be there already on that day, nor take a time already taken;
+ * a message is said beside its own row.
+ */
+export async function addSteps(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+  const typed = typedIn(formData);
+  const orderId = idField(formData, 'order-id');
+  if (!orderId) return failure('That order could not be found. Reload the page.', {}, typed);
+  const rows = parseStepRows(formData);
+  if (!rows.ok) return failure('Check the steps marked below.', rows.errors, typed);
+  if (rows.value.length === 0) return failure('Tap a step first.', {}, typed);
+  const supabase = await createSupabase();
+
+  const existing = (await loadJobSteps(supabase, orderId)).filter((s) => s.doneOn === null);
+  const errors: Record<string, string> = {};
+  for (const [i, step] of rows.value.entries()) {
+    const twice = existing.find((s) => sameStep(s, step));
+    if (twice)
+      errors[`step-${i}-title`] =
+        `This order already has “${twice.title}” on that day. Change that one instead.`;
+  }
+  if (Object.keys(errors).length > 0) return failure('Some steps are already there.', errors, typed);
+
+  if (rows.value.some((s) => s.startsAt)) {
+    const { today } = await loadPreferences(supabase);
+    const taken: Step[] = await loadCalendarSteps(supabase, today);
+    for (const [i, step] of rows.value.entries()) {
+      const other = findClash(step, taken);
+      if (other) return failure('That time is taken.', { [`step-${i}-from`]: clashMessage(other) }, typed);
+      taken.push({ ...step, id: `new-${i}`, doneOn: null, job: null });
+    }
+  }
+
+  const start = await nextSort(supabase, orderId);
+  const { error } = await supabase.from('task').insert(
+    rows.value.map((step, i) => ({
+      order_id: orderId,
+      sort: Math.min(100_000, start + i * 10),
+      ...columns(step),
+    })),
+  );
+  if (error) return saveFailed('the steps', error, typed);
+  refresh(orderId);
+  const n = rows.value.length;
+  return success(n === 1 ? `Added “${rows.value[0]!.title}”.` : `Added ${n} steps.`);
 }
 
 export async function saveStep(_previous: ActionState, formData: FormData): Promise<ActionState> {
