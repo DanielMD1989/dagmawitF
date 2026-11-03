@@ -45,6 +45,7 @@ export const HISTORY_ACTIONS = [
   'plan_approved',
   'task_done',
   'task_hold',
+  'task_started',
 ] as const;
 
 export type HistoryAction = (typeof HISTORY_ACTIONS)[number];
@@ -211,6 +212,12 @@ export function describeEvent(event: HistoryEvent): string {
           ? ''
           : `, in ${formatMinutes(actual)}${estimate === null ? '' : ` (estimate ${formatMinutes(estimate)})`}`;
       return `Done: ${title}${took}${on ? `, ${formatDay(on)}` : ''}.`;
+    }
+    case 'task_started': {
+      // Part done (decision 0087), with what is left in her words.
+      const title = str(d, 'title', 'A step');
+      const left = str(d, 'left', '');
+      return left ? `Part done: ${title}. Left: ${left}.` : `Part done: ${title}.`;
     }
     case 'task_hold': {
       const title = str(d, 'title', 'A task');

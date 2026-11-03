@@ -112,6 +112,12 @@ describe('the words for what happened', () => {
     ['task_done', { title: 'Ready' }, 'Done: Ready.'],
     ['task_hold', { title: 'Fitting', reason: 'Client away' }, 'Fitting put on hold: Client away.'],
     ['task_hold', { title: 'Fitting', reason: null }, 'Fitting no longer on hold.'],
+    [
+      'task_started',
+      { title: 'Sewing', left: 'Bodice and sleeves' },
+      'Part done: Sewing. Left: Bodice and sleeves.',
+    ],
+    ['task_started', { title: 'Sewing' }, 'Part done: Sewing.'],
   ])('%s %j', (action, details, sentence) => {
     expect(say(action, details)).toBe(sentence);
   });
