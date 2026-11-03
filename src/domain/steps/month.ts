@@ -1,5 +1,5 @@
 import { addDays, isIsoDate, isoWeekday, type IsoDate } from '../dates';
-import { entriesOn, type Step } from './agenda';
+import { entriesOn, isDeliveryStep, type Step } from './agenda';
 
 /** The weeks of a month as her calendar shows them: Monday first, with the days of the months around it. */
 
@@ -67,7 +67,6 @@ export interface DueOn {
   clientName: string | null;
 }
 
-const isDelivery = (title: string) => title.trim().toLowerCase() === 'delivery';
 const firstName = (name: string) => name.trim().split(/\s+/)[0] ?? name;
 
 function dueMark(job: DueOn): DayMark {
@@ -86,7 +85,7 @@ function dueMark(job: DueOn): DayMark {
  */
 export function dayMarks(steps: readonly Step[], due: readonly DueOn[], day: IsoDate): DayMark[] {
   const entries = entriesOn(steps, day).filter((e) => e.step.doneOn === null);
-  const deliveries = entries.filter((e) => e.step.job && isDelivery(e.step.title));
+  const deliveries = entries.filter((e) => e.step.job && isDeliveryStep(e.step.title));
   const dueJobs = new Map<string, DueOn>(due.map((j) => [j.id, j]));
   for (const e of deliveries) if (!dueJobs.has(e.step.job!.id)) dueJobs.set(e.step.job!.id, e.step.job!);
   const marks = [...dueJobs.values()].map(dueMark);

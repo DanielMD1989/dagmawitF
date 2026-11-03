@@ -28,6 +28,9 @@ export interface Step {
   doneOn: IsoDate | null;
   /** The day it was meant for, when it was moved to today unfinished (decision 0080). */
   movedFrom?: IsoDate | null;
+  /** The day she marked it part done, and what is left in her words (decision 0087). */
+  startedOn?: IsoDate | null;
+  leftNote?: string | null;
   /** Null for her studio work. */
   job: JobRef | null;
 }
@@ -51,6 +54,16 @@ export interface Agenda {
   days: AgendaDay[];
   /** Not done, and not given a day yet. */
   undated: Step[];
+}
+
+/** A Delivery: the order's own day as a step. Done or not, never part done (decision 0087). */
+export function isDeliveryStep(title: string): boolean {
+  return title.trim().toLowerCase() === 'delivery';
+}
+
+/** A step she can mark part done: not done yet, and not a Delivery (decision 0087). */
+export function canBePartDone(step: Pick<Step, 'title' | 'doneOn'>): boolean {
+  return step.doneOn === null && !isDeliveryStep(step.title);
 }
 
 /** A job's steps are on her calendar while it is confirmed; studio work always is. */

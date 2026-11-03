@@ -5,12 +5,12 @@ import { useFormStatus } from 'react-dom';
 import { toggleStep } from '@/app/(app)/steps/actions';
 import { idle } from '@/lib/action-state';
 
-function Mark({ title, done }: { title: string; done: boolean }) {
+function Mark({ title, done, started }: { title: string; done: boolean; started: boolean }) {
   const { pending } = useFormStatus();
   return (
     <button
       type="submit"
-      className={done ? 'tick tick--done' : 'tick'}
+      className={done ? 'tick tick--done' : started ? 'tick tick--started' : 'tick'}
       aria-label={done ? `${title}: done. Mark as not done` : `Mark ${title} as done`}
       aria-busy={pending}
       disabled={pending}
@@ -28,11 +28,14 @@ export function TickButton({
   orderId,
   title,
   done,
+  started = false,
 }: {
   stepId: string;
   orderId: string | null;
   title: string;
   done: boolean;
+  /** Part done (decision 0087): the mark is half filled until it is ticked done. */
+  started?: boolean;
 }) {
   const [state, action] = useActionState(toggleStep, idle);
   return (
@@ -40,7 +43,7 @@ export function TickButton({
       <input type="hidden" name="step-id" value={stepId} />
       {orderId && <input type="hidden" name="order-id" value={orderId} />}
       <input type="hidden" name="saw-done" value={String(done)} />
-      <Mark title={title} done={done} />
+      <Mark title={title} done={done} started={started} />
       {state.status === 'error' && (
         <span className="error tick-form__error" role="alert">
           {state.message}

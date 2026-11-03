@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Step } from './agenda';
-import { clashMessage, clock, daysLabel, timeLabel } from './words';
+import { canBePartDone, type Step } from './agenda';
+import { clashMessage, clock, daysLabel, partDoneLabel, timeLabel } from './words';
 
 const step = (over: Partial<Step>): Step => ({
   id: 's',
@@ -50,5 +50,27 @@ describe('the 12-hour clock', () => {
     ['23:59', '11:59 PM'],
   ])('%s is %s', (time, words) => {
     expect(clock(time)).toBe(words);
+  });
+});
+
+describe('a step part done (decision 0087)', () => {
+  it('says since when, and what is left when she said it', () => {
+    expect(partDoneLabel({ doneOn: null, startedOn: '2026-11-02', leftNote: 'Bodice and sleeves' })).toBe(
+      'Part done Mon 2 Nov · left: Bodice and sleeves',
+    );
+    expect(partDoneLabel({ doneOn: null, startedOn: '2026-11-02', leftNote: null })).toBe(
+      'Part done Mon 2 Nov',
+    );
+  });
+
+  it('says nothing once it is done, or when it was never started', () => {
+    expect(partDoneLabel({ doneOn: '2026-11-03', startedOn: '2026-11-02', leftNote: 'x' })).toBeNull();
+    expect(partDoneLabel({ doneOn: null, startedOn: null, leftNote: null })).toBeNull();
+  });
+
+  it('is offered for any open step but a Delivery, in any capitals', () => {
+    expect(canBePartDone({ title: 'Sewing', doneOn: null })).toBe(true);
+    expect(canBePartDone({ title: 'Sewing', doneOn: '2026-11-02' })).toBe(false);
+    expect(canBePartDone({ title: 'DELIVERY', doneOn: null })).toBe(false);
   });
 });

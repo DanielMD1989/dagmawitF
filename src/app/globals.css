@@ -968,18 +968,34 @@ a.btn {
   background: none;
 }
 /* A step's "Change" sits at the top right of its card, not on a line of its own (decision 0076). */
-.item > .disclosure--link > summary {
+.item > .disclosure--link:not(.disclosure--under) > summary {
   position: absolute;
   top: 4px;
   right: 6px;
   padding: 0 8px;
   font-size: 14px;
 }
-.item:has(> .disclosure--link) > .item__head {
+.item:has(> .disclosure--link:not(.disclosure--under)) > .item__head {
   padding-right: 64px;
 }
 .item > .disclosure--link > .disclosure__panel {
   margin-top: 0;
+}
+/* Closed, the corner link ("Change") is out of the column: its empty box takes no row and no gap. */
+.item > .disclosure--link:not(.disclosure--under):not([open]) {
+  margin-top: -10px;
+}
+/* "Part done…" (decision 0087): under the step's words, not in the corner where "Change" is. */
+.item > .disclosure--under {
+  margin-top: -6px;
+}
+.item > .disclosure--under > summary {
+  margin-left: calc(var(--tap) + 12px);
+  min-height: 32px;
+  font-size: 14px;
+}
+.item > .disclosure--under > .disclosure__panel {
+  margin-top: 4px;
 }
 .disclosure__panel {
   margin-top: 12px;
@@ -1679,6 +1695,11 @@ h4 {
   border-color: var(--accent);
   color: var(--muted);
 }
+/* Part done (decision 0087): the circle half filled, until it is ticked done. */
+.tick--started svg {
+  border-color: var(--accent);
+  background: linear-gradient(to top, var(--accent-2) 50%, var(--icon-bg) 50%);
+}
 .tick--done svg {
   background: var(--solid);
   border-color: var(--solid);
@@ -2053,5 +2074,9 @@ h4 {
 /* A step moved to today unfinished (decision 0080). */
 .item__note--moved {
   color: var(--sand-ink);
+  font-weight: 600;
+}
+.item__note--started {
+  color: var(--accent);
   font-weight: 600;
 }

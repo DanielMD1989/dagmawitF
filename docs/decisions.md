@@ -667,3 +667,13 @@ Supabase released its CLI 3.0.0 on 2 November 2026 with breaking changes; our wo
 build started failing at `supabase db start`, even for commits that had passed. The workflows now name a version
 (2.122.1, the last of version 2). Moving to a new major version is a change made on purpose, in its own commit, after
 reading its breaking changes, never something that happens to us.
+
+## 0087. A step can be part done
+
+When part of a step is done but not all of it, she does not tick it: she taps "Part done…" under it and may say what is
+left ("Sleeves and hem"). The step stays open: its round mark is half filled, the line under it says "Part done Mon 2
+Nov · left: Sleeves and hem", and it stays on her calendar, moving to the next day by itself like any unfinished step
+(decision 0080), until she ticks it done. She can change what is left as she goes; the day it was first started is
+kept. A Delivery is done or not: it is never offered "Part done", and the database refuses it. "Part done", with what is
+left, goes on the order's history, and so into the others' phone notifications (decision 0083). Shipped in two steps
+(decision 0082): the columns first, then the app.

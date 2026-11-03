@@ -4,7 +4,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 import { addDays, type IsoDate } from '@/domain/dates';
 import { isOrderStatus, type OrderStatus } from '@/domain/orders/status';
-import type { Step } from '@/domain/steps/agenda';
+import { canBePartDone, type Step } from '@/domain/steps/agenda';
 import { fail, isoDay } from './rows';
 
 /** Steps, their jobs and her templates, read as the signed-in designer (docs/calendar-first.md). */
@@ -16,7 +16,7 @@ const time = z
   .transform((t) => t.slice(0, 5));
 
 const STEP_COLUMNS = `id, title, sort, order_item_id, on_day, until_day, starts_at, ends_at, done_on, moved_from,
-  job:orders(id, number, title, status, delivery_on, client:client(name))`;
+  started_on, left_note, job:orders(id, number, title, status, delivery_on, client:client(name))`;
 
 const stepRow = z.object({
   id: z.string(),
@@ -29,6 +29,8 @@ const stepRow = z.object({
   ends_at: time.nullable(),
   done_on: isoDay.nullable(),
   moved_from: isoDay.nullable(),
+  started_on: isoDay.nullable(),
+  left_note: z.string().nullable(),
   job: z
     .object({
       id: z.string(),
@@ -58,6 +60,8 @@ function toStep(r: z.infer<typeof stepRow>): JobStep {
     endsAt: r.ends_at,
     doneOn: r.done_on,
     movedFrom: r.moved_from,
+    startedOn: r.started_on,
+    leftNote: r.left_note,
     job: r.job && {
       id: r.job.id,
       number: r.job.number,
@@ -167,6 +171,42 @@ export async function setDone(
       ? 'It was already ticked done on another device.'
       : 'It was opened again on another device.',
   };
+}
+
+export type PartDoneResult =
+  | { result: 'applied'; title: string }
+  | { result: 'failed'; error: { code?: string; message: string } }
+  | { result: 'missing' | 'refused'; message: string };
+
+/**
+ * Marks a step part done (decision 0087): started, keeping the day it was first started, with what is left in her
+ * words. Not for a step already done (ticked meanwhile, perhaps on another device), nor for a Delivery, which is done
+ * or not: the database refuses that too.
+ */
+export async function setPartDone(
+  supabase: SupabaseClient,
+  input: { stepId: string; left: string | null; today: IsoDate },
+): Promise<PartDoneResult> {
+  const now = await supabase
+    .from('task')
+    .select('title, done_on, started_on')
+    .eq('id', input.stepId)
+    .maybeSingle();
+  if (now.error) return { result: 'failed', error: now.error };
+  if (!now.data) return { result: 'missing', message: STEP_MISSING };
+  const step = now.data as { title: string; done_on: string | null; started_on: string | null };
+  if (step.done_on) return { result: 'refused', message: 'It is already ticked done.' };
+  if (!canBePartDone({ title: step.title, doneOn: null }))
+    return { result: 'refused', message: 'A delivery is done or not done: tick it once it is delivered.' };
+  const { data, error } = await supabase
+    .from('task')
+    .update({ started_on: step.started_on ?? input.today, left_note: input.left })
+    .eq('id', input.stepId)
+    .is('done_on', null)
+    .select('id');
+  if (error) return { result: 'failed', error };
+  if (data.length === 0) return { result: 'refused', message: 'It was ticked done on another device.' };
+  return { result: 'applied', title: step.title };
 }
 
 /**

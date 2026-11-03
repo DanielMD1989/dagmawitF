@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseStep, parseStepRows } from './forms';
+import { MAX_LEFT_NOTE, parseLeftNote, parseStep, parseStepRows } from './forms';
 
 const form = (fields: Record<string, string>) => {
   const data = new FormData();
@@ -99,5 +99,24 @@ describe('the rows of steps on a new job', () => {
   it('refuse a count that is not a count', () => {
     for (const steps of ['x', '-1', '101', '1.5'])
       expect(parseStepRows(form({ steps })).ok, steps).toBe(false);
+  });
+});
+
+describe('what is left of a step part done', () => {
+  const form = (left: string) => {
+    const d = new FormData();
+    d.set('left', left);
+    return d;
+  };
+  it('is her words, trimmed; empty is nothing said', () => {
+    expect(parseLeftNote(form('  Bodice and sleeves '))).toEqual({ ok: true, value: 'Bodice and sleeves' });
+    expect(parseLeftNote(form('   '))).toEqual({ ok: true, value: null });
+  });
+  it('is refused past the most the database keeps, counting characters, not bytes', () => {
+    expect(parseLeftNote(form('ሀ'.repeat(MAX_LEFT_NOTE))).ok).toBe(true);
+    expect(parseLeftNote(form('x'.repeat(MAX_LEFT_NOTE + 1)))).toEqual({
+      ok: false,
+      errors: { left: 'Keep it to 200 characters.' },
+    });
   });
 });

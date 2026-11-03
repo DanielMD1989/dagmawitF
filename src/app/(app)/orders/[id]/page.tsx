@@ -2,13 +2,14 @@ import { notFound } from 'next/navigation';
 import { ConfirmAction } from '@/components/ConfirmAction';
 import { AddStepForm } from '@/components/steps/AddStepForm';
 import { AddStepsForm } from '@/components/steps/AddStepsForm';
+import { PartDoneForm } from '@/components/steps/PartDoneForm';
 import { StepEditor } from '@/components/steps/StepEditor';
 import { TickButton } from '@/components/steps/TickButton';
 import { formatDay } from '@/domain/dates';
 import { isUuid } from '@/domain/form-input';
 import { isClosed } from '@/domain/orders/status';
-import { isOverdue, jobWarnings, lastDayOf } from '@/domain/steps/agenda';
-import { daysLabel, timeLabel } from '@/domain/steps/words';
+import { canBePartDone, isOverdue, jobWarnings, lastDayOf } from '@/domain/steps/agenda';
+import { daysLabel, partDoneLabel, timeLabel } from '@/domain/steps/words';
 import { loadClients } from '@/server/clients';
 import { getOrder } from '@/server/orders';
 import { loadPreferences } from '@/server/preferences';
@@ -95,7 +96,13 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
                         role="img"
                       />
                     ) : (
-                      <TickButton stepId={s.id} orderId={order.id} title={s.title} done={s.doneOn !== null} />
+                      <TickButton
+                        stepId={s.id}
+                        orderId={order.id}
+                        title={s.title}
+                        done={s.doneOn !== null}
+                        started={partDoneLabel(s) !== null}
+                      />
                     )}
                     <div className="item__main">
                       <span className={s.doneOn ? 'item__title today__done' : 'item__title'}>{s.title}</span>
@@ -105,6 +112,9 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
                         {s.doneOn && ` · done ${formatDay(s.doneOn)}`}
                       </span>
                       {late && <span className="item__note">Not done yet.</span>}
+                      {partDoneLabel(s) && (
+                        <span className="item__note item__note--started">{partDoneLabel(s)}</span>
+                      )}
                       {!s.doneOn && s.movedFrom && (
                         <span className="item__note item__note--moved">
                           Moved from {formatDay(s.movedFrom)}
@@ -113,6 +123,15 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
                       {after && <span className="item__note">After the order’s day.</span>}
                     </div>
                   </div>
+                  {!closed && canBePartDone(s) && (
+                    <PartDoneForm
+                      stepId={s.id}
+                      orderId={order.id}
+                      title={s.title}
+                      started={partDoneLabel(s) !== null}
+                      leftNote={s.leftNote ?? null}
+                    />
+                  )}
                   {!closed && <StepEditor orderId={order.id} step={s} />}
                 </li>
               );

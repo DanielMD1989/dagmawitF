@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { formatDay, type IsoDate } from '@/domain/dates';
 import { jobHeadline } from '@/domain/jobs/words';
-import { lastDayOf, type Step } from '@/domain/steps/agenda';
-import { timeLabel } from '@/domain/steps/words';
+import { canBePartDone, lastDayOf, type Step } from '@/domain/steps/agenda';
+import { partDoneLabel, timeLabel } from '@/domain/steps/words';
+import { PartDoneForm } from './PartDoneForm';
 import { TickButton } from './TickButton';
 
 /**
@@ -25,6 +26,7 @@ export function StepEntry({
   const last: IsoDate | null = lastDayOf(step);
   const work = step.job ? jobHeadline(step.job) : null;
   const titleClass = done ? 'item__title today__done' : 'item__title';
+  const partDone = partDoneLabel(step);
   return (
     <li className={overdue ? 'item item--late' : 'item'}>
       <div className="item__head">
@@ -33,6 +35,7 @@ export function StepEntry({
           orderId={step.job?.id ?? null}
           title={work ? `${step.title}, ${work}` : step.title}
           done={done}
+          started={partDone !== null}
         />
         <div className="item__main">
           {time && <span className="item__time">{time}</span>}
@@ -49,6 +52,7 @@ export function StepEntry({
             {step.job && ` · #${step.job.number}`}
           </span>
           {overdue && last && <span className="item__note">Was for {formatDay(last)}, not done yet.</span>}
+          {partDone && <span className="item__note item__note--started">{partDone}</span>}
           {!done && step.movedFrom && (
             <span className="item__note item__note--moved">Moved from {formatDay(step.movedFrom)}</span>
           )}
@@ -59,6 +63,15 @@ export function StepEntry({
           )}
         </div>
       </div>
+      {canBePartDone(step) && (
+        <PartDoneForm
+          stepId={step.id}
+          orderId={step.job?.id ?? null}
+          title={step.title}
+          started={partDone !== null}
+          leftNote={step.leftNote ?? null}
+        />
+      )}
     </li>
   );
 }

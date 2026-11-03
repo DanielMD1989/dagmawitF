@@ -5,6 +5,7 @@ import {
   inspect,
   item,
   open,
+  ready,
   settled,
   signedInContext,
   text,
@@ -385,6 +386,36 @@ test('the month marks the days orders and events are due, steps or none, and lis
   await expect(item(page, 'Delivery', 'Yonas Alemu · Suit alteration')).toBeVisible();
   await expect(page.getByRole('list', { name: 'Due this day' })).toHaveCount(0);
   await inspect(page, 'month with due days');
+});
+
+test('a step part done stays open, says what is left, and is on the history; a Delivery is done or not', async () => {
+  await page.goto(`/orders/${ids.o1}`);
+  await ready(page);
+  const lace = item(page, 'Lace work');
+  const form = await open(lace, 'Part done…');
+  await inspect(page, 'part done form');
+  await form.getByLabel('What is left (optional)').fill('Sleeves and hem');
+  await form.getByRole('button', { name: 'Mark part done' }).click();
+  // Not ticked: half filled, with what is left under it.
+  await expect(lace.locator('.item__note--started')).toHaveText(/^Part done .+ · left: Sleeves and hem$/);
+  await expect(lace.getByRole('button', { name: 'Mark Lace work as done' })).toHaveClass(/tick--started/);
+  // She can change what is left.
+  const again = await open(lace, 'Change what is left');
+  await expect(again.getByLabel('What is left (optional)')).toHaveValue('Sleeves and hem');
+  await again.getByLabel('What is left (optional)').fill('Hem');
+  await again.getByRole('button', { name: 'Save' }).click();
+  await expect(lace.locator('.item__note--started')).toHaveText(/ · left: Hem$/);
+  expect(
+    await value(
+      `select coalesce(left_note, '') from public.task where order_id = $1 and title = 'Lace work'`,
+      [ids.o1],
+    ),
+  ).toBe('Hem');
+  // A Delivery is not offered it.
+  await expect(item(page, 'Delivery').getByText('Part done…')).toHaveCount(0);
+  await page.goto(`/orders/${ids.o1}/history`);
+  expect(await text(page)).toContain('Part done: Lace work. Left: Hem.');
+  await settled(page);
 });
 
 test('desktop, and a phone in dark mode: every calendar screen', async ({ browser }) => {

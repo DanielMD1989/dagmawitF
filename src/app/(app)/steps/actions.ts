@@ -3,13 +3,13 @@
 import { changed } from '@/server/news';
 import { idField, text } from '@/domain/form-input';
 import { findClash, type Step } from '@/domain/steps/agenda';
-import { parseStep, parseStepRows, sameStep, type StepFields } from '@/domain/steps/forms';
+import { parseLeftNote, parseStep, parseStepRows, sameStep, type StepFields } from '@/domain/steps/forms';
 import { clashMessage } from '@/domain/steps/words';
 import { failure, success, typedIn, type ActionState } from '@/lib/action-state';
 import { missing, saveFailed } from '@/server/action-errors';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
-import { loadCalendarSteps, loadJobSteps, setDone } from '@/server/steps';
+import { loadCalendarSteps, loadJobSteps, setDone, setPartDone } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
 
 /** Steps of her jobs and her studio work (docs/calendar-first.md). Every change refreshes Today and the job. */
@@ -57,6 +57,24 @@ export async function toggleStep(_previous: ActionState, formData: FormData): Pr
   refresh(orderId);
   if (r.result !== 'applied') return failure(r.message);
   return success(sawDone ? 'Opened again.' : 'Done.');
+}
+
+/** Marks a step part done, with what is left (decision 0087); saying it again changes what is left. */
+export async function markPartDone(_previous: ActionState, formData: FormData): Promise<ActionState> {
+  await requireUser();
+  const typed = typedIn(formData);
+  const stepId = idField(formData, 'step-id');
+  const orderId = idField(formData, 'order-id');
+  if (!stepId) return failure('That step could not be found. Reload the page.');
+  const left = parseLeftNote(formData);
+  if (!left.ok) return failure('Check what is left.', left.errors, typed);
+  const supabase = await createSupabase();
+  const { today } = await loadPreferences(supabase);
+  const r = await setPartDone(supabase, { stepId, left: left.value, today });
+  if (r.result === 'failed') return saveFailed('the step', r.error, typed);
+  refresh(orderId);
+  if (r.result !== 'applied') return failure(r.message);
+  return success(`“${r.title}” is part done.`);
 }
 
 async function nextSort(

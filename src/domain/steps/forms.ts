@@ -103,3 +103,17 @@ export function sameStep(
 ): boolean {
   return a.title.trim().toLowerCase() === b.title.trim().toLowerCase() && a.onDay === b.onDay;
 }
+
+/** The most of what is left that a step part done keeps; the database refuses more (decision 0087). */
+export const MAX_LEFT_NOTE = 200;
+
+/**
+ * What is left of a step she marks part done (decision 0087): optional, in her words. Empty is "started", with
+ * nothing said about what is left.
+ */
+export function parseLeftNote(data: FormData): Result<string | null> {
+  const left = text(data, 'left');
+  if (chars(left) > MAX_LEFT_NOTE)
+    return { ok: false, errors: { left: `Keep it to ${MAX_LEFT_NOTE} characters.` } };
+  return { ok: true, value: left === '' ? null : left };
+}

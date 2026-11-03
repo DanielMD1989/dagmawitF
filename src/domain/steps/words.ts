@@ -44,3 +44,10 @@ export function clashMessage(other: Step): string {
   const day = other.untilDay ? daysLabel(other) : formatDay(other.onDay!);
   return `${timeLabel(other)} on ${day} is taken by “${other.title}” (${whose}). Choose another time.`;
 }
+
+/** "Part done Mon 2 Nov · left: bodice and sleeves", under a step started and not done (decision 0087). */
+export function partDoneLabel(step: Pick<Step, 'doneOn' | 'startedOn' | 'leftNote'>): string | null {
+  if (step.doneOn !== null || !step.startedOn) return null;
+  const left = step.leftNote?.trim();
+  return `Part done ${formatDay(step.startedOn)}${left ? ` · left: ${left}` : ''}`;
+}
