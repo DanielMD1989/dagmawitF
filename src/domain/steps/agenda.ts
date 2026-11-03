@@ -66,9 +66,19 @@ export function canBePartDone(step: Pick<Step, 'title' | 'doneOn'>): boolean {
   return step.doneOn === null && !isDeliveryStep(step.title);
 }
 
-/** A job's steps are on her calendar while it is confirmed; studio work always is. */
+/**
+ * A job's steps are on her calendar while it is confirmed; studio work always is. Once an order is finished, what was
+ * done stays on its day, done (decision 0089): ticking the Delivery finishes the order, and the tick stays where she
+ * made it.
+ */
 export function isOnCalendar(step: Step): boolean {
-  return step.job === null || step.job.status === 'active';
+  if (step.job === null || step.job.status === 'active') return true;
+  return step.job.status === 'delivered' && step.doneOn !== null;
+}
+
+/** A step of a finished or cancelled order is a record: it is shown, not changed (the database refuses it too). */
+export function isRecord(step: Pick<Step, 'job'>): boolean {
+  return step.job !== null && (step.job.status === 'delivered' || step.job.status === 'cancelled');
 }
 
 export const lastDayOf = (step: Step): IsoDate | null => step.untilDay ?? step.onDay;

@@ -4,8 +4,8 @@ import { QuickActions } from '@/components/QuickActions';
 import { StatusChip } from '@/components/StatusChip';
 import { formatDay } from '@/domain/dates';
 import { daysLeft, jobHeadline } from '@/domain/jobs/words';
-import { isClosed, isOrderStatus, STATUS_LABEL, type OrderStatus } from '@/domain/orders/status';
-import { loadOrders } from '@/server/orders';
+import { activeOrders, handoverWords, historyByMonth, type OrdersTab } from '@/domain/orders/lists';
+import { loadOrders, type OrderListItem } from '@/server/orders';
 import { carryOver } from '@/server/steps';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
@@ -13,112 +13,127 @@ import { createSupabase } from '@/server/supabase';
 
 export const metadata: Metadata = { title: 'Orders' };
 
-type Filter = OrderStatus | 'all';
-
-// Active first, because that is what she is working through; the rest are a tap away.
-const FILTERS: readonly Filter[] = ['active', 'draft', 'on_hold', 'delivered', 'cancelled', 'all'];
-
-function readFilter(value: string | undefined): Filter {
-  if (value === 'all') return 'all';
-  return isOrderStatus(value) ? value : 'active';
-}
-
-export default async function OrdersPage({ searchParams }: { searchParams: Promise<{ status?: string }> }) {
+/**
+ * Her customers' orders under two tabs (decision 0090): Active, what she is working through, soonest first, with
+ * drafts and paused orders marked; History, what is finished or cancelled, newest first by month. An event is not an
+ * order: it has its own list (/events).
+ */
+export default async function OrdersPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   await requireUser();
-  const filter = readFilter((await searchParams).status);
+  const tab: OrdersTab = (await searchParams).tab === 'history' ? 'history' : 'active';
   const supabase = await createSupabase();
-  // Unfinished steps move to today first (decision 0080), so each job's next step is where it now is.
+  // Unfinished steps move to today first (decision 0080), so each order's next step is where it now is.
   await carryOver(supabase);
   const [prefs, orders] = await Promise.all([loadPreferences(supabase), loadOrders(supabase)]);
-
-  const count = (f: Filter) => (f === 'all' ? orders.length : orders.filter((o) => o.status === f).length);
-  const shown = orders.filter((o) => filter === 'all' || o.status === filter);
-  // A finished job is looked up by when it was handed over, newest first. The rest by what is due next.
-  if (filter === 'delivered' || filter === 'cancelled') shown.reverse();
+  const active = activeOrders(orders);
+  const history = historyByMonth(orders);
+  const historyCount = history.reduce((n, m) => n + m.orders.length, 0);
 
   return (
     <>
       <div className="page-head">
         <p className="eyebrow">Orders</p>
         <h1>Your orders</h1>
-        <p className="lede">Soonest first.</p>
       </div>
 
       <QuickActions
         actions={[
           { href: '/orders/new', label: 'New order', icon: 'add' },
-          { href: '/orders/new?event=1', label: 'New event', icon: 'event' },
+          { href: '/numbers', label: 'Numbers', icon: 'numbers' },
+          { href: '/events', label: 'Events', icon: 'event' },
           { href: '/clients', label: 'Clients', icon: 'clients' },
         ]}
       />
 
-      <nav aria-label="Filter orders">
-        <div className="segmented segmented--swipe">
-          {FILTERS.map((f) => (
-            <Link
-              key={f}
-              href={f === 'active' ? '/orders' : `/orders?status=${f}`}
-              aria-current={f === filter ? 'true' : undefined}
-            >
-              {f === 'all' ? 'All' : STATUS_LABEL[f]} ({count(f)})
-            </Link>
-          ))}
+      <nav aria-label="Orders">
+        <div className="segmented">
+          <Link href="/orders" aria-current={tab === 'active' ? 'true' : undefined}>
+            Active ({active.length})
+          </Link>
+          <Link href="/orders?tab=history" aria-current={tab === 'history' ? 'true' : undefined}>
+            History ({historyCount})
+          </Link>
         </div>
       </nav>
 
-      {shown.length === 0 ? (
+      {tab === 'active' ? (
+        active.length === 0 ? (
+          <div className="card">
+            <p>
+              {historyCount === 0
+                ? 'No orders yet. Press “New order” to take the first one.'
+                : 'Nothing in progress. Finished orders are under History.'}
+            </p>
+          </div>
+        ) : (
+          <ul className="rows rows--links" aria-label="Active orders">
+            {active.map((o) => (
+              <ActiveRow key={o.id} order={o} today={prefs.today} />
+            ))}
+          </ul>
+        )
+      ) : historyCount === 0 ? (
         <div className="card">
           <p>
-            {orders.length === 0
-              ? 'No orders yet. Press “New order” to take the first one.'
-              : `No ${filter === 'all' ? '' : STATUS_LABEL[filter].toLowerCase() + ' '}orders.`}
+            No finished orders yet. An order comes here once its Delivery is ticked, or it is marked finished.
           </p>
         </div>
       ) : (
-        <ul className="rows rows--links">
-          {shown.map((o) => {
-            const late = !isClosed(o.status) && o.deliveryOn < prefs.today;
-            return (
-              <li key={o.id}>
-                <Link href={`/orders/${o.id}`} className="row-link">
-                  <span className="row-link__title">{jobHeadline(o)}</span>
-                  {/* Two short lines: when it is due, then how its steps stand. */}
-                  <span className="hint">
-                    #{o.number} · {o.clientName ? 'Delivery' : 'Event'} {formatDay(o.deliveryOn)}
-                    {!isClosed(o.status) && (
-                      <>
-                        {' '}
-                        (
-                        <span className={late ? 'late' : undefined}>
-                          {daysLeft(o.deliveryOn, prefs.today)}
-                        </span>
-                        )
-                      </>
-                    )}
-                  </span>
-                  {o.steps > 0 && (
+        history.map(({ month, orders: inMonth }) => (
+          <section key={month} className="section" aria-label={month}>
+            <h2 className="h3">{month}</h2>
+            <ul className="rows rows--links">
+              {inMonth.map((o) => (
+                <li key={o.id}>
+                  <Link href={`/orders/${o.id}`} className="row-link">
+                    <span className="row-link__title">{jobHeadline(o)}</span>
                     <span className="hint">
-                      {o.done} of {o.steps} steps done
-                      {!isClosed(o.status) && o.next && (
-                        <span className={o.next.onDay < prefs.today ? 'late' : undefined}>
-                          {' '}
-                          · Next: {o.next.title}, {formatDay(o.next.onDay)}
-                        </span>
-                      )}
+                      #{o.number} · {handoverWords(o)}
                     </span>
-                  )}
-                  {/* Under one status the chip would say the same on every card; under All it tells them apart. */}
-                  {filter === 'all' && (
-                    <span className="row-link__side">
-                      <StatusChip status={o.status} />
-                    </span>
-                  )}
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
+                    {o.status === 'cancelled' && (
+                      <span className="row-link__side">
+                        <StatusChip status={o.status} />
+                      </span>
+                    )}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))
       )}
     </>
+  );
+}
+
+/** An order in progress: when it is due and how its steps stand; a draft or a paused one says so. */
+function ActiveRow({ order: o, today }: { order: OrderListItem; today: string }) {
+  const late = o.status === 'active' && o.deliveryOn < today;
+  return (
+    <li>
+      <Link href={`/orders/${o.id}`} className="row-link">
+        <span className="row-link__title">{jobHeadline(o)}</span>
+        <span className="hint">
+          #{o.number} · Delivery {formatDay(o.deliveryOn)} (
+          <span className={late ? 'late' : undefined}>{daysLeft(o.deliveryOn, today)}</span>)
+        </span>
+        {o.steps > 0 && (
+          <span className="hint">
+            {o.done} of {o.steps} steps done
+            {o.next && (
+              <span className={o.next.onDay < today ? 'late' : undefined}>
+                {' '}
+                · Next: {o.next.title}, {formatDay(o.next.onDay)}
+              </span>
+            )}
+          </span>
+        )}
+        {o.status !== 'active' && (
+          <span className="row-link__side">
+            <StatusChip status={o.status} />
+          </span>
+        )}
+      </Link>
+    </li>
   );
 }

@@ -29,6 +29,10 @@ export interface OrderListItem {
   steps: number;
   /** The first step not done yet that has a day, if any. */
   next: { title: string; onDay: IsoDate } | null;
+  /** The day it was finished (handed over), when it is. */
+  deliveredOn: IsoDate | null;
+  /** When it was taken: the moment it was saved, as an ISO timestamp. */
+  createdAt: string;
 }
 
 const listRow = z.object({
@@ -37,6 +41,8 @@ const listRow = z.object({
   title: z.string(),
   status,
   delivery_on: isoDay,
+  delivered_on: isoDay.nullable(),
+  created_at: z.string(),
   client: z.object({ id: z.string(), name: z.string() }).nullable(),
   order_item: z.array(z.object({ garment_type: z.string() })),
   task: z.array(z.object({ title: z.string(), on_day: isoDay.nullable(), done_on: isoDay.nullable() })),
@@ -47,7 +53,7 @@ export async function loadOrders(supabase: SupabaseClient): Promise<OrderListIte
   const { data, error } = await supabase
     .from('orders')
     .select(
-      `id, number, title, status, delivery_on, client:client(id, name), order_item(garment_type),
+      `id, number, title, status, delivery_on, delivered_on, created_at, client:client(id, name), order_item(garment_type),
        task(title, on_day, done_on)`,
     )
     .order('delivery_on')
@@ -74,6 +80,8 @@ export async function loadOrders(supabase: SupabaseClient): Promise<OrderListIte
         done: o.task.filter((t) => t.done_on !== null).length,
         steps: o.task.length,
         next: open[0] ? { title: open[0].title, onDay: open[0].on_day! } : null,
+        deliveredOn: o.delivered_on,
+        createdAt: o.created_at,
       };
     });
 }

@@ -38,7 +38,14 @@ export default async function OrderLayout({
   return (
     <>
       <div className="page-head">
-        <BackLink href="/orders">Orders</BackLink>
+        {/* Back to the list it is on (decision 0090): an event to Events, a finished order to History. */}
+        {!order.client ? (
+          <BackLink href="/events">Events</BackLink>
+        ) : isClosed(order.status) ? (
+          <BackLink href="/orders?tab=history">History</BackLink>
+        ) : (
+          <BackLink href="/orders">Orders</BackLink>
+        )}
         <div className="title-row">
           <h1>
             {jobHeadline({

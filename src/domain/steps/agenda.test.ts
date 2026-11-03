@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  isRecord,
+  isOnCalendar,
   buildAgenda,
   entriesOn,
   findClash,
@@ -196,5 +198,23 @@ describe('her time is hers once', () => {
       ]),
     ).toBeNull();
     expect(findClash({ onDay: '2026-11-04', untilDay: null, startsAt: null, endsAt: null }, all)).toBeNull();
+  });
+});
+
+describe('the steps of a finished order (decision 0089)', () => {
+  const finished: JobRef = { ...JOB, status: 'delivered' };
+  it('stay on their day where they were done, as a record; the rest leave her calendar', () => {
+    const delivered = step({ title: 'Delivery', onDay: TODAY, doneOn: TODAY, job: finished });
+    const notDone = step({ title: 'Pressing', onDay: TODAY, job: finished });
+    expect(isOnCalendar(delivered)).toBe(true);
+    expect(isOnCalendar(notDone)).toBe(false);
+    expect(isRecord(delivered)).toBe(true);
+    expect(isRecord(step({ onDay: TODAY }))).toBe(false);
+    expect(entriesOn([delivered, notDone], TODAY).map((e) => e.step.title)).toEqual(['Delivery']);
+  });
+  it('of a cancelled order leave it, done or not', () => {
+    expect(isOnCalendar(step({ onDay: TODAY, doneOn: TODAY, job: { ...JOB, status: 'cancelled' } }))).toBe(
+      false,
+    );
   });
 });

@@ -39,6 +39,9 @@
   /* An event in the month (decision 0086): told from a step by more than its hue, a lighter ground and darker ink. */
   --event-bg: light-dark(#ece8f6, #2c2740);
   --event-ink: light-dark(#3f3470, #d6cff2);
+  /* The Numbers chart (decision 0091), checked for colour-blind readers in both modes by the dataviz validator. */
+  --chart-taken: light-dark(#2f7d32, #2d7e31);
+  --chart-delivered: light-dark(#8b78d8, #8b78d8);
   /* The bottom bar (the side bar on a wide screen): her green #0F3F00. The open page: white, on a lighter shade of
      the same green; never lime. */
   --nav-bg: light-dark(#0f3f00, #0f3f00);
@@ -2079,4 +2082,155 @@ h4 {
 .item__note--started {
   color: var(--accent);
   font-weight: 600;
+}
+
+/* ------------------------------------------------------------------------------------------- */
+/* Numbers (decision 0091) */
+.stats {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+@media (min-width: 720px) {
+  .stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 14px 16px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.stat__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.stat__value {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.15;
+  font-variant-numeric: tabular-nums;
+}
+.stat__note {
+  font-size: 12px;
+  color: var(--muted);
+}
+.chart__key {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: var(--muted);
+}
+.chart__key li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.chart__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+}
+.chart__swatch--taken,
+.chart__bar--taken {
+  background: var(--chart-taken);
+}
+.chart__swatch--delivered,
+.chart__bar--delivered {
+  background: var(--chart-delivered);
+}
+.chart__plot {
+  position: relative;
+  height: 160px;
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: end;
+  gap: 4px;
+  padding-top: 18px;
+  border-bottom: 1px solid var(--line-strong);
+  /* One recessive line at the top value, so a bar's height can be read against it. */
+  background: linear-gradient(var(--line), var(--line)) 0 18px / 100% 1px no-repeat;
+}
+.chart__top {
+  position: absolute;
+  top: 0;
+  left: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.chart__col {
+  position: relative;
+  height: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  /* A 2px gap between the two bars of a week, so they read as two. */
+  gap: 2px;
+}
+.chart__col:hover {
+  background: var(--tint);
+  border-radius: 6px 6px 0 0;
+}
+.chart__bar {
+  width: min(40%, 14px);
+  min-height: 0;
+  border-radius: 4px 4px 0 0;
+}
+.chart__tip {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  width: max-content;
+  max-width: 180px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: var(--surface);
+  font-size: 12px;
+  line-height: 1.4;
+  text-align: center;
+  pointer-events: none;
+}
+.chart__col:hover .chart__tip {
+  display: block;
+}
+.chart__col:first-child .chart__tip {
+  left: 0;
+  transform: none;
+}
+.chart__col:last-child .chart__tip {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+.chart__labels {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 4px;
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--muted);
+  text-align: center;
+  white-space: nowrap;
+}
+/* On a phone, every other week's date: twelve would collide. */
+@media (max-width: 719px) {
+  .chart--week .chart__labels span:nth-child(even) {
+    visibility: hidden;
+  }
 }

@@ -418,8 +418,92 @@ test('a step part done stays open, says what is left, and is on the history; a D
   await settled(page);
 });
 
+test('ticking an order’s Delivery finishes it: it leaves Active for History, and the tick stays on Today', async () => {
+  const hem = await value(`select id::text from public.orders where title = 'Hem trousers'`);
+  await page.goto('/orders');
+  await ready(page);
+  const active = page.getByRole('list', { name: 'Active orders' });
+  await expect(active).toContainText('Yonas Alemu · Hem trousers');
+  // An event is not an order (decision 0090).
+  await expect(page.locator('main')).not.toContainText('Fashion show at the Sheraton');
+  const before = Number(/Active \((\d+)\)/.exec(await text(page))![1]);
+
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Mark Delivery, Yonas Alemu · Hem trousers as done' }).click();
+  // Still there, done, and no longer to be changed: the order is finished (decision 0089).
+  const delivered = item(section('Today'), 'Delivery', 'Yonas Alemu · Hem trousers');
+  await expect(delivered.getByRole('img', { name: 'Done' })).toBeVisible();
+  expect(await value(`select status from public.orders where id = $1`, [hem])).toBe('delivered');
+
+  await page.goto('/orders');
+  await expect(page.getByRole('list', { name: 'Active orders' })).not.toContainText('Hem trousers');
+  expect(await text(page)).toContain(`Active (${before - 1})`);
+  await page.getByRole('link', { name: /^History \(\d+\)$/ }).click();
+  await page.waitForURL(/tab=history/);
+  const month = page.getByRole('region', {
+    name: new Date().toLocaleDateString('en-GB', {
+      month: 'long',
+      year: 'numeric',
+      timeZone: 'Africa/Addis_Ababa',
+    }),
+  });
+  await expect(month.locator('.row-link', { hasText: 'Hem trousers' })).toContainText(
+    /Delivered .+ · on time$/,
+  );
+  await inspect(page, 'order history');
+  // Its page goes back to History.
+  await month.getByRole('link', { name: /Hem trousers/ }).click();
+  await expect(page.locator('.back-link')).toHaveText('← History');
+  await expect(page.locator('.back-link')).toHaveAttribute('href', '/orders?tab=history');
+});
+
+test('events have their own list, and Numbers counts the orders taken and delivered', async () => {
+  await page.goto('/orders');
+  await page.getByRole('link', { name: 'Events' }).click();
+  await page.waitForURL(/\/events$/);
+  const coming = page.getByRole('region', { name: 'Coming' });
+  await expect(coming).toContainText('Fashion show at the Sheraton');
+  await expect(page.locator('main')).not.toContainText('Hem trousers');
+  await inspect(page, 'events');
+  await coming.getByRole('link', { name: /Fashion show/ }).click();
+  await expect(page.locator('.back-link')).toHaveAttribute('href', '/events');
+
+  await page.goto('/orders');
+  await page.getByRole('link', { name: 'Numbers' }).click();
+  await page.waitForURL(/\/numbers$/);
+  const thisWeek = page.getByRole('region', { name: 'This week' });
+  // Hem trousers was delivered today.
+  const deliveredNow = Number(
+    await thisWeek.locator('.stat', { hasText: 'Delivered' }).locator('.stat__value').innerText(),
+  );
+  expect(deliveredNow).toBeGreaterThanOrEqual(1);
+  const taken = Number(
+    await thisWeek.locator('.stat', { hasText: 'Orders taken' }).locator('.stat__value').innerText(),
+  );
+  expect(taken).toBeGreaterThanOrEqual(1);
+  await open(page.locator('main'), 'See as a table');
+  const rows = page.locator('table tbody tr');
+  await expect(rows).toHaveCount(12);
+  await expect(rows.first().locator('td').nth(1)).toHaveText(String(deliveredNow));
+  await expect(page.getByRole('region', { name: /^Who orders most/ })).toContainText('Yonas Alemu');
+  await inspect(page, 'numbers by week');
+  await page.getByRole('link', { name: 'By month' }).click();
+  await page.waitForURL(/by=month/);
+  await expect(page.getByRole('region', { name: 'This month' })).toBeVisible();
+  await inspect(page, 'numbers by month');
+});
+
 test('desktop, and a phone in dark mode: every calendar screen', async ({ browser }) => {
-  const screens = ['/', '/calendar', '/clients', '/orders/new', `/orders/${ids.o4}`];
+  const screens = [
+    '/',
+    '/calendar',
+    '/clients',
+    '/orders/new',
+    `/orders/${ids.o4}`,
+    '/orders?tab=history',
+    '/events',
+    '/numbers',
+  ];
   for (const look of ['desktop', 'phone-dark'] as const) {
     const c = await signedInContext(browser, look);
     const p = await c.newPage();

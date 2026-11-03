@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { formatDay, type IsoDate } from '@/domain/dates';
 import { jobHeadline } from '@/domain/jobs/words';
-import { canBePartDone, lastDayOf, type Step } from '@/domain/steps/agenda';
+import { canBePartDone, isRecord, lastDayOf, type Step } from '@/domain/steps/agenda';
 import { partDoneLabel, timeLabel } from '@/domain/steps/words';
 import { PartDoneForm } from './PartDoneForm';
 import { TickButton } from './TickButton';
@@ -30,13 +30,22 @@ export function StepEntry({
   return (
     <li className={overdue ? 'item item--late' : 'item'}>
       <div className="item__head">
-        <TickButton
-          stepId={step.id}
-          orderId={step.job?.id ?? null}
-          title={work ? `${step.title}, ${work}` : step.title}
-          done={done}
-          started={partDone !== null}
-        />
+        {isRecord(step) ? (
+          // Its order is finished: the step is shown as it was left.
+          <span
+            className={done ? 'item__mark item__mark--done' : 'item__mark'}
+            aria-label={done ? 'Done' : 'Not done'}
+            role="img"
+          />
+        ) : (
+          <TickButton
+            stepId={step.id}
+            orderId={step.job?.id ?? null}
+            title={work ? `${step.title}, ${work}` : step.title}
+            done={done}
+            started={partDone !== null}
+          />
+        )}
         <div className="item__main">
           {time && <span className="item__time">{time}</span>}
           {step.job && work ? (
@@ -63,7 +72,7 @@ export function StepEntry({
           )}
         </div>
       </div>
-      {canBePartDone(step) && (
+      {canBePartDone(step) && !isRecord(step) && (
         <PartDoneForm
           stepId={step.id}
           orderId={step.job?.id ?? null}

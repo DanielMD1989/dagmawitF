@@ -38,7 +38,7 @@ export default async function NewJobPage({
   return (
     <>
       <div className="page-head">
-        <BackLink href="/orders">Orders</BackLink>
+        {event ? <BackLink href="/events">Events</BackLink> : <BackLink href="/orders">Orders</BackLink>}
         <h1>{event ? 'New event' : 'New order'}</h1>
         <p className="lede">
           {event

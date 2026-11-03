@@ -677,3 +677,30 @@ Nov · left: Sleeves and hem", and it stays on her calendar, moving to the next 
 kept. A Delivery is done or not: it is never offered "Part done", and the database refuses it. "Part done", with what is
 left, goes on the order's history, and so into the others' phone notifications (decision 0083). Shipped in two steps
 (decision 0082): the columns first, then the app.
+
+## 0089. Ticking an order's Delivery step finishes the order
+
+She ticked the Delivery step of an order she had handed over, and the order stayed under Active: only "Mark as
+finished" closed it. The Delivery step is the handover, so ticking it done now finishes an active order that day, in
+the database (`app.task_delivered`), whichever screen or device ticks it; orders already handed over this way were
+finished on the day their Delivery was ticked. The tick stays where she made it: a finished order's done steps stay
+on their day on Today and the calendar, as a record, with no tick button (the database refuses changes to a finished
+order's steps). To undo it she reopens the order. "Mark as finished" stays, for an order with no Delivery step.
+
+## 0090. Orders are Active and History; events have their own list
+
+The Orders page lists her customers' orders only, under two tabs. Active: drafts, confirmed and paused orders, soonest
+first, a draft or a paused one marked. History: finished and cancelled orders, newest first, under their month, each
+saying when it was handed over and whether on time ("Delivered Tue 3 Nov · on time", "· 2 days late"). An event, a
+bazaar or a show, is not an order: it is listed under Events (from the Orders page), coming then past, and still shows
+on Today, the calendar and Coming up. An order's page goes back to the list it is on: an event to Events, a finished
+order to History.
+
+## 0091. Numbers: how her orders are going
+
+A Numbers page (from the Orders page) shows, by week or by month: orders taken and delivered this period against the
+last; how many were delivered by the day promised, and how many days an order takes on average, over the last twelve;
+the last twelve weeks or months as bars, taken beside delivered, with the same figures as a table; what is in hand
+now (in progress, late, drafts, on hold); and who ordered most. Customer orders only. An order is "taken" on the day
+it was saved, on her clock. The bar colours, green and violet, pass the colour-blind checks in light and dark. There
+is no money yet: orders have no price; that would be a field of its own.

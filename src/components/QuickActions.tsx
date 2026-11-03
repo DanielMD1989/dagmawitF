@@ -7,6 +7,7 @@ const ICONS = {
   ),
   month: <path d="M4 5h16v15H4z M4 10h16 M9 5v15 M14 5v15 M8 3v4 M16 3v4" />,
   upcoming: <path d="M12 7v5l3 2 M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18Z" />,
+  numbers: <path d="M4 20h16 M7 16v-5 M12 16V6 M17 16v-8" />,
   clients: (
     <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z M2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1 M17 3.2a4 4 0 0 1 0 7.6 M22 21v-1a6 6 0 0 0-4-5.7" />
   ),

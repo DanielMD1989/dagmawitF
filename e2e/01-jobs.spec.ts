@@ -688,7 +688,7 @@ test('history: order 1 tells its story in her words', async () => {
   await inspect(page, 'history');
 });
 
-test('orders list: soonest first, filters count, steps shown', async () => {
+test('orders list: soonest first, two tabs, steps shown', async () => {
   await page.goto('/orders');
   const titles = await texts(page.locator('.row-link__title'));
   expect(titles).toEqual([
@@ -702,9 +702,11 @@ test('orders list: soonest first, filters count, steps shown', async () => {
   expect(t).toContain('Next: Fix, ');
   expect(t).toContain('Active (3)');
   await inspect(page, 'orders list');
-  await page.goto('/orders?status=delivered');
-  expect(await has('No finished orders.')).toBe(true);
-  await page.goto('/orders?status=nonsense');
+  // Two tabs (decision 0090): what is in progress, and History.
+  expect(t).toContain('History (0)');
+  await page.goto('/orders?tab=history');
+  expect(await has('No finished orders yet.')).toBe(true);
+  await page.goto('/orders?tab=nonsense');
   expect(await has('Active (3)')).toBe(true);
 });
 
