@@ -1,23 +1,29 @@
 import type { Metadata } from 'next';
 import { BackLink } from '@/components/BackLink';
 import { loadMeasurementFields } from '@/server/measurements';
+import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
 import { createSupabase } from '@/server/supabase';
 import { AddMeasurementFieldForm } from './AddMeasurementFieldForm';
 import { HiddenFieldRow, MeasurementFieldRow } from './MeasurementFieldRow';
+import { MeasurementUnitForm } from './MeasurementUnitForm';
 
 export const metadata: Metadata = { title: 'Your list of measurements' };
 
 export default async function MeasurementListPage() {
   await requireUser();
-  const fields = await loadMeasurementFields(await createSupabase());
+  const supabase = await createSupabase();
+  const [fields, { measurementUnit: unit }] = await Promise.all([
+    loadMeasurementFields(supabase),
+    loadPreferences(supabase),
+  ]);
   const visible = fields.filter((f) => !f.archived);
   const hidden = fields.filter((f) => f.archived);
 
   return (
     <>
       <div className="page-head">
-        <BackLink href="/settings">Settings</BackLink>
+        <BackLink href="/clients">Clients</BackLink>
         <h1>Your list of measurements</h1>
         <p className="lede">
           These are the measurements asked for when you record a client. A starter list was set up for you:
@@ -28,6 +34,13 @@ export default async function MeasurementListPage() {
           measurement being asked for on new forms; nothing already saved is lost.
         </p>
       </div>
+
+      <section className="section" aria-labelledby="unit-heading">
+        <div className="section__head">
+          <h2 id="unit-heading">Unit</h2>
+        </div>
+        <MeasurementUnitForm unit={unit} />
+      </section>
 
       <section className="section" aria-labelledby="visible-heading">
         <div className="section__head">

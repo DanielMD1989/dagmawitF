@@ -1,4 +1,5 @@
 import { daysBetween, formatDay, type IsoDate } from '../dates';
+import { clock } from '../steps/words';
 import type { OrderStatus } from './status';
 
 /**
@@ -89,4 +90,53 @@ export function eventsList<O extends Listed>(
       .filter(isPast)
       .sort((a, b) => (a.deliveryOn > b.deliveryOn ? -1 : a.deliveryOn < b.deliveryOn ? 1 : 0)),
   };
+}
+
+/** A step of an order, as its "Next" needs it. */
+export interface OpenStep {
+  title: string;
+  onDay: IsoDate | null;
+  startsAt: string | null;
+  doneOn: IsoDate | null;
+  sort: number;
+}
+
+/** What comes next for an order in progress (decision 0092). */
+export type NextUp =
+  | { kind: 'step'; title: string; onDay: IsoDate; startsAt: string | null }
+  | { kind: 'undated'; title: string }
+  | { kind: 'delivery'; onDay: IsoDate };
+
+/**
+ * The next thing to do for an order: its next step not done, by day and then time; a step with no day yet when none
+ * has one; and, every step done, the delivery itself. Never a step already done.
+ */
+export function nextUp(steps: readonly OpenStep[], deliveryOn: IsoDate): NextUp {
+  const open = steps.filter((s) => s.doneOn === null);
+  const dated = open
+    .filter((s) => s.onDay !== null)
+    .sort(
+      (a, b) =>
+        a.onDay!.localeCompare(b.onDay!) ||
+        // On one day, a step with a time comes first, by its time; then the rest in her order.
+        (a.startsAt ?? '99').localeCompare(b.startsAt ?? '99') ||
+        a.sort - b.sort,
+    );
+  const first = dated[0];
+  if (first) return { kind: 'step', title: first.title, onDay: first.onDay!, startsAt: first.startsAt };
+  const undated = [...open].sort((a, b) => a.sort - b.sort)[0];
+  if (undated) return { kind: 'undated', title: undated.title };
+  return { kind: 'delivery', onDay: deliveryOn };
+}
+
+/** "Next: Fitting, Thu 12 Nov · 10:30 AM", "Next: Sketch, no day yet", "Next: Delivery, Fri 13 Nov". */
+export function nextWords(next: NextUp): string {
+  if (next.kind === 'undated') return `Next: ${next.title}, no day yet`;
+  if (next.kind === 'delivery') return `Next: Delivery, ${formatDay(next.onDay)}`;
+  return `Next: ${next.title}, ${formatDay(next.onDay)}${next.startsAt ? ` · ${clock(next.startsAt)}` : ''}`;
+}
+
+/** It was for a day that has passed: said in the late colour. */
+export function nextIsLate(next: NextUp, today: IsoDate): boolean {
+  return next.kind !== 'undated' && next.onDay < today;
 }

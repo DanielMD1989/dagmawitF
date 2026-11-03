@@ -40,7 +40,7 @@ Each kind starts with its own steps (she can change the list in Library):
 | Sketch      | Sketch, Show the client                                                         |
 | Delivery    | Delivery                                                                        |
 
-Suggested days skip the days she does not work (her working week and days off stay, for this only). A suggestion is
+Suggested days no longer skip any day: the working week and days off were taken out of the app (decision 0093). A suggestion is
 just a starting value: the step stores the day she keeps.
 
 ## Warnings, simply

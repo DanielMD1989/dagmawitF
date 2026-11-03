@@ -5,15 +5,14 @@ import { QuickActions } from '@/components/QuickActions';
 import { SaveForOffline } from '@/components/offline/SaveForOffline';
 import { AddStepForm } from '@/components/steps/AddStepForm';
 import { StepEntry } from '@/components/steps/StepEntry';
-import { openDayRule } from '@/domain/calendar/open';
 import { formatDay, formatDayLong, hourIn } from '@/domain/dates';
 import { greetingFor } from '@/domain/greeting';
 import { dueNotShown } from '@/domain/jobs/words';
 import { buildAgenda } from '@/domain/steps/agenda';
 import { makeSnapshot } from '@/domain/steps/offline';
 import { dayHeading, partLabel } from '@/domain/steps/words';
-import { loadCalendarSettings } from '@/server/calendar';
 import { loadOrders } from '@/server/orders';
+import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
 import { carryOver, loadCalendarSteps } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
@@ -30,21 +29,14 @@ export default async function TodayPage() {
   // Her jobs need nothing else, so they load while her day is worked out; the steps need her day.
   const jobsLoading = loadOrders(supabase);
   // Yesterday's unfinished steps move to today (decision 0080) while her day is worked out, before her steps are read.
-  const [{ profile, week, exceptions, today }] = await Promise.all([
-    loadCalendarSettings(supabase),
-    carryOver(supabase),
-  ]);
+  const [{ name, timezone, today }] = await Promise.all([loadPreferences(supabase), carryOver(supabase)]);
   const [steps, jobs] = await Promise.all([loadCalendarSteps(supabase, today), jobsLoading]);
   const agenda = buildAgenda(steps, today, 7);
-  const isOpen = openDayRule(
-    week.map((d) => d.weekday),
-    exceptions,
-  );
-  const firstName = profile.name.split(/\s+/)[0] ?? '';
+  const firstName = name.split(/\s+/)[0] ?? '';
   const snapshot = makeSnapshot({
     ownerId: user.id,
     today,
-    timezone: profile.timezone,
+    timezone,
     madeAt: new Date(),
     firstName,
     agenda,
@@ -65,7 +57,7 @@ export default async function TodayPage() {
         <p className="eyebrow">{formatDayLong(today).replace(' ', ' · ')}</p>
         <div className="title-row">
           <h1>
-            {greetingFor(hourIn(profile.timezone))}
+            {greetingFor(hourIn(timezone))}
             {firstName ? `, ${firstName}` : ''}.
           </h1>
         </div>
@@ -98,7 +90,6 @@ export default async function TodayPage() {
             <h2 id="today-heading" className="h3">
               Today
             </h2>
-            {!isOpen(today) && <span className="chip chip--muted">Not a working day</span>}
           </div>
           {dueToday.length > 0 && (
             <ul className="rows rows--links" aria-label="Due today">
@@ -127,7 +118,6 @@ export default async function TodayPage() {
               {dayHeading(d.day, today)}
               {dayHeading(d.day, today) === 'Tomorrow' && <span className="hint"> · {formatDay(d.day)}</span>}
             </h2>
-            {!isOpen(d.day) && <span className="chip chip--muted">Not a working day</span>}
           </div>
           <ul className="items">
             {d.entries.map((e) => (

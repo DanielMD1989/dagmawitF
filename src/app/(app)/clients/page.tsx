@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { QuickActions } from '@/components/QuickActions';
 import { loadClients } from '@/server/clients';
 import { requireUser } from '@/server/session';
 import { createSupabase } from '@/server/supabase';
@@ -18,11 +19,13 @@ export default async function ClientsPage() {
         <p className="lede">Name, phone and measurements over time. Open one to see her orders.</p>
       </div>
 
-      <div className="btn-row">
-        <Link href="/clients/new" className="btn">
-          Add a client
-        </Link>
-      </div>
+      <QuickActions
+        actions={[
+          { href: '/clients/new', label: 'Add a client', icon: 'add' },
+          // Her list of measurements and their unit (decision 0093): about her clients, so here, not in Settings.
+          { href: '/clients/measurements', label: 'Measurements', icon: 'measure' },
+        ]}
+      />
 
       {clients.length === 0 ? (
         <div className="card">

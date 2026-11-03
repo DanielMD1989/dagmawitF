@@ -12,7 +12,8 @@ import {
   parseFieldLabel,
 } from '@/domain/measurements/fields';
 import { idField, text } from '@/domain/form-input';
-import { missing, saveFailed } from '@/server/action-errors';
+import { parseMeasurementDefaults } from '@/domain/preferences';
+import { missing, saveFailed, unexpected } from '@/server/action-errors';
 import { loadMeasurementFields } from '@/server/measurements';
 import { requireUser } from '@/server/session';
 import { createSupabase } from '@/server/supabase';
@@ -119,6 +120,30 @@ export async function moveMeasurementField(_previous: ActionState, formData: For
 
   const { error } = await supabase.rpc('reorder_measurement_fields', { p_ids: next });
   if (error) return saveFailed('the order of the measurements', error, typed);
+
+  revalidatePath('/', 'layout');
+  return success('Saved.');
+}
+
+/** Centimetres or inches, for every measurement she records (decision 0093: here, with her list). */
+export async function saveMeasurementDefaults(
+  _previous: ActionState,
+  formData: FormData,
+): Promise<ActionState> {
+  const user = await requireUser();
+  const typed = typedIn(formData);
+  const parsed = parseMeasurementDefaults(formData);
+  if (!parsed.ok) return failure('Check the fields marked below.', parsed.errors, typed);
+
+  const supabase = await createSupabase();
+  const { data, error } = await supabase
+    .from('profile')
+    .update({ measurement_unit: parsed.value.measurementUnit })
+    .eq('owner_id', user.id)
+    .select('owner_id');
+  if (error) return unexpected('the unit', error, typed);
+  if (data.length !== 1)
+    return unexpected('the unit', { message: `expected to update 1 profile, updated ${data.length}` }, typed);
 
   revalidatePath('/', 'layout');
   return success('Saved.');

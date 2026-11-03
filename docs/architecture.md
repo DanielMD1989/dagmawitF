@@ -151,5 +151,4 @@ The rules are in [engine.md](engine.md). The files, in the order a plan is made:
 - ~~No strict Content-Security-Policy yet.~~ Closed in Stage 6 (decision 0059).
 - ~~No browser end-to-end test in the repository.~~ Closed: the Playwright suite in `e2e/` runs in CI against the
   local Supabase stack (docs/testing.md, decision 0062).
-- One break per day in the working-week screen. The database allows up to six.
-- Past days off are kept in the database but not listed.
+- The working week and days off are no longer in the app (decision 0093); their tables remain in the database.

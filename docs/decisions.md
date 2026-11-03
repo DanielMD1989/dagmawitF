@@ -704,3 +704,22 @@ the last twelve weeks or months as bars, taken beside delivered, with the same f
 now (in progress, late, drafts, on hold); and who ordered most. Customer orders only. An order is "taken" on the day
 it was saved, on her clock. The bar colours, green and violet, pass the colour-blind checks in light and dark. There
 is no money yet: orders have no price; that would be a field of its own.
+
+## 0092. An order's "Next" is what really comes next
+
+The Orders list said "Next" from the steps with a day only, and said nothing once those were done. It now says what
+really comes next: the next step not done, by day and then time ("Next: Fitting, Thu 12 Nov · 10:30 AM"); a step with
+no day yet when none has one ("Next: Sketch, no day yet"); and once every step is done, or with none, the delivery
+itself ("Next: Delivery, Fri 13 Nov"). A step she has ticked is never shown as next. In the late colour when its day
+has passed (`nextUp` in src/domain/orders/lists.ts).
+
+## 0093. Settings is her account; measurements are under Clients
+
+Settings had grown into her working week, days off, time zone and measurements, which are not settings of the app.
+It is now four things: her account (who is signed in, her name, changing the password, signing out), the people of
+the workspace, notifications on this phone, and her data. The working week and days off are gone from the app, with
+Today's "Not a working day" mark, the only thing that read them; their tables stay until a database release removes
+them. The time zone stays as it is set (Africa/Addis_Ababa), with no field to change it. Her list of measurements and
+their unit are under Clients ("Measurements"), where they are used; the old /settings/measurements link still finds
+them. No extra security features for now, by her choice (two-step sign-in, signed-in devices, changing the email and
+deleting the account were offered).

@@ -58,7 +58,7 @@ export default async function RecordMeasurementsPage({
         <div className="card card--warn" role="alert">
           <p>
             Your list of measurements is empty.{' '}
-            <Link href="/settings/measurements">Add the measurements you take</Link> first.
+            <Link href="/clients/measurements">Add the measurements you take</Link> first.
           </p>
         </div>
       ) : (

@@ -6,8 +6,9 @@ One web app, installed to the phone's home screen and used on a desktop too.
 Start with [docs/architecture.md](docs/architecture.md) (the agreed approach, one page) and
 [docs/decisions.md](docs/decisions.md) (why).
 
-**Where it is:** Stage 0 of 6 (the ground the rest is built on). It signs her in, stores her working week and days off,
-shows the time she has today, and installs on a phone. Orders, plans and the scheduling engine come next.
+**Where it is:** in use. Her orders and events with their steps on a calendar, her clients and their measurements,
+a shared workspace with phone notifications, and her numbers; it installs on a phone. docs/decisions.md tells how
+it got here.
 
 ## What you need
 
@@ -75,8 +76,8 @@ In this order. Each step says how to check it before going on.
    No email sender is needed: the app never sends email (decision 0065).
 
 4. **Her account.** Authentication > Users > Add user, with her email and a password, and "Auto Confirm User" ticked
-   (and one for you, to try it first). Give her the password in person; she can change it in Settings. Her profile,
-   working week and measurement list are created automatically.
+   (and one for you, to try it first). Give her the password in person; she can change it in Settings. Her profile
+   and measurement list are created automatically.
 5. **Hosting** (for example Vercel). Import the repository; set `SUPABASE_URL` and `SUPABASE_PUBLISHABLE_KEY` (Project
    Settings > API). Never the secret key. The server functions run beside the database: `vercel.json` pins them to `lhr1` (London), as
    her project is in `eu-west-2`. For a project elsewhere, run the "Where it runs" workflow (Actions tab) and change

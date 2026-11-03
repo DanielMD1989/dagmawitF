@@ -7,7 +7,7 @@ import { byDueDay, dueNotShown, dueWord, jobHeadline } from '@/domain/jobs/words
 import { entriesOn, isOverdue } from '@/domain/steps/agenda';
 import { dayMarks, monthGrid } from '@/domain/steps/month';
 import { partLabel } from '@/domain/steps/words';
-import { loadCalendarSettings } from '@/server/calendar';
+import { loadPreferences } from '@/server/preferences';
 import { loadJobDays } from '@/server/orders';
 import { requireUser } from '@/server/session';
 import { carryOver, loadStepsBetween } from '@/server/steps';
@@ -28,7 +28,7 @@ export default async function CalendarPage({
   await requireUser();
   const params = await searchParams;
   const supabase = await createSupabase();
-  const [{ today }] = await Promise.all([loadCalendarSettings(supabase), carryOver(supabase)]);
+  const [{ today }] = await Promise.all([loadPreferences(supabase), carryOver(supabase)]);
   const grid = monthGrid(
     params.month ?? (params.day && isIsoDate(params.day) ? params.day.slice(0, 7) : undefined),
     today,

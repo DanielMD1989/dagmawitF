@@ -4,7 +4,14 @@ import { QuickActions } from '@/components/QuickActions';
 import { StatusChip } from '@/components/StatusChip';
 import { formatDay } from '@/domain/dates';
 import { daysLeft, jobHeadline } from '@/domain/jobs/words';
-import { activeOrders, handoverWords, historyByMonth, type OrdersTab } from '@/domain/orders/lists';
+import {
+  activeOrders,
+  handoverWords,
+  historyByMonth,
+  nextIsLate,
+  nextWords,
+  type OrdersTab,
+} from '@/domain/orders/lists';
 import { loadOrders, type OrderListItem } from '@/server/orders';
 import { carryOver } from '@/server/steps';
 import { loadPreferences } from '@/server/preferences';
@@ -117,17 +124,10 @@ function ActiveRow({ order: o, today }: { order: OrderListItem; today: string })
           #{o.number} · Delivery {formatDay(o.deliveryOn)} (
           <span className={late ? 'late' : undefined}>{daysLeft(o.deliveryOn, today)}</span>)
         </span>
-        {o.steps > 0 && (
-          <span className="hint">
-            {o.done} of {o.steps} steps done
-            {o.next && (
-              <span className={o.next.onDay < today ? 'late' : undefined}>
-                {' '}
-                · Next: {o.next.title}, {formatDay(o.next.onDay)}
-              </span>
-            )}
-          </span>
-        )}
+        <span className="hint">
+          {o.steps > 0 && `${o.done} of ${o.steps} steps done · `}
+          <span className={nextIsLate(o.next, today) ? 'late' : undefined}>{nextWords(o.next)}</span>
+        </span>
         {o.status !== 'active' && (
           <span className="row-link__side">
             <StatusChip status={o.status} />

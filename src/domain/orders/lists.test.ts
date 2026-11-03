@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import type { OrderStatus } from './status';
-import { activeOrders, eventsList, handoverWords, historyByMonth, tabOf, type Listed } from './lists';
+import {
+  activeOrders,
+  eventsList,
+  handoverWords,
+  historyByMonth,
+  nextIsLate,
+  nextUp,
+  nextWords,
+  tabOf,
+  type Listed,
+  type OpenStep,
+} from './lists';
 
 let n = 0;
 const o = (over: Partial<Listed> & { status: OrderStatus }): Listed => ({
@@ -62,5 +73,58 @@ describe('her events (decision 0090)', () => {
       coming: [bazaar, show],
       past: [cancelled, lastWeek],
     });
+  });
+});
+
+describe('what comes next for an order (decision 0092)', () => {
+  let sort = 0;
+  const step = (over: Partial<OpenStep>): OpenStep => ({
+    title: 'Step',
+    onDay: null,
+    startsAt: null,
+    doneOn: null,
+    sort: (sort += 10),
+    ...over,
+  });
+  const due = '2026-11-13';
+
+  it('is the next step not done, never the one she just ticked', () => {
+    const steps = [
+      step({ title: 'Appointment', onDay: '2026-11-03', doneOn: '2026-11-03' }),
+      step({ title: 'Fitting', onDay: '2026-11-10', startsAt: '10:30' }),
+      step({ title: 'Sewing', onDay: '2026-11-08' }),
+    ];
+    expect(nextWords(nextUp(steps, due))).toBe('Next: Sewing, Sun 8 Nov');
+  });
+
+  it('on one day, the step with a time first', () => {
+    const steps = [
+      step({ title: 'Press', onDay: '2026-11-08' }),
+      step({ title: 'Fitting', onDay: '2026-11-08', startsAt: '10:30' }),
+    ];
+    expect(nextWords(nextUp(steps, due))).toBe('Next: Fitting, Sun 8 Nov · 10:30 AM');
+  });
+
+  it('is a step with no day yet, when no step has a day', () => {
+    const steps = [
+      step({ title: 'Cutting', onDay: '2026-11-03', doneOn: '2026-11-03' }),
+      step({ title: 'Sketch' }),
+    ];
+    expect(nextWords(nextUp(steps, due))).toBe('Next: Sketch, no day yet');
+  });
+
+  it('is the delivery itself once every step is done, or with no steps', () => {
+    expect(nextWords(nextUp([step({ onDay: '2026-11-03', doneOn: '2026-11-03' })], due))).toBe(
+      'Next: Delivery, Fri 13 Nov',
+    );
+    expect(nextUp([], due)).toEqual({ kind: 'delivery', onDay: due });
+  });
+
+  it('is late when its day has passed; a step with no day never is', () => {
+    expect(
+      nextIsLate({ kind: 'step', title: 'Sewing', onDay: '2026-11-02', startsAt: null }, '2026-11-03'),
+    ).toBe(true);
+    expect(nextIsLate({ kind: 'delivery', onDay: '2026-11-03' }, '2026-11-03')).toBe(false);
+    expect(nextIsLate({ kind: 'undated', title: 'Sketch' }, '2026-11-03')).toBe(false);
   });
 });

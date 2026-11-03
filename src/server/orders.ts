@@ -5,6 +5,7 @@ import { z } from 'zod';
 import type { IsoDate } from '@/domain/dates';
 import { compareAttachments, isAttachmentKind, type AttachmentKind } from '@/domain/files';
 import { isHistoryAction, type HistoryAction } from '@/domain/orders/history';
+import { nextUp, type NextUp } from '@/domain/orders/lists';
 import { isOrderStatus, type OrderStatus } from '@/domain/orders/status';
 import { fail, isoDay, timestamp } from './rows';
 import { createSupabase } from './supabase';
@@ -27,8 +28,8 @@ export interface OrderListItem {
   /** Steps done, of all its steps. */
   done: number;
   steps: number;
-  /** The first step not done yet that has a day, if any. */
-  next: { title: string; onDay: IsoDate } | null;
+  /** What comes next: its next step not done, or the delivery itself (decision 0092). */
+  next: NextUp;
   /** The day it was finished (handed over), when it is. */
   deliveredOn: IsoDate | null;
   /** When it was taken: the moment it was saved, as an ISO timestamp. */
@@ -45,7 +46,15 @@ const listRow = z.object({
   created_at: z.string(),
   client: z.object({ id: z.string(), name: z.string() }).nullable(),
   order_item: z.array(z.object({ garment_type: z.string() })),
-  task: z.array(z.object({ title: z.string(), on_day: isoDay.nullable(), done_on: isoDay.nullable() })),
+  task: z.array(
+    z.object({
+      title: z.string(),
+      on_day: isoDay.nullable(),
+      starts_at: z.string().nullable(),
+      done_on: isoDay.nullable(),
+      sort: z.number().int(),
+    }),
+  ),
 });
 
 /** All of her jobs, soonest day first, with what each is made of and how far its steps are. */
@@ -54,7 +63,7 @@ export async function loadOrders(supabase: SupabaseClient): Promise<OrderListIte
     .from('orders')
     .select(
       `id, number, title, status, delivery_on, delivered_on, created_at, client:client(id, name), order_item(garment_type),
-       task(title, on_day, done_on)`,
+       task(title, on_day, starts_at, done_on, sort)`,
     )
     .order('delivery_on')
     .order('number')
@@ -65,9 +74,6 @@ export async function loadOrders(supabase: SupabaseClient): Promise<OrderListIte
     .array(listRow)
     .parse(data)
     .map((o) => {
-      const open = o.task
-        .filter((t) => t.done_on === null && t.on_day !== null)
-        .sort((a, b) => (a.on_day! < b.on_day! ? -1 : a.on_day! > b.on_day! ? 1 : 0));
       return {
         id: o.id,
         number: o.number,
@@ -79,7 +85,16 @@ export async function loadOrders(supabase: SupabaseClient): Promise<OrderListIte
         garmentTypes: o.order_item.map((g) => g.garment_type),
         done: o.task.filter((t) => t.done_on !== null).length,
         steps: o.task.length,
-        next: open[0] ? { title: open[0].title, onDay: open[0].on_day! } : null,
+        next: nextUp(
+          o.task.map((t) => ({
+            title: t.title,
+            onDay: t.on_day,
+            startsAt: t.starts_at?.slice(0, 5) ?? null,
+            doneOn: t.done_on,
+            sort: t.sort,
+          })),
+          o.delivery_on,
+        ),
         deliveredOn: o.delivered_on,
         createdAt: o.created_at,
       };

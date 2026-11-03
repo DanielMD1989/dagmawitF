@@ -1,10 +1,14 @@
-import type { WorkDay } from '../../src/domain/calendar/types';
-
 /**
- * One list of working days and whether each is valid. It is run against the screen's rules
- * (src/domain/calendar/rules.test.ts) and against the database's constraints
- * (test/db/constraints.test.ts). If the two ever disagree, a test fails.
+ * Working days and whether the database accepts each (test/db/constraints.test.ts). The app no longer has a working
+ * week (decision 0093); the table and its rules stay until a database release removes them.
  */
+interface WorkDay {
+  weekday: number;
+  start: string;
+  end: string;
+  breaks: { start: string; end: string }[];
+}
+
 export interface WorkDayCase {
   label: string;
   day: WorkDay;

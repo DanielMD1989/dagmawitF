@@ -35,36 +35,28 @@ test.beforeAll(async ({ browser }) => {
 test.afterAll(async () => ctx.close());
 
 // ---------------------------------------------------------------- her week
-test('a new account starts with Monday to Saturday, and an empty day', async () => {
+test('settings are her account, people, notifications and data; Today starts empty', async () => {
   await page.goto('/settings');
-  for (let day = 1; day <= 6; day++) await expect(page.locator(`input[name="works-${day}"]`)).toBeChecked();
-  await expect(page.locator('input[name="works-7"]')).not.toBeChecked();
+  // Kept to her account and the workspace (decision 0093): no working week, days off or time zone.
+  await expect(page.locator('main h2')).toHaveText(['Account', 'Notifications', 'People', 'Your data']);
+  await expect(page.locator('main')).toContainText(`Signed in as ${env.email}`);
+  await page.getByLabel('Your name').fill('Dagmawit T.');
+  await page.getByRole('button', { name: 'Save the name' }).click();
+  await page.getByText('Name saved.').waitFor();
+  await page.getByLabel('Your name').fill('Dagmawit');
+  await page.getByRole('button', { name: 'Save the name' }).click();
+  await expect
+    .poll(() =>
+      value(`select name from public.profile p join auth.users u on u.id = p.owner_id where u.email = $1`, [
+        env.email,
+      ]),
+    )
+    .toBe('Dagmawit');
+  await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible();
+  await inspect(page, 'settings');
   await page.goto('/');
   await expect(page.locator('main')).toContainText('Nothing on today.');
   await inspect(page, 'today, empty');
-});
-
-test('she works Sundays too: every day, nine to five with an hour for lunch', async () => {
-  // Every day, so that whatever day the suite runs on, steps land where the suite expects them.
-  await page.goto('/settings');
-  for (let day = 1; day <= 7; day++) {
-    const works = page.locator(`input[name="works-${day}"]`);
-    if (!(await works.isChecked())) await works.check();
-    await page.locator(`#start-${day}`).fill('09:00');
-    await page.locator(`#end-${day}`).fill('17:00');
-    await page.locator(`#break-start-${day}`).fill('12:30');
-    await page.locator(`#break-end-${day}`).fill('13:30');
-  }
-  await page.getByRole('button', { name: 'Save working week' }).click();
-  await expect(page.locator('.notice--success').first()).toBeVisible();
-  await expect
-    .poll(() =>
-      value(
-        `select count(*) from public.work_week w join auth.users u on u.id = w.owner_id where u.email = $1`,
-        [env.email],
-      ),
-    )
-    .toBe('7');
 });
 
 // ---------------------------------------------------------------- order 1: a bridal gown, new client
@@ -443,9 +435,9 @@ test('measurements: inches stay inches; numbers are never converted into another
   await expect(page.locator('#m-bust')).toHaveValue('');
 });
 
-// ---------------------------------------------------------------- settings: her defaults and her list
-test('settings: her list of measurements can be renamed, reordered, hidden, shown and added to', async () => {
-  await page.goto('/settings/measurements');
+// ---------------------------------------------------------------- her list of measurements (under Clients)
+test('clients: her list of measurements can be renamed, reordered, hidden, shown and added to', async () => {
+  await page.goto('/clients/measurements');
   await inspect(page, 'measurement list');
   const labels = () =>
     page
@@ -486,8 +478,10 @@ test('settings: her list of measurements can be renamed, reordered, hidden, show
   expect(await text(page)).toMatch(/Bust \(fullest part\)\s*92\.5 cm/);
 });
 
-test('settings: the unit for new measurements is saved and used', async () => {
-  await page.goto('/settings');
+test('clients: the unit for new measurements is saved and used, beside her list', async () => {
+  await page.goto('/clients');
+  await page.getByRole('link', { name: 'Measurements' }).click();
+  await page.waitForURL(/\/clients\/measurements$/);
   await page.locator('.segmented label', { hasText: 'Inches' }).click();
   await page.getByRole('button', { name: 'Save the unit' }).click();
   await page.locator('.notice--success', { hasText: 'Saved.' }).waitFor();
@@ -504,31 +498,11 @@ test('settings: the unit for new measurements is saved and used', async () => {
       ),
     )
     .toBe('cm');
-  await inspect(page, 'settings');
+  // An old link to it still finds it.
+  await page.goto('/settings/measurements');
+  await page.waitForURL(/\/clients\/measurements$/);
 });
 
-test('settings: the time zone she saves is the one still shown', async () => {
-  await page.goto('/settings');
-  const zone = page.getByLabel('Time zone');
-  await zone.selectOption('Europe/London');
-  await page.getByRole('button', { name: 'Save details' }).click();
-  await page.getByText('Details saved.').waitFor();
-  await expect(zone).toHaveValue('Europe/London');
-  await zone.selectOption('Africa/Addis_Ababa');
-  await page.getByRole('button', { name: 'Save details' }).click();
-  // The first save's message is still on screen; wait for what is stored instead.
-  await expect
-    .poll(() =>
-      value(
-        `select timezone from public.profile p join auth.users u on u.id = p.owner_id where u.email = $1`,
-        [env.email],
-      ),
-    )
-    .toBe('Africa/Addis_Ababa');
-  await expect(zone).toHaveValue('Africa/Addis_Ababa');
-});
-
-// ---------------------------------------------------------------- jobs 2 and 3
 test('order 2: an evening dress for another new client, with a few steps', async () => {
   await fillNewJob(page, {
     client: { name: 'Hanna Tesfaye' },
@@ -735,7 +709,7 @@ test('desktop, and a phone in dark mode: every order screen', async ({ browser }
     '/orders/new',
     `/clients/${ids.client1}`,
     '/settings',
-    '/settings/measurements',
+    '/clients/measurements',
   ];
   for (const look of ['desktop', 'phone-dark'] as const) {
     const c = await signedInContext(browser, look);

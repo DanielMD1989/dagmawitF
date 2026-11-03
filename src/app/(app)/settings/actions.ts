@@ -4,10 +4,9 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { z } from 'zod';
 import { failure, success, typedIn, type ActionState } from '@/lib/action-state';
-import { parseException, parseProfile, parseWorkWeek } from '@/domain/calendar/forms';
 import { strayFiles } from '@/domain/files';
-import { parseMeasurementDefaults } from '@/domain/preferences';
 import { parsePasswordChange } from '@/domain/passwords';
+import { parseName } from '@/domain/profile';
 import { addPersonRefusal, parsePersonEmail } from '@/domain/people/forms';
 import { unexpected } from '@/server/action-errors';
 import { requireUser, getWorkspaceId } from '@/server/session';
@@ -17,35 +16,16 @@ import { createSupabase } from '@/server/supabase';
 //   1. check who is asking  2. validate the input  3. write as her (row-level security applies)
 //   4. refresh what the screens show
 
-export async function saveWorkWeek(_previous: ActionState, formData: FormData): Promise<ActionState> {
-  await requireUser();
-  const typed = typedIn(formData);
-  const parsed = parseWorkWeek(formData);
-  if (!parsed.ok) return failure('Some days need fixing. They are marked below.', parsed.errors, typed);
-
-  const supabase = await createSupabase();
-  const { error } = await supabase.rpc('replace_work_week', {
-    p_days: parsed.value.map(({ weekday, start, end, breaks }) => ({ weekday, start, end, breaks })),
-  });
-  if (error) return unexpected('the working week', error, typed);
-
-  revalidatePath('/', 'layout');
-  return success('Working week saved.');
-}
-
 export async function saveProfile(_previous: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
   const typed = typedIn(formData);
-  const parsed = parseProfile(formData);
-  if (!parsed.ok) return failure('Check the fields marked below.', parsed.errors, typed);
+  const parsed = parseName(formData);
+  if (!parsed.ok) return failure('Check the name.', parsed.errors, typed);
 
   const supabase = await createSupabase();
   const { data, error } = await supabase
     .from('profile')
-    .update({
-      name: parsed.value.name,
-      timezone: parsed.value.timezone,
-    })
+    .update({ name: parsed.value })
     .eq('owner_id', user.id)
     .select('owner_id');
   if (error) return unexpected('your details', error, typed);
@@ -57,70 +37,10 @@ export async function saveProfile(_previous: ActionState, formData: FormData): P
     );
 
   revalidatePath('/', 'layout');
-  return success('Details saved.');
-}
-
-export async function saveMeasurementDefaults(
-  _previous: ActionState,
-  formData: FormData,
-): Promise<ActionState> {
-  const user = await requireUser();
-  const typed = typedIn(formData);
-  const parsed = parseMeasurementDefaults(formData);
-  if (!parsed.ok) return failure('Check the fields marked below.', parsed.errors, typed);
-
-  const supabase = await createSupabase();
-  const { data, error } = await supabase
-    .from('profile')
-    .update({ measurement_unit: parsed.value.measurementUnit })
-    .eq('owner_id', user.id)
-    .select('owner_id');
-  if (error) return unexpected('the unit', error, typed);
-  if (data.length !== 1)
-    return unexpected('the unit', { message: `expected to update 1 profile, updated ${data.length}` }, typed);
-
-  revalidatePath('/', 'layout');
-  return success('Saved.');
-}
-
-export async function addException(_previous: ActionState, formData: FormData): Promise<ActionState> {
-  await requireUser();
-  const typed = typedIn(formData);
-  const parsed = parseException(formData);
-  if (!parsed.ok) return failure('Check the fields marked below.', parsed.errors, typed);
-
-  const supabase = await createSupabase();
-  const { error } = await supabase.from('calendar_exception').insert({
-    day: parsed.value.day,
-    minutes_available: parsed.value.minutesAvailable,
-    reason: parsed.value.reason,
-  });
-  if (error?.code === '23505') {
-    return failure(
-      'That date already has an entry.',
-      { day: 'Remove the existing entry for this date first.' },
-      typed,
-    );
-  }
-  if (error) return unexpected('the day', error, typed);
-
-  revalidatePath('/', 'layout');
-  return success('Saved.');
+  return success('Name saved.');
 }
 
 const idSchema = z.uuid();
-
-export async function removeException(formData: FormData): Promise<void> {
-  await requireUser();
-  const id = idSchema.safeParse(formData.get('id'));
-  if (!id.success) return;
-
-  const supabase = await createSupabase();
-  const { error } = await supabase.from('calendar_exception').delete().eq('id', id.data);
-  if (error) console.error(`Removing a day failed [${error.code ?? 'no code'}]: ${error.message}`);
-
-  revalidatePath('/', 'layout');
-}
 
 type Bucket = ReturnType<Awaited<ReturnType<typeof createSupabase>>['storage']['from']>;
 type Listed = { path: string; createdAt: string | null; folder: boolean };
