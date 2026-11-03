@@ -44,7 +44,8 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned: "latest" took the CLI 3.0.0 (2 Nov 2026) and its breaking changes; upgrade on purpose (decision 0088).
+          version: 2.122.1
 
       - run: supabase link --project-ref "$SUPABASE_PROJECT_ID"
 

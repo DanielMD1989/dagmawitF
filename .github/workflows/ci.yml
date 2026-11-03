@@ -32,7 +32,8 @@ jobs:
       # test:db then proves row-level security against that real database.
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned: "latest" took the CLI 3.0.0 (2 Nov 2026) and its breaking changes; upgrade on purpose (decision 0088).
+          version: 2.122.1
       - run: supabase db start
       - run: npm run test:db
         env:
@@ -61,7 +62,8 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned: "latest" took the CLI 3.0.0 (2 Nov 2026) and its breaking changes; upgrade on purpose (decision 0088).
+          version: 2.122.1
       # Database, sign-in and storage, with every migration applied.
       - run: supabase start
 
