@@ -660,3 +660,10 @@ counts the rest ("+3 more"); a wider screen shows three. An order's "Delivery" s
 never shown twice on its day. The days have no boxes: one height for every week, a line between the weeks, today a
 solid circle, the day she picked tinted. A key under the month says what the colours are, and a screen reader hears
 each day's labels in full. The day's list below is unchanged.
+
+## 0088. The Supabase CLI is pinned, not "latest"
+
+Supabase released its CLI 3.0.0 on 2 November 2026 with breaking changes; our workflows asked for "latest", so every
+build started failing at `supabase db start`, even for commits that had passed. The workflows now name a version
+(2.122.1, the last of version 2). Moving to a new major version is a change made on purpose, in its own commit, after
+reading its breaking changes, never something that happens to us.
