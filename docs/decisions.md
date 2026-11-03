@@ -730,3 +730,18 @@ On Today and the calendar an order shows by its step of that day. Once she ticke
 came next, though the order had a delivery day. Under a ticked step of an order still in progress, Today and the
 calendar now say what comes next for it, as the Orders list does (decision 0092): its next step not done, or, with
 nothing else planned, its delivery ("Next: Delivery, Fri 13 Nov"). Not under a step of a finished order.
+
+## 0095. Reminders on her phone, with the app closed
+
+She wanted to be reminded of her work without opening the app. Every phone of the workspace with notifications on
+now gets, by her choice: a morning summary at 7:30 on her clock ("Today: 4 steps · 1 delivery", then what they are,
+timed ones first, earlier ones not done yet marked so), only on days with something on and never after 11:00; and an
+hour before a step with a time ("At 10:30 · Fitting", whose it is). Each is sent once.
+
+How it runs: the database decides what is due and notes it as sent (`app.claim_due_reminders`, one clock, tested with
+given times); a `remind` Edge Function sends it with the same keys as the other notifications (decision 0083),
+connected with the database address Supabase gives every function, so no key is added anywhere. The function takes
+nothing from its caller: anyone calling it can only make what is due go out, once. A timer in the database (pg_cron)
+calls it every five minutes; the Database workflow switches it on for her project only, through Supabase's management
+API, so a test database never calls out. Each reminder has its own tag on the phone, so a later notification does not
+replace it. On an iPhone, notifications need the app added to the Home Screen.

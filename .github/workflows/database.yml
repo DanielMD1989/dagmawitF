@@ -73,3 +73,18 @@ jobs:
 
       - name: Deploy the push function
         run: supabase functions deploy push --project-ref "$SUPABASE_PROJECT_ID" --no-verify-jwt --use-api
+
+      # Reminders (decision 0095): the function that sends what is due, and the database's timer that calls it every
+      # five minutes. The timer is switched on here, for her project only, through Supabase's management API (the
+      # same token as above); a test database never calls out. Running it again only replaces the job.
+      - name: Deploy the reminder function
+        run: supabase functions deploy remind --project-ref "$SUPABASE_PROJECT_ID" --no-verify-jwt --use-api
+
+      - name: Switch the reminder timer on
+        run: |
+          url="https://$SUPABASE_PROJECT_ID.supabase.co/functions/v1/remind"
+          body=$(jq -n --arg q "select app.schedule_reminders('$url')" '{query: $q}')
+          curl --fail-with-body -sS -X POST "https://api.supabase.com/v1/projects/$SUPABASE_PROJECT_ID/database/query" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" -d "$body"
+          echo
+          echo "The timer calls $url every five minutes."
