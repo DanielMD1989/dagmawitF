@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { formatDay, type IsoDate } from '@/domain/dates';
 import { jobHeadline } from '@/domain/jobs/words';
+import { nextIsLate, nextWords, type NextUp } from '@/domain/orders/lists';
 import { canBePartDone, isRecord, lastDayOf, type Step } from '@/domain/steps/agenda';
 import { partDoneLabel, timeLabel } from '@/domain/steps/words';
 import { PartDoneForm } from './PartDoneForm';
@@ -15,11 +16,16 @@ export function StepEntry({
   part = null,
   clash = false,
   overdue = false,
+  next,
+  today,
 }: {
   step: Step;
   part?: string | null;
   clash?: boolean;
   overdue?: boolean;
+  /** What comes next for its order (decision 0094): said under the step once it is done. */
+  next?: NextUp;
+  today?: IsoDate;
 }) {
   const done = step.doneOn !== null;
   const time = timeLabel(step);
@@ -64,6 +70,12 @@ export function StepEntry({
           {partDone && <span className="item__note item__note--started">{partDone}</span>}
           {!done && step.movedFrom && (
             <span className="item__note item__note--moved">Moved from {formatDay(step.movedFrom)}</span>
+          )}
+          {/* Ticked done, its order still in progress: what comes next for it (decision 0094). */}
+          {done && next && !isRecord(step) && (
+            <span className={`item__note item__note--next${today && nextIsLate(next, today) ? ' late' : ''}`}>
+              {nextWords(next)}
+            </span>
           )}
           {clash && (
             <span className="item__note item__note--warn">

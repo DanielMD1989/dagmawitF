@@ -457,6 +457,17 @@ test('ticking an order’s Delivery finishes it: it leaves Active for History, a
   await expect(page.locator('.back-link')).toHaveAttribute('href', '/orders?tab=history');
 });
 
+test('a step ticked on Today says what comes next for its order, its delivery when nothing else is planned', async () => {
+  await page.goto('/');
+  const fix = item(section('Today'), 'Fix', 'Yonas Alemu · Suit alteration');
+  await expect(fix.locator('.item__note--next')).toHaveCount(0);
+  await fix.getByRole('button', { name: 'Mark Fix, Yonas Alemu · Suit alteration as done' }).click();
+  // Its only step left is its Delivery (decision 0094).
+  await expect(fix.locator('.item__note--next')).toHaveText(/^Next: Delivery, \w{3} \d{1,2} \w{3}/);
+  await fix.getByRole('button', { name: /Fix, Yonas Alemu · Suit alteration: done/ }).click();
+  await expect(fix.locator('.item__note--next')).toHaveCount(0);
+});
+
 test('events have their own list, and Numbers counts the orders taken and delivered', async () => {
   await page.goto('/orders');
   await page.getByRole('link', { name: 'Events' }).click();

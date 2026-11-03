@@ -8,7 +8,7 @@ import { entriesOn, isOverdue } from '@/domain/steps/agenda';
 import { dayMarks, monthGrid } from '@/domain/steps/month';
 import { partLabel } from '@/domain/steps/words';
 import { loadPreferences } from '@/server/preferences';
-import { loadJobDays } from '@/server/orders';
+import { loadJobDays, loadOrders } from '@/server/orders';
 import { requireUser } from '@/server/session';
 import { carryOver, loadStepsBetween } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
@@ -33,10 +33,13 @@ export default async function CalendarPage({
     params.month ?? (params.day && isIsoDate(params.day) ? params.day.slice(0, 7) : undefined),
     today,
   );
-  const [steps, jobDays] = await Promise.all([
+  const [steps, jobDays, orders] = await Promise.all([
     loadStepsBetween(supabase, grid.from, grid.to),
     loadJobDays(supabase, grid.from, grid.to),
+    loadOrders(supabase),
   ]);
+  // What comes next for each order, said under a step once it is ticked (decision 0094).
+  const nextOf = new Map(orders.map((o) => [o.id, o.next]));
   const due = byDueDay(jobDays);
   const chosen =
     params.day && isIsoDate(params.day) && params.day >= grid.from && params.day <= grid.to
@@ -191,6 +194,8 @@ export default async function CalendarPage({
                 part={partLabel(e)}
                 clash={e.clash}
                 overdue={isOverdue(e.step, today)}
+                next={e.step.job ? nextOf.get(e.step.job.id) : undefined}
+                today={today}
               />
             ))}
           </ul>

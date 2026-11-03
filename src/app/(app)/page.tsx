@@ -48,6 +48,8 @@ export default async function TodayPage() {
     (first?.entries ?? []).map((e) => e.step.job?.id ?? null),
   );
   const later = rest.filter((d) => d.entries.length > 0);
+  // What comes next for each order, said under a step once it is ticked (decision 0094).
+  const nextOf = new Map(jobs.map((j) => [j.id, j.next]));
   const nothingAhead = agenda.days.every((d) => d.entries.length === 0) && agenda.overdue.length === 0;
 
   return (
@@ -101,7 +103,14 @@ export default async function TodayPage() {
           {first.entries.length > 0 ? (
             <ul className="items">
               {first.entries.map((e) => (
-                <StepEntry key={e.step.id} step={e.step} part={partLabel(e)} clash={e.clash} />
+                <StepEntry
+                  key={e.step.id}
+                  step={e.step}
+                  part={partLabel(e)}
+                  clash={e.clash}
+                  next={e.step.job ? nextOf.get(e.step.job.id) : undefined}
+                  today={today}
+                />
               ))}
             </ul>
           ) : (
@@ -121,7 +130,14 @@ export default async function TodayPage() {
           </div>
           <ul className="items">
             {d.entries.map((e) => (
-              <StepEntry key={e.step.id} step={e.step} part={partLabel(e)} clash={e.clash} />
+              <StepEntry
+                key={e.step.id}
+                step={e.step}
+                part={partLabel(e)}
+                clash={e.clash}
+                next={e.step.job ? nextOf.get(e.step.job.id) : undefined}
+                today={today}
+              />
             ))}
           </ul>
         </section>

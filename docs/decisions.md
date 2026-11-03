@@ -723,3 +723,10 @@ them. The time zone stays as it is set (Africa/Addis_Ababa), with no field to ch
 their unit are under Clients ("Measurements"), where they are used; the old /settings/measurements link still finds
 them. No extra security features for now, by her choice (two-step sign-in, signed-in devices, changing the email and
 deleting the account were offered).
+
+## 0094. A ticked step says what comes next for its order
+
+On Today and the calendar an order shows by its step of that day. Once she ticked it (Sewing, say), nothing said what
+came next, though the order had a delivery day. Under a ticked step of an order still in progress, Today and the
+calendar now say what comes next for it, as the Orders list does (decision 0092): its next step not done, or, with
+nothing else planned, its delivery ("Next: Delivery, Fri 13 Nov"). Not under a step of a finished order.
