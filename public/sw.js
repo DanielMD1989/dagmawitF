@@ -13,7 +13,7 @@
  *
  * To change this file, bump VERSION so old caches are cleared.
  */
-const VERSION = 'v4';
+const VERSION = 'v5';
 const SHELL = `dagmawit-shell-${VERSION}`;
 const PLAIN_OFFLINE = '/offline.html';
 const OFFLINE = '/offline';
@@ -166,7 +166,9 @@ self.addEventListener('push', (event) => {
       icon: '/icons/icon-192.png',
       badge: '/icons/icon-192.png',
       data: { url: message.url },
-      tag: message.url,
+      // A reminder has its own tag (decision 0095), so a later notification does not replace it; a change about an
+      // order replaces the last one about that order.
+      tag: message.tag || message.url,
     }),
   );
 });

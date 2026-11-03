@@ -54,7 +54,9 @@ export default async function SettingsPage() {
         <div className="section__head">
           <h2 id="notify-heading">Notifications</h2>
           <p className="hint">
-            When someone else of this workspace adds or changes an order, or ticks a step done.
+            Every morning at 7:30, what is on today; an hour before a step with a time, a reminder; and when
+            someone else of this workspace changes an order or ticks a step done. On an iPhone, add the app to
+            the Home Screen first.
           </p>
         </div>
         <NotificationsSwitch publicKey={publicKey} />

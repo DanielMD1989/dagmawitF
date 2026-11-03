@@ -90,9 +90,12 @@ test('Today is kept on the phone as she sees it, and nothing else of hers is', a
   expect(
     await page.evaluate(() => Object.keys(localStorage).filter((k) => k.startsWith('dagmawit'))),
   ).toEqual(['dagmawit.today.v3']);
-  const cached = await page.evaluate(async () =>
-    (await (await caches.open('dagmawit-shell-v4')).keys()).map((r) => new URL(r.url).pathname),
-  );
+  // The app's one cache, whatever its version (public/sw.js bumps it on every change).
+  const cached = await page.evaluate(async () => {
+    const names = (await caches.keys()).filter((n) => n.startsWith('dagmawit-shell-'));
+    if (names.length !== 1) return [`caches: ${names.join(', ')}`];
+    return (await (await caches.open(names[0]!)).keys()).map((r) => new URL(r.url).pathname);
+  });
   expect(cached).toContain('/offline');
   expect(cached.some((p) => p.endsWith('.css'))).toBe(true);
   expect(cached.some((p) => p.endsWith('.js'))).toBe(true);
