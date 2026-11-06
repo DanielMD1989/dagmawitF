@@ -94,7 +94,15 @@ describe('a step part done', () => {
 
   it('is refused for a Delivery, a note with no start, and an empty or overlong note', async () => {
     await signedIn(async (c) => {
-      const { step: delivery } = await orderWithStep(c, 'DELIVERY');
+      // Every customer order has its Delivery (decision 0096).
+      const { order } = await orderWithStep(c, 'Cutting');
+      const delivery = (
+        await one<{ id: string }>(
+          c,
+          `select id from public.task where order_id = $1 and title = 'Delivery'`,
+          [order],
+        )
+      ).id;
       expect(await start(c, delivery, null)).toMatchObject({ ok: false, code: '23514' });
       const { step } = await orderWithStep(c, 'Sewing');
       expect(
@@ -102,8 +110,7 @@ describe('a step part done', () => {
       ).toMatchObject({ ok: false, code: '23514' });
       expect(await start(c, step, '   ')).toMatchObject({ ok: false, code: '23514' });
       expect(await start(c, step, 'x'.repeat(201))).toMatchObject({ ok: false, code: '23514' });
-      // A started step cannot be renamed Delivery either.
-      await start(c, step, null);
+      // Nor can a step become a second Delivery.
       expect(
         await attempt(c, `update public.task set title = 'Delivery' where id = $1`, [step]),
       ).toMatchObject({ ok: false, code: '23514' });

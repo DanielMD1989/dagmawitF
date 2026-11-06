@@ -53,7 +53,9 @@ describe('a shared workspace', () => {
       expect(await one(c, `select owner_id from public.task where title = 'Cutting'`)).toEqual({
         owner_id: her,
       });
-      expect(await all(c, `select title from public.task`)).toEqual([{ title: 'Cutting' }]);
+      expect(await all(c, `select title from public.task where not app.is_delivery(title)`)).toEqual([
+        { title: 'Cutting' },
+      ]);
     });
   });
 

@@ -192,7 +192,8 @@ test('moving an order’s day moves its steps not done yet by as many days', asy
   await page.getByLabel('Delivery day').fill(inDays(67));
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   // Seven: the eight steps with a day, less Beading, done. Lace work has no day and stays without one.
-  await expect(page.locator('.notice--success').last()).toHaveText(/^Saved\. 7 steps moved with the day\.$/);
+  // Its Delivery moves with the day by itself (decision 0096); the other steps by as many days.
+  await expect(page.locator('.notice--success').last()).toHaveText(/^Saved\. 6 steps moved with the day\.$/);
   expect(await stepDay(ids.o1!, 'Fitting')).toBe(inDays(39));
   expect(await stepDay(ids.o1!, 'Delivery')).toBe(inDays(67));
   expect(await stepDay(ids.o1!, 'Sketch')).toBe(inDays(7));
@@ -245,7 +246,7 @@ test('an order taken with no steps gets its steps afterwards, each on its day', 
   expect(await stepDay(party, 'Sewing')).toBe(inDays(5));
   await settled(page);
   // The steps take the place of the empty card.
-  await expect(page.locator('li.item .item__title')).toHaveText(['Buy fabric', 'Sewing']);
+  await expect(page.locator('li.item .item__title')).toHaveText(['Buy fabric', 'Sewing', 'Delivery']);
   expect(await has('No steps yet.')).toBe(false);
 });
 
@@ -310,26 +311,19 @@ test('an event, such as a bazaar or a show, is its name and its day, counted dow
   await inspect(page, 'coming up');
 });
 
-test('an order due today shows once on Today: by its step when it has one, else as due today', async () => {
+test('an order due today shows once on Today: by its Delivery step', async () => {
   await fillNewJob(page, { client: 'Yonas Alemu', title: 'Hem trousers', due: today() });
   await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
-  const hem = page.url();
+  // Its Delivery is a step, on its day, with nothing added (decision 0096).
+  await expect(page.locator('li.item .item__title')).toHaveText(['Delivery']);
   await page.goto('/');
-  // No step today: it is listed as due today, so it is not missed.
-  const due = page.getByRole('list', { name: 'Due today' });
-  await expect(due).toContainText('Yonas Alemu · Hem trousers');
-  await expect(due).toContainText('today');
+  await expect(item(section('Today'), 'Delivery', 'Yonas Alemu · Hem trousers')).toBeVisible();
+  // Not again as due today.
+  await expect(page.locator('main')).not.toContainText('Due today');
   // Not on Coming up, which starts tomorrow.
   await page.goto('/coming-up');
   await expect(page.locator('main')).not.toContainText('Hem trousers');
-  // Its delivery as a step today: shown by that step, and not again as due.
-  await page.goto(hem);
-  // Not one of the buttons (the order's own day says it), but hers to add as one of her own.
-  await addSteps(page, [{ title: 'Delivery', day: today() }]);
-  await page.goto('/');
-  await expect(item(section('Today'), 'Delivery', 'Yonas Alemu · Hem trousers')).toBeVisible();
-  await expect(page.getByRole('list', { name: 'Due today' })).toHaveCount(0);
 });
 
 test('a step she typed once is not offered as a usual one', async () => {
@@ -359,7 +353,7 @@ test('the month: what each day holds, by name, and the list of the day she picks
   await page.waitForURL(`${env.baseURL}/calendar`);
 });
 
-test('the month marks the days orders and events are due, steps or none, and lists them on the day', async () => {
+test('the month marks the days orders and events are due, and lists them on the day', async () => {
   // The fashion show, 70 days ahead, has its own day marked though its only step is weeks earlier.
   const show = inDays(70);
   await page.goto(`/calendar?day=${show}`);
@@ -370,13 +364,12 @@ test('the month marks the days orders and events are due, steps or none, and lis
   const due = page.getByRole('list', { name: 'Due this day' });
   await expect(due).toContainText('Fashion show at the Sheraton');
   await expect(due).toContainText('Event · #');
-  // The party dress, whose steps have no days yet, is still marked on its delivery day.
+  // The party dress is marked on its delivery day, by the client's first name, and listed by its Delivery step
+  // (decision 0096), which every customer order has.
   const party = inDays(10);
   await page.goto(`/calendar?day=${party}`);
-  // An order due, by the client's first name.
   await expect(page.locator(`a[href$="day=${party}"] .month__tag--due`)).toHaveText(['Hanna']);
-  await expect(page.getByRole('list', { name: 'Due this day' })).toContainText('Hanna Tesfaye · Party dress');
-  await expect(page.getByRole('list', { name: 'Due this day' })).toContainText('Delivery');
+  await expect(item(page, 'Delivery', 'Hanna Tesfaye · Party dress')).toBeVisible();
   // The suit alteration has its Delivery step on its day: listed once, by that step, not again as due.
   const fix = inDays(2);
   await page.goto(`/calendar?day=${fix}`);

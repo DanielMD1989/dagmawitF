@@ -8,7 +8,7 @@ import { TickButton } from '@/components/steps/TickButton';
 import { formatDay } from '@/domain/dates';
 import { isUuid } from '@/domain/form-input';
 import { isClosed } from '@/domain/orders/status';
-import { canBePartDone, isOverdue, jobWarnings, lastDayOf } from '@/domain/steps/agenda';
+import { canBePartDone, isDeliveryStep, isOverdue, jobWarnings, lastDayOf } from '@/domain/steps/agenda';
 import { daysLabel, partDoneLabel, timeLabel } from '@/domain/steps/words';
 import { loadClients } from '@/server/clients';
 import { getOrder } from '@/server/orders';
@@ -42,6 +42,8 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
   const closed = isClosed(order.status);
   const warnings = closed ? [] : jobWarnings(steps, order.deliveryOn, prefs.today);
   const done = steps.filter((s) => s.doneOn !== null).length;
+  // The steps besides the Delivery, which every customer order has (decision 0096).
+  const work = steps.filter((s) => !isDeliveryStep(s.title));
   const usual = usualSteps(used);
   const event = !order.client;
   const noun = event ? 'event' : 'order';
@@ -74,13 +76,13 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
           </div>
         )}
 
-        {steps.length === 0 ? (
-          !event && (
-            <div className="card">
-              <p>No steps yet.{!closed && ' Tap the ones this order needs, and give each its day.'}</p>
-            </div>
-          )
-        ) : (
+        {/* Its Delivery is always there (decision 0096): "no steps" is none besides it. */}
+        {!event && work.length === 0 && (
+          <div className="card">
+            <p>No steps yet.{!closed && ' Tap the ones this order needs, and give each its day.'}</p>
+          </div>
+        )}
+        {steps.length > 0 && (
           <ul className="items">
             {steps.map((s) => {
               const late = !closed && isOverdue(s, prefs.today);
@@ -149,7 +151,7 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
             />
           ) : (
             // The same step buttons as a new order, for an order taken in a hurry (decision 0085).
-            <AddStepsForm orderId={order.id} today={prefs.today} usual={usual} open={steps.length === 0} />
+            <AddStepsForm orderId={order.id} today={prefs.today} usual={usual} open={work.length === 0} />
           ))}
       </section>
 

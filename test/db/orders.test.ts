@@ -353,9 +353,10 @@ describe('what hangs from a delivered or cancelled order is a record too', () =>
           ok: false,
           code: CHECK,
         });
-        const { rows } = await c.query(`select title, on_day::text from public.task where order_id = $1`, [
-          orderId,
-        ]);
+        const { rows } = await c.query(
+          `select title, on_day::text from public.task where order_id = $1 and not app.is_delivery(title)`,
+          [orderId],
+        );
         expect(rows).toEqual([{ title: 'Buy lace', on_day: '2026-01-05' }]);
       });
     },
@@ -371,7 +372,11 @@ describe('what hangs from a delivered or cancelled order is a record too', () =>
         ok: true,
       });
       expect(
-        await attempt(c, `update public.task set on_day = '2026-01-07' where order_id = $1`, [orderId]),
+        await attempt(
+          c,
+          `update public.task set on_day = '2026-01-07' where order_id = $1 and not app.is_delivery(title)`,
+          [orderId],
+        ),
       ).toMatchObject({ ok: true });
     });
   });
@@ -643,9 +648,10 @@ describe('garments', () => {
       expect((await attempt(c, `delete from public.order_item where order_id = $1`, [orderId])).ok).toBe(
         true,
       );
-      const { rows } = await c.query(`select title, order_item_id from public.task where order_id = $1`, [
-        orderId,
-      ]);
+      const { rows } = await c.query(
+        `select title, order_item_id from public.task where order_id = $1 and not app.is_delivery(title)`,
+        [orderId],
+      );
       expect(rows).toEqual([{ title: 'Sewing', order_item_id: null }]);
     });
   });
@@ -699,7 +705,7 @@ describe('the functions the screens call', () => {
       await c.query(
         `select title, sort, on_day::text, until_day::text, starts_at::text, ends_at::text,
                 order_item_id is not null as for_garment
-         from public.task order by sort`,
+         from public.task where not app.is_delivery(title) order by sort`,
       )
     ).rows;
 
@@ -963,7 +969,9 @@ describe('another designer cannot reach orders', () => {
         rowCount: 0,
       });
       await actAsOwner(c);
-      const { rows } = await c.query(`select o.notes, k.done_on from public.orders o, public.task k`);
+      const { rows } = await c.query(
+        `select o.notes, k.done_on from public.orders o, public.task k where not app.is_delivery(k.title)`,
+      );
       expect(rows).toEqual([{ notes: '', done_on: null }]);
     });
   });

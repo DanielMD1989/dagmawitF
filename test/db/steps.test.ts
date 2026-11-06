@@ -119,9 +119,9 @@ describe('a step', () => {
       });
       expect(await addStep(c, one.order, { order_item_id: one.item })).toMatchObject({ ok: true });
       await c.query(`delete from public.order_item where id = $1`, [one.item]);
-      expect((await c.query(`select order_item_id from public.task`)).rows).toEqual([
-        { order_item_id: null },
-      ]);
+      expect(
+        (await c.query(`select order_item_id from public.task where not app.is_delivery(title)`)).rows,
+      ).toEqual([{ order_item_id: null }]);
     });
   });
 
@@ -202,10 +202,9 @@ describe('steps of one designer', () => {
       });
       expect(await addStep(c, order)).toMatchObject({ ok: false, code: FOREIGN_KEY });
       await actAsOwner(c);
-      expect((await c.query(`select title from public.task order by title`)).rows).toEqual([
-        { title: 'Sewing' },
-        { title: 'Walk-in hem' },
-      ]);
+      expect(
+        (await c.query(`select title from public.task where not app.is_delivery(title) order by title`)).rows,
+      ).toEqual([{ title: 'Sewing' }, { title: 'Walk-in hem' }]);
     });
   });
 });

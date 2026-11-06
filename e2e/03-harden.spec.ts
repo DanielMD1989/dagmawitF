@@ -435,7 +435,8 @@ test('the keyboard alone: take an order', async () => {
   await page.keyboard.press('Enter');
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   await expect(page.locator('h1')).toHaveText('Hanna Tesfaye · Netela shawl');
-  await expect(page.locator('li.item .item__title')).toHaveText(['Fitting']);
+  // Its Delivery comes with it, last (decision 0096).
+  await expect(page.locator('li.item .item__title')).toHaveText(['Fitting', 'Delivery']);
 });
 
 test('the keyboard alone: tick a step done', async () => {

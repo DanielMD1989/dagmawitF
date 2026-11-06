@@ -65,11 +65,12 @@ describe('ticking the Delivery step', () => {
       expect(
         await one(
           c,
-          `select array_agg(action order by seq) as a from (
-             select action, seq from public.activity_log where order_id = $1 order by seq desc limit 2) l`,
+          `select array_agg(action || coalesce(':' || (details->>'to'), '') order by seq) as a
+           from public.activity_log where order_id = $1`,
           [id],
         ),
-      ).toEqual({ a: ['task_done', 'status_changed'] });
+        // "Finished", once: the Delivery done is that (decision 0096).
+      ).toEqual({ a: ['order_created', 'status_changed:active', 'status_changed:delivered'] });
     });
   });
 
