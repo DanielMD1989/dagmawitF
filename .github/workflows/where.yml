@@ -13,10 +13,15 @@ jobs:
       SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
     steps:
       - name: Her project's region
+        # Also whether the access token still works: Supabase's answer is said, not hidden (a token can expire).
         run: |
-          region=$(curl -fsS -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
-            https://api.supabase.com/v1/projects/iowwrmnfeaogocnspgvf | jq -r .region)
-          echo "::notice title=Supabase region::$region"
+          status=$(curl -sS -o project.json -w '%{http_code}' -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" \
+            https://api.supabase.com/v1/projects/iowwrmnfeaogocnspgvf)
+          if [ "$status" != "200" ]; then
+            echo "::error title=Supabase access token::Supabase answered $status: $(head -c 200 project.json)"
+            exit 1
+          fi
+          echo "::notice title=Supabase region::$(jq -r '.region + " (" + .status + ")"' project.json)"
       # Whether a session can be checked on the server without asking Supabase each time: it can when the project
       # signs sessions with an asymmetric key, which this public list then holds.
       - name: Her project's session signing keys
