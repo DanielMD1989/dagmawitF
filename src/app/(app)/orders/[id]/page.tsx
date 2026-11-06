@@ -134,7 +134,9 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
                       leftNote={s.leftNote ?? null}
                     />
                   )}
-                  {!closed && <StepEditor orderId={order.id} step={s} />}
+                  {!closed && (
+                    <StepEditor orderId={order.id} step={s} delivery={!event && isDeliveryStep(s.title)} />
+                  )}
                 </li>
               );
             })}

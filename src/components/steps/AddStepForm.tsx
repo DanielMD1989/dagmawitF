@@ -59,11 +59,14 @@ export function StepFields({
   idPrefix,
   saved,
   usual = [],
+  delivery = false,
 }: {
   state: Parameters<typeof TextField>[0]['state'];
   idPrefix: string;
   saved: { title: string; day: string; until: string; from: string; to: string };
   usual?: readonly string[];
+  /** An order's Delivery (decision 0096): its name stays, it is on one day, and that day is the delivery day. */
+  delivery?: boolean;
 }) {
   return (
     <>
@@ -74,35 +77,54 @@ export function StepFields({
           ))}
         </datalist>
       )}
-      <TextField
-        name="title"
-        id={`${idPrefix}-title`}
-        label="Step"
-        state={state}
-        saved={saved.title}
-        placeholder="Cutting, sewing, fitting…"
-        autoComplete="off"
-        list={usual.length > 0 ? `${idPrefix}-usual` : undefined}
-      />
-      <div className="form-grid form-grid--pair">
-        <TextField
-          name="day"
-          id={`${idPrefix}-day`}
-          label="Day"
-          type="date"
-          state={state}
-          saved={saved.day}
-        />
-        <TextField
-          name="until"
-          id={`${idPrefix}-until`}
-          label="Last day (optional)"
-          type="date"
-          state={state}
-          saved={saved.until}
-          hint="For a step over several days."
-        />
-      </div>
+      {delivery ? (
+        <>
+          <input type="hidden" name="title" value={saved.title} />
+          <p className="hint">
+            The order’s delivery: its day is the order’s delivery day, and changing it here moves it.
+          </p>
+          <TextField
+            name="day"
+            id={`${idPrefix}-day`}
+            label="Day"
+            type="date"
+            state={state}
+            saved={saved.day}
+          />
+        </>
+      ) : (
+        <>
+          <TextField
+            name="title"
+            id={`${idPrefix}-title`}
+            label="Step"
+            state={state}
+            saved={saved.title}
+            placeholder="Cutting, sewing, fitting…"
+            autoComplete="off"
+            list={usual.length > 0 ? `${idPrefix}-usual` : undefined}
+          />
+          <div className="form-grid form-grid--pair">
+            <TextField
+              name="day"
+              id={`${idPrefix}-day`}
+              label="Day"
+              type="date"
+              state={state}
+              saved={saved.day}
+            />
+            <TextField
+              name="until"
+              id={`${idPrefix}-until`}
+              label="Last day (optional)"
+              type="date"
+              state={state}
+              saved={saved.until}
+              hint="For a step over several days."
+            />
+          </div>
+        </>
+      )}
       <div className="form-grid form-grid--pair">
         <TextField
           name="from"

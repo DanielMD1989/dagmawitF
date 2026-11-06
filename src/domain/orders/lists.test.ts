@@ -118,6 +118,8 @@ describe('what comes next for an order (decision 0092)', () => {
       'Next: Delivery, Fri 13 Nov',
     );
     expect(nextUp([], due)).toEqual({ kind: 'delivery', onDay: due });
+    // An event is not delivered: its day is what comes.
+    expect(nextWords(nextUp([], due, true))).toBe('Event day: Fri 13 Nov');
   });
 
   it('is late when its day has passed; a step with no day never is', () => {

@@ -745,3 +745,23 @@ nothing from its caller: anyone calling it can only make what is due go out, onc
 calls it every five minutes; the Database workflow switches it on for her project only, through Supabase's management
 API, so a test database never calls out. Each reminder has its own tag on the phone, so a later notification does not
 replace it. On an iPhone, notifications need the app added to the Home Screen.
+
+## 0096. Every customer order has its Delivery as a step
+
+She delivered an order, and there was no way to say so as with its steps: the delivery was a step only when she had
+given it a time when taking the order; otherwise it was a date, and the order said "Next: Delivery" with nothing to
+tick but "Mark as finished" on its page. Now every customer order has one Delivery step, on its delivery day, kept so
+by the database (20261110090000_delivery_step.sql):
+
+- A new customer order gets it, last of its steps; an event does not (an event is not delivered: when nothing is left
+  to prepare it says its day, "Event day: Sat 14 Nov"). Orders in progress were given theirs.
+- Its day is the delivery day: changing the order's day moves it (moving the steps with the day moves the others by as
+  many days, and it once), and changing its day in "Change" moves the order's, by the order's own rules (not into the
+  past).
+- Ticking it finishes the order (decision 0089); "Mark as finished" ticks it; reopening unticks it, on its new day. The
+  history says "Finished" once.
+- It cannot be removed or renamed, nor be over several days; "Delivery" added again is the same one, given its time.
+  So the new-order form and "Add steps" refuse a Delivery row, saying why.
+
+It shows on Today and the calendar on its day like any step, so the order's day shows once, by it, and the morning
+summary counts it as a delivery.

@@ -105,13 +105,15 @@ export interface OpenStep {
 export type NextUp =
   | { kind: 'step'; title: string; onDay: IsoDate; startsAt: string | null }
   | { kind: 'undated'; title: string }
-  | { kind: 'delivery'; onDay: IsoDate };
+  | { kind: 'delivery'; onDay: IsoDate }
+  | { kind: 'event'; onDay: IsoDate };
 
 /**
- * The next thing to do for an order: its next step not done, by day and then time; a step with no day yet when none
- * has one; and, every step done, the delivery itself. Never a step already done.
+ * The next thing to do for an order: its next step not done, by day and then time (its Delivery step among them,
+ * decision 0096); a step with no day yet when none has one; and, every step done, the delivery itself, or for an
+ * event its day. Never a step already done.
  */
-export function nextUp(steps: readonly OpenStep[], deliveryOn: IsoDate): NextUp {
+export function nextUp(steps: readonly OpenStep[], deliveryOn: IsoDate, isEvent = false): NextUp {
   const open = steps.filter((s) => s.doneOn === null);
   const dated = open
     .filter((s) => s.onDay !== null)
@@ -126,13 +128,18 @@ export function nextUp(steps: readonly OpenStep[], deliveryOn: IsoDate): NextUp 
   if (first) return { kind: 'step', title: first.title, onDay: first.onDay!, startsAt: first.startsAt };
   const undated = [...open].sort((a, b) => a.sort - b.sort)[0];
   if (undated) return { kind: 'undated', title: undated.title };
-  return { kind: 'delivery', onDay: deliveryOn };
+  // An event is not delivered: what comes is its day.
+  return isEvent ? { kind: 'event', onDay: deliveryOn } : { kind: 'delivery', onDay: deliveryOn };
 }
 
-/** "Next: Fitting, Thu 12 Nov · 10:30 AM", "Next: Sketch, no day yet", "Next: Delivery, Fri 13 Nov". */
+/**
+ * "Next: Fitting, Thu 12 Nov · 10:30 AM", "Next: Sketch, no day yet", "Next: Delivery, Fri 13 Nov"; for an event with
+ * nothing left to prepare, "Event day: Sat 14 Nov".
+ */
 export function nextWords(next: NextUp): string {
   if (next.kind === 'undated') return `Next: ${next.title}, no day yet`;
   if (next.kind === 'delivery') return `Next: Delivery, ${formatDay(next.onDay)}`;
+  if (next.kind === 'event') return `Event day: ${formatDay(next.onDay)}`;
   return `Next: ${next.title}, ${formatDay(next.onDay)}${next.startsAt ? ` · ${clock(next.startsAt)}` : ''}`;
 }
 

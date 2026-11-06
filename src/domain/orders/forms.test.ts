@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { GARMENT_CASES } from '../../../test/fixtures/capture-cases';
 import {
+  DELIVERY_ROW,
   NEW_CLIENT,
   garmentProblems,
   parseGarment,
@@ -49,8 +50,8 @@ const newJob = (over: Record<string, string> = {}) =>
     'step-0-day': '2026-10-27',
     'step-0-from': '14:00',
     'step-0-to': '14:30',
-    'step-1-title': 'Delivery',
-    'step-1-day': '2026-11-20',
+    'step-1-title': 'Fitting',
+    'step-1-day': '2026-11-18',
     ...over,
   });
 
@@ -67,7 +68,7 @@ describe('a new order', () => {
         brief: '',
         steps: [
           { title: 'Appointment', onDay: '2026-10-27', untilDay: null, startsAt: '14:00', endsAt: '14:30' },
-          { title: 'Delivery', onDay: '2026-11-20', untilDay: null, startsAt: null, endsAt: null },
+          { title: 'Fitting', onDay: '2026-11-18', untilDay: null, startsAt: null, endsAt: null },
         ],
         deliveryAt: null,
       },
@@ -85,10 +86,10 @@ describe('a new order', () => {
     });
   });
 
-  it('refuses a delivery time when a Delivery step is already on that day', () => {
-    expect(parseNewJob(newJob({ 'due-at': '15:30' }), ctx)).toMatchObject({
+  it('refuses a Delivery among her steps: the order has its own, on its day (decision 0096)', () => {
+    expect(parseNewJob(newJob({ 'step-1-title': ' delivery ' }), ctx)).toMatchObject({
       ok: false,
-      errors: { 'due-at': expect.stringContaining('already a Delivery step') },
+      errors: { 'step-1-title': DELIVERY_ROW },
     });
   });
 

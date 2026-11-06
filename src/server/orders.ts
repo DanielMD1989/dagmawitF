@@ -94,6 +94,7 @@ export async function loadOrders(supabase: SupabaseClient): Promise<OrderListIte
             sort: t.sort,
           })),
           o.delivery_on,
+          o.client === null,
         ),
         deliveredOn: o.delivered_on,
         createdAt: o.created_at,
