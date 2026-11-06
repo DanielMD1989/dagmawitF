@@ -33,7 +33,8 @@ export async function createJob(_previous: ActionState, formData: FormData): Pro
   if (!parsed.ok) return failure('Check the fields marked below.', parsed.errors, typed);
   const job = parsed.value;
 
-  // Her steps, then the delivery at its time when she gave one (decision 0079).
+  // Her steps, then the delivery's time when she gave one (decision 0079): the database gives it to the order's own
+  // Delivery step, which every customer order has (decision 0096).
   const steps: StepFields[] = job.deliveryAt
     ? [
         ...job.steps,

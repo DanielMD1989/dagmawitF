@@ -381,6 +381,27 @@ test('the month marks the days orders and events are due, and lists them on the 
   await inspect(page, 'month with due days');
 });
 
+test('an order’s Delivery is a step with its day and time only, and no second one is added', async () => {
+  await page.goto(`/orders/${ids.o1}`);
+  await ready(page);
+  const delivery = item(page, 'Delivery');
+  const change = await open(delivery, 'Change');
+  // Its name stays and it is not removed (decision 0096): its day is the delivery day.
+  await expect(change.getByLabel('Step', { exact: true })).toHaveCount(0);
+  await expect(change.getByLabel('Last day (optional)')).toHaveCount(0);
+  await expect(change.getByLabel('Day', { exact: true })).toBeVisible();
+  await expect(change).toContainText('its day is the order’s delivery day');
+  await expect(delivery.getByRole('button', { name: 'Remove this step' })).toHaveCount(0);
+  // A day that has passed is refused, plainly.
+  await change.getByLabel('Day', { exact: true }).fill(inDays(-1));
+  await change.getByRole('button', { name: 'Save the step' }).click();
+  await expect(change).toContainText('The delivery day cannot be in the past.');
+  await page.reload();
+  await ready(page);
+  const form = await addSteps(page, [{ title: 'Delivery', day: inDays(30) }], false);
+  await expect(form).toContainText('This order has its Delivery already.');
+});
+
 test('a step part done stays open, says what is left, and is on the history; a Delivery is done or not', async () => {
   await page.goto(`/orders/${ids.o1}`);
   await ready(page);

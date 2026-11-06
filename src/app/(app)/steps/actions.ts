@@ -2,7 +2,7 @@
 
 import { changed } from '@/server/news';
 import { idField, text } from '@/domain/form-input';
-import { findClash, type Step } from '@/domain/steps/agenda';
+import { findClash, isDeliveryStep, type Step } from '@/domain/steps/agenda';
 import { parseLeftNote, parseStep, parseStepRows, sameStep, type StepFields } from '@/domain/steps/forms';
 import { clashMessage } from '@/domain/steps/words';
 import { failure, success, typedIn, type ActionState } from '@/lib/action-state';
@@ -136,6 +136,11 @@ export async function addSteps(_previous: ActionState, formData: FormData): Prom
   const existing = (await loadJobSteps(supabase, orderId)).filter((s) => s.doneOn === null);
   const errors: Record<string, string> = {};
   for (const [i, step] of rows.value.entries()) {
+    // Its Delivery is there already, on its delivery day (decision 0096).
+    if (isDeliveryStep(step.title)) {
+      errors[`step-${i}-title`] = 'This order has its Delivery already. Change its day or time there.';
+      continue;
+    }
     const twice = existing.find((s) => sameStep(s, step));
     if (twice)
       errors[`step-${i}-title`] =
@@ -176,6 +181,18 @@ export async function saveStep(_previous: ActionState, formData: FormData): Prom
   const parsed = parseStep(formData);
   if (!parsed.ok) return failure('Check the step.', parsed.errors, typed);
   const supabase = await createSupabase();
+  // An order's Delivery is the delivery day (decision 0096): on a day, and not one that has passed.
+  if (isDeliveryStep(parsed.value.title)) {
+    const { today } = await loadPreferences(supabase);
+    if (!parsed.value.onDay)
+      return failure('Give the delivery its day.', { day: 'The delivery needs its day.' }, typed);
+    if (parsed.value.onDay < today)
+      return failure(
+        'Choose a day that has not passed.',
+        { day: 'The delivery day cannot be in the past.' },
+        typed,
+      );
+  }
   const taken = await timeTaken(supabase, parsed.value, stepId);
   if (taken) return failure('That time is taken.', { from: taken }, typed);
   const { data, error } = await supabase

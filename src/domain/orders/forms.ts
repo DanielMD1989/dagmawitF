@@ -1,7 +1,8 @@
 import { isIsoDate, type IsoDate } from '../dates';
 import { chars, isUuid, parseWholeNumber, text, ticked, type FieldErrors, type Result } from '../form-input';
 import { clientProblems } from '../clients/forms';
-import { parseStepRows, readTime, sameStep, type StepFields } from '../steps/forms';
+import { isDeliveryStep } from '../steps/agenda';
+import { parseStepRows, readTime, type StepFields } from '../steps/forms';
 import { canMove, isOrderStatus, type OrderStatus } from './status';
 
 /**
@@ -70,6 +71,9 @@ export interface NewJob {
 /** The step a delivery time makes. */
 export const DELIVERY_STEP = 'Delivery';
 
+/** Said beside a row "Delivery" on a new order (decision 0096). */
+export const DELIVERY_ROW = 'The Delivery is added by itself, on the delivery day; give its time above.';
+
 export const NEW_CLIENT = 'new';
 /** The choice of no client: an event. */
 export const NO_CLIENT = 'none';
@@ -122,9 +126,11 @@ export function parseNewJob(data: FormData, context: { today: IsoDate }): Result
   if (!steps.ok) Object.assign(errors, steps.errors);
 
   const deliveryAt = client.kind === 'none' ? null : readTime(data, 'due-at', errors);
-  if (deliveryAt && steps.ok && steps.value.some((s) => sameStep(s, { title: DELIVERY_STEP, onDay: dueOn })))
-    errors['due-at'] =
-      'There is already a Delivery step on that day; give the time there, or here, not both.';
+  // A customer order's Delivery is a step by itself, on its delivery day (decision 0096): not one of the rows.
+  if (client.kind !== 'none' && steps.ok)
+    steps.value.forEach((s, i) => {
+      if (isDeliveryStep(s.title)) errors[`step-${i}-title`] = DELIVERY_ROW;
+    });
 
   if (Object.keys(errors).length > 0 || !steps.ok) return { ok: false, errors };
   return { ok: true, value: { client, number, title, dueOn, notes, brief, steps: steps.value, deliveryAt } };

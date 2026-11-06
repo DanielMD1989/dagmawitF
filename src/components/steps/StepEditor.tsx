@@ -8,12 +8,15 @@ import { SubmitButton } from '@/components/SubmitButton';
 import { idle } from '@/lib/action-state';
 import { StepFields } from './AddStepForm';
 
-/** Changes one step of a job: its title, its days, its time; or removes it. */
+/** Changes one step of a job: its title, its days, its time; or removes it. An order's Delivery: its day and time. */
 export function StepEditor({
   orderId,
   step,
+  delivery = false,
 }: {
   orderId: string;
+  /** The order's own Delivery (decision 0096): kept by its name, on its one day, never removed. */
+  delivery?: boolean;
   step: {
     id: string;
     title: string;
@@ -43,19 +46,22 @@ export function StepEditor({
               from: step.startsAt ?? '',
               to: step.endsAt ?? '',
             }}
+            delivery={delivery}
           />
           <FormNotice state={state} />
           <div className="btn-row">
             <SubmitButton>Save the step</SubmitButton>
           </div>
         </form>
-        <ConfirmAction
-          action={removeStep}
-          fields={{ 'step-id': step.id, 'order-id': orderId }}
-          label="Remove this step"
-          question={`Remove “${step.title}”?`}
-          confirmLabel="Yes, remove"
-        />
+        {!delivery && (
+          <ConfirmAction
+            action={removeStep}
+            fields={{ 'step-id': step.id, 'order-id': orderId }}
+            label="Remove this step"
+            question={`Remove “${step.title}”?`}
+            confirmLabel="Yes, remove"
+          />
+        )}
       </div>
     </details>
   );

@@ -512,13 +512,13 @@ test('order 2: an evening dress for another new client, with a few steps', async
     steps: [
       { title: 'Buy fabric', day: inDays(1) },
       { title: 'Fitting', day: inDays(8), from: '15:00' },
-      { title: 'Delivery', day: inDays(16) },
     ],
   });
   await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   ids.o2 = orderOfUrl();
   await expect(page.locator('h1')).toHaveText('Hanna Tesfaye · Evening dress');
+  // Its Delivery comes with it, on its day (decision 0096).
   expect(await stepTitles()).toEqual(['Buy fabric', 'Fitting', 'Delivery']);
 });
 
@@ -543,10 +543,7 @@ test('order 3: a client added on her own, then a fix started from the client pag
     title: 'Suit alteration',
     brief: 'Take in the waist 3 cm, shorten trousers',
     due: inDays(2),
-    steps: [
-      { title: 'Fix', day: today() },
-      { title: 'Delivery', day: inDays(2) },
-    ],
+    steps: [{ title: 'Fix', day: today() }],
   });
   await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
@@ -641,10 +638,7 @@ test('order 3 again: the same client, a second fix, kept this time', async () =>
   await fillNewJob(page, {
     title: 'Suit alteration',
     due: inDays(2),
-    steps: [
-      { title: 'Fix', day: today() },
-      { title: 'Delivery', day: inDays(2) },
-    ],
+    steps: [{ title: 'Fix', day: today() }],
   });
   await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
