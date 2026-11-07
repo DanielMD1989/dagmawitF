@@ -42,6 +42,23 @@ async function job(c: PoolClient, status: 'draft' | 'active' | 'on_hold' = 'acti
   return id;
 }
 
+/**
+ * The order was due `day`, a day that has since passed. Only time does that: she can never give an active order a
+ * day that has passed, so its rules are set aside for the moment it is written.
+ */
+async function passes(c: PoolClient, order: string, day: string) {
+  const who = (await one<{ sub: string }>(c, `select auth.uid()::text as sub`)).sub;
+  await c.query('reset role');
+  await c.query(`set local session_replication_role = replica`);
+  await c.query(`update public.orders set delivery_on = $1 where id = $2`, [day, order]);
+  await c.query(`update public.task set on_day = $1 where order_id = $2 and title = 'Delivery'`, [
+    day,
+    order,
+  ]);
+  await c.query(`set local session_replication_role = origin`);
+  await actAs(c, who);
+}
+
 const step = async (c: PoolClient, order: string | null, title: string, fields: Record<string, unknown>) => {
   const all = { order_id: order, title, ...fields };
   const names = Object.keys(all);
@@ -98,6 +115,23 @@ describe('unfinished steps', () => {
       expect(await one(c, `select public.carry_over() as n`)).toEqual({ n: 1 });
       expect(await one(c, `select public.carry_over() as n`)).toEqual({ n: 0 });
       expect(await where(c, 'Cutting')).toMatchObject({ on_day: await inDays(c, 0), moved_from: lastWeek });
+    });
+  });
+
+  it('leave a client’s late Delivery on the day she promised, and the order’s day with it (decision 0101)', async () => {
+    await signedIn(async (c) => {
+      const active = await job(c);
+      const yesterday = await inDays(c, -1);
+      await passes(c, active, yesterday);
+      await step(c, active, 'Press', { on_day: yesterday });
+      expect(await one(c, `select public.carry_over() as n`)).toEqual({ n: 1 });
+      expect(await where(c, 'Delivery')).toMatchObject({ on_day: yesterday, moved_from: null });
+      expect(
+        await one(c, `select delivery_on::text as d from public.orders where id = $1`, [active]),
+      ).toEqual({
+        d: yesterday,
+      });
+      expect(await where(c, 'Press')).toMatchObject({ on_day: await inDays(c, 0), moved_from: yesterday });
     });
   });
 
