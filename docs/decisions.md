@@ -773,3 +773,16 @@ Nov" with nothing to tap, and the Delivery step is on its own day. Once an order
 "Delivered" button stands under "Next: Delivery" on Today and the calendar, and beside the order in the Orders list.
 It ticks the Delivery today, ahead of its day if so, the same tick as the step's own mark, so it finishes the order
 that day (decision 0089) and History says how early ("· 3 days early"). "Mark as finished" on the order's page stays.
+
+## 0098. On a day, an order is shown once, its steps inside it
+
+She saw an order twice on Today ("Beddiaf Zohra · Green complete") and thought it was entered twice. It was not (a
+read-only check of her data found no order twice: `.github/workflows/check-data.yml`, which says no names, the
+repository being public). Today and the calendar listed each step as its own card, named in large by its order, so an
+order with two steps that day, its Sewing and its Delivery, was two cards under the same name; and once Sewing was
+ticked its card said "Next: Delivery" with "Delivered", the Delivery being the card just above.
+
+Now a day's list is by order (`groupByWork`): one card per order, named once, its steps of that day inside it as rows,
+each with its own tick, part done and notes; a step of her own work is on its own, as before. "Next" (decision 0094)
+and "Delivered" (decision 0097) are said once, on the order's card, when its steps there are all done and what comes
+next is not one of them. The same on Today (and its "not done yet" and "no day yet" lists) and on the calendar's day.

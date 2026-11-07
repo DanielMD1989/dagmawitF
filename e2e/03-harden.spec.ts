@@ -2,10 +2,11 @@ import { execFileSync } from 'node:child_process';
 import { mkdtempSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { groupByKey } from '../src/domain/steps/agenda';
 import { expect, test, type BrowserContext, type Locator, type Page } from '@playwright/test';
 import { createClient } from '@supabase/supabase-js';
 import { strFromU8, unzipSync } from 'fflate';
-import { inspect, ready, signedInContext, text, texts, watchErrors } from './support/app';
+import { inspect, listedNames, ready, signedInContext, text, watchErrors } from './support/app';
 import { ownerId, orderId, sql, value } from './support/db';
 import { env, inDays, today } from './support/env';
 import { smallSwatch } from './support/pictures';
@@ -30,6 +31,10 @@ interface Kept {
 }
 /** What she reads first on an entry: the work, or her own step's title. */
 const headline = (e: Kept) => e.work ?? e.title;
+/** What a day's list shows by name, by order (decision 0098): an order once, her own steps each. */
+const shown = (es: Kept[]) => groupByKey(es, (e) => e.work).map((g) => headline(g[0]!));
+/** The names Today's list shows, in order. */
+const listed = () => listedNames(todayList());
 /** The name a tick button carries: the step, then its work. */
 const tickName = (e: Kept) => (e.work ? `${e.title}, ${e.work}` : e.title);
 /** Today's steps as kept on the phone, and the two not done yet that the offline steps tick. */
@@ -84,7 +89,7 @@ test('Today is kept on the phone as she sees it, and nothing else of hers is', a
     days: { heading: string; entries: Kept[] }[];
   };
   expect(snap.days[0]!.heading).toBe('Today');
-  expect(snap.days[0]!.entries.map(headline)).toEqual(await texts(todayList().locator('.item__title')));
+  expect(shown(snap.days[0]!.entries)).toEqual(await listed());
   expect(snap.ownerId).toBe(OWNER);
   expect(snap.firstName).toBe('Dagmawit');
   expect(
@@ -103,7 +108,8 @@ test('Today is kept on the phone as she sees it, and nothing else of hers is', a
     cached.filter((p) => p === '/' || p.startsWith('/orders') || p.startsWith('/api')),
     'pages or data cached',
   ).toEqual([]);
-  kept = snap.days[0]!.entries;
+  // In the order the steps are listed: by order (decision 0098).
+  kept = groupByKey(snap.days[0]!.entries, (e) => e.work).flat();
   A = kept.findIndex((e) => !e.done);
   B = kept.findIndex((e, i) => i > A && !e.done);
   expect(
@@ -120,7 +126,7 @@ test('with no signal, opening the app shows the day as of when it was kept', asy
   const t = await text(page);
   expect(t).toMatch(/no signal/i);
   expect(t).toContain('What you tick here waits on this phone');
-  expect(await texts(todayList().locator('.item__title'))).toEqual(kept.map(headline));
+  expect(await listed()).toEqual(shown(kept));
   await inspect(page, 'offline day');
 });
 

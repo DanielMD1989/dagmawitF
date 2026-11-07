@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { AddStepForm } from '@/components/steps/AddStepForm';
-import { StepEntry } from '@/components/steps/StepEntry';
+import { DayItems } from '@/components/steps/DayItems';
 import { formatDayLong, isIsoDate, WEEKDAY_NAMES } from '@/domain/dates';
 import { byDueDay, dueNotShown, dueWord, jobHeadline } from '@/domain/jobs/words';
 import { entriesOn, isOverdue } from '@/domain/steps/agenda';
@@ -187,17 +187,16 @@ export default async function CalendarPage({
         )}
         {entries.length > 0 ? (
           <ul className="items">
-            {entries.map((e) => (
-              <StepEntry
-                key={e.step.id}
-                step={e.step}
-                part={partLabel(e)}
-                clash={e.clash}
-                overdue={isOverdue(e.step, today)}
-                next={e.step.job ? nextOf.get(e.step.job.id) : undefined}
-                today={today}
-              />
-            ))}
+            <DayItems
+              items={entries.map((e) => ({
+                step: e.step,
+                part: partLabel(e),
+                clash: e.clash,
+                overdue: isOverdue(e.step, today),
+              }))}
+              nextOf={nextOf}
+              today={today}
+            />
           </ul>
         ) : (
           dueOnChosen.length === 0 && <p className="day-list__empty">Nothing on this day.</p>

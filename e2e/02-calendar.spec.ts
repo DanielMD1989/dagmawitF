@@ -1,6 +1,8 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import {
   addSteps,
+  listedNames,
+  work,
   fillNewJob,
   inspect,
   item,
@@ -9,7 +11,6 @@ import {
   settled,
   signedInContext,
   text,
-  texts,
   watchErrors,
 } from './support/app';
 import { orderId, value } from './support/db';
@@ -42,10 +43,10 @@ test.afterAll(async () => ctx.close());
 
 test('Today lists today’s steps with their orders, then the days ahead that have any', async () => {
   await page.goto('/');
-  // The work comes first, the step under it (her Task 7).
-  const fix = item(section('Today'), 'Fix', 'Yonas Alemu · Suit alteration');
-  await expect(fix.locator('.item__step')).toHaveText('Fix');
-  await expect(fix).toContainText('#3');
+  // The work comes first, its steps of the day under it (her Task 7; decision 0098).
+  const card = work(section('Today'), 'Yonas Alemu · Suit alteration');
+  await expect(card.locator('.item__title--step')).toHaveText(['Fix']);
+  await expect(card.locator('.work__head')).toContainText('#3');
   // The fix is delivered in two days: under that day, not today.
   await expect(item(page, 'Delivery').first()).toBeVisible();
   await expect(item(section('Today'), 'Delivery')).toHaveCount(0);
@@ -121,9 +122,9 @@ test('an appointment is a step at a time on its day; a time already taken is ref
   const appointment = item(section('Today'), 'Appointment', 'Selam Bekele · Wedding guest dress');
   await expect(appointment.locator('.item__time')).toHaveText('10:30 AM');
   await expect(page.getByText('Its time crosses another step’s.')).toHaveCount(0);
-  // Timed steps come first, in time order; each headed by its work.
-  const titles = await texts(section('Today').locator('.item__title'));
-  expect(titles.slice(0, 2)).toEqual(['Sharpen the shears', 'Selam Bekele · Wedding guest dress']);
+  // Timed steps come first, in time order; an order shown once, by its name (decision 0098).
+  const names = await listedNames(section('Today'));
+  expect(names.slice(0, 2)).toEqual(['Sharpen the shears', 'Selam Bekele · Wedding guest dress']);
   await inspect(page, 'today with timed steps');
 });
 
@@ -473,13 +474,40 @@ test('ticking an order’s Delivery finishes it: it leaves Active for History, a
 
 test('a step ticked on Today says what comes next for its order, its delivery when nothing else is planned', async () => {
   await page.goto('/');
-  const fix = item(section('Today'), 'Fix', 'Yonas Alemu · Suit alteration');
-  await expect(fix.locator('.item__note--next')).toHaveCount(0);
-  await fix.getByRole('button', { name: 'Mark Fix, Yonas Alemu · Suit alteration as done' }).click();
-  // Its only step left is its Delivery (decision 0094).
-  await expect(fix.locator('.item__note--next')).toHaveText(/^Next: Delivery, \w{3} \d{1,2} \w{3}/);
-  await fix.getByRole('button', { name: /Fix, Yonas Alemu · Suit alteration: done/ }).click();
-  await expect(fix.locator('.item__note--next')).toHaveCount(0);
+  const card = work(section('Today'), 'Yonas Alemu · Suit alteration');
+  await expect(card.locator('.item__note--next')).toHaveCount(0);
+  await card.getByRole('button', { name: 'Mark Fix, Yonas Alemu · Suit alteration as done' }).click();
+  // Its only step left is its Delivery (decision 0094), on another day.
+  await expect(card.locator('.item__note--next')).toHaveText(/^Next: Delivery, \w{3} \d{1,2} \w{3}/);
+  await card.getByRole('button', { name: /Fix, Yonas Alemu · Suit alteration: done/ }).click();
+  await expect(card.locator('.item__note--next')).toHaveCount(0);
+});
+
+test('an order with several steps on a day is shown once, its steps inside it', async () => {
+  const id = await value(
+    `select id::text from public.orders where title = 'Suit alteration' and status = 'active'`,
+  );
+  await page.goto(`/orders/${id}`);
+  await ready(page);
+  await addSteps(page, [{ title: 'Press', day: today() }]);
+  await page.goto('/');
+  const today_ = section('Today');
+  // Once, not once a step (decision 0098).
+  await expect(today_.locator('.work__title', { hasText: /^Yonas Alemu · Suit alteration$/ })).toHaveCount(1);
+  const card = work(today_, 'Yonas Alemu · Suit alteration');
+  await expect(card.locator('.item__title--step')).toHaveText(['Fix', 'Press']);
+  // One done, one not: no "Next" yet.
+  await card.getByRole('button', { name: 'Mark Fix, Yonas Alemu · Suit alteration as done' }).click();
+  await expect(card.getByRole('button', { name: /Fix, Yonas Alemu · Suit alteration: done/ })).toBeVisible();
+  await expect(card.locator('.item__note--next')).toHaveCount(0);
+  await inspect(page, 'today, an order with two steps');
+  // Back as it was for the tests after.
+  await card.getByRole('button', { name: /Fix, Yonas Alemu · Suit alteration: done/ }).click();
+  await page.goto(`/orders/${id}`);
+  const press = item(page, 'Press');
+  await (await open(press, 'Change')).getByRole('button', { name: 'Remove this step' }).click();
+  await page.getByRole('button', { name: 'Yes, remove' }).click();
+  await expect(item(page, 'Press')).toHaveCount(0);
 });
 
 test('events have their own list, and Numbers counts the orders taken and delivered', async () => {
@@ -526,15 +554,15 @@ test('an order finished ahead of its day is delivered from its last step, and go
   await expect(page.getByRole('button', { name: /^Buy fabric: done/ })).toBeVisible();
   // Its last step, on its day in the calendar, done today: its Delivery is all that is left (decision 0097).
   await page.goto(`/calendar?day=${inDays(5)}`);
-  const sewing = item(page, 'Sewing', 'Hanna Tesfaye · Party dress');
-  await sewing.getByRole('button', { name: /^Mark Sewing/ }).click();
-  await expect(sewing.locator('.item__note--next')).toHaveText(/^Next: Delivery, \w{3} \d{1,2} \w{3}$/);
+  const party_ = work(page, 'Hanna Tesfaye · Party dress');
+  await party_.getByRole('button', { name: /^Mark Sewing/ }).click();
+  await expect(party_.locator('.item__note--next')).toHaveText(/^Next: Delivery, \w{3} \d{1,2} \w{3}$/);
   // The Orders list offers it too.
   await page.goto('/orders');
   await expect(page.getByRole('button', { name: 'Delivered: Hanna Tesfaye · Party dress' })).toBeVisible();
   await inspect(page, 'orders, ready to deliver');
   await page.goto(`/calendar?day=${inDays(5)}`);
-  await item(page, 'Sewing', 'Hanna Tesfaye · Party dress')
+  await work(page, 'Hanna Tesfaye · Party dress')
     .getByRole('button', { name: 'Delivered: Hanna Tesfaye · Party dress' })
     .click();
   await expect

@@ -1151,6 +1151,56 @@ a.btn {
   background: var(--surface);
   box-shadow: var(--shadow);
 }
+/* An order on a day (decision 0098): one card, named once, its steps of the day inside it as rows. */
+.work {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 12px 14px 6px;
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+.work__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.work__title {
+  font-weight: 700;
+  font-size: 17px;
+  overflow-wrap: anywhere;
+}
+.work__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.work__steps > .item {
+  padding: 10px 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.work__steps > .item + .item {
+  border-top: 1px solid var(--line);
+}
+.work__steps > .item--late {
+  background: none;
+}
+.work__next {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 0 8px;
+  border-top: 1px solid var(--line);
+}
+.item__title--step {
+  font-weight: 600;
+}
 .item--late {
   background: var(--warn-bg);
 }

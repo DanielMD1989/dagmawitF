@@ -189,3 +189,37 @@ export function jobWarnings(steps: readonly Step[], dueOn: IsoDate, today: IsoDa
   }
   return out;
 }
+
+/** A day's steps of one order, or one step of her own work (decision 0098). */
+export interface WorkGroup<T> {
+  job: JobRef | null;
+  items: T[];
+}
+
+/**
+ * Items in groups by a key, in the order of the list (decision 0098): the items of one key together, where its first
+ * one is; an item with no key on its own.
+ */
+export function groupByKey<T>(items: readonly T[], key: (item: T) => string | null): T[][] {
+  const groups: T[][] = [];
+  const byKey = new Map<string, T[]>();
+  for (const item of items) {
+    const k = key(item);
+    const group = k === null ? undefined : byKey.get(k);
+    if (group) group.push(item);
+    else {
+      const created = [item];
+      if (k !== null) byKey.set(k, created);
+      groups.push(created);
+    }
+  }
+  return groups;
+}
+
+/**
+ * A day's list by order (decision 0098): the steps of one order together, so the order is shown once, where its first
+ * step of the day is; a step of her own work is on its own. The order of the list is kept.
+ */
+export function groupByWork<T extends { step: Pick<Step, 'job'> }>(items: readonly T[]): WorkGroup<T>[] {
+  return groupByKey(items, (i) => i.step.job?.id ?? null).map((g) => ({ job: g[0]!.step.job, items: g }));
+}

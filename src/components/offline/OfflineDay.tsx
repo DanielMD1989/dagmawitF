@@ -2,6 +2,7 @@
 
 import { useState, useSyncExternalStore } from 'react';
 import { formatDayLong, wallClockOf } from '@/domain/dates';
+import { groupByKey } from '@/domain/steps/agenda';
 import {
   addTap,
   isForToday,
@@ -103,9 +104,30 @@ export function OfflineDay() {
           </div>
           {d.entries.length > 0 ? (
             <ul className="items">
-              {d.entries.map((e) => (
-                <Entry key={e.id} entry={e} snapshot={snapshot} waiting={waiting} canTap={today} />
-              ))}
+              {/* By order, as on Today (decision 0098): an order once, its steps of the day inside it. */}
+              {groupByKey(d.entries, (e) => e.work).map((g) =>
+                g[0]!.work ? (
+                  <li key={g[0]!.id} className="work">
+                    <div className="work__head">
+                      <span className="work__title">{g[0]!.work}</span>
+                    </div>
+                    <ul className="work__steps">
+                      {g.map((e) => (
+                        <Entry
+                          key={e.id}
+                          entry={e}
+                          snapshot={snapshot}
+                          waiting={waiting}
+                          canTap={today}
+                          inWork
+                        />
+                      ))}
+                    </ul>
+                  </li>
+                ) : (
+                  <Entry key={g[0]!.id} entry={g[0]!} snapshot={snapshot} waiting={waiting} canTap={today} />
+                ),
+              )}
             </ul>
           ) : (
             <p className="day-list__empty">Nothing on that day.</p>
@@ -139,12 +161,15 @@ function Entry({
   waiting,
   canTap,
   late = false,
+  inWork = false,
 }: {
   entry: OfflineEntry;
   snapshot: DaySnapshot;
   waiting: WaitingTap[];
   canTap: boolean;
   late?: boolean;
+  /** In its order's card: the order is said above, the step is the title. */
+  inWork?: boolean;
 }) {
   const tap = () => saveWaiting(addTap(waiting, entry, snapshot.ownerId, crypto.randomUUID(), new Date()));
   return (
@@ -170,13 +195,28 @@ function Entry({
         )}
         <div className="item__main">
           {entry.time && <span className="item__time">{entry.time}</span>}
-          <span className={entry.done ? 'item__title today__done' : 'item__title'}>
-            {entry.work ?? entry.title}
-          </span>
-          <span className="hint">
-            {entry.work ? <span className="item__step">{entry.title}</span> : 'Your own'}
-            {entry.part && ` · ${entry.part}`}
-          </span>
+          {inWork ? (
+            <>
+              <span
+                className={
+                  entry.done ? 'item__title item__title--step today__done' : 'item__title item__title--step'
+                }
+              >
+                {entry.title}
+              </span>
+              {entry.part && <span className="hint">{entry.part}</span>}
+            </>
+          ) : (
+            <>
+              <span className={entry.done ? 'item__title today__done' : 'item__title'}>
+                {entry.work ?? entry.title}
+              </span>
+              <span className="hint">
+                {entry.work ? <span className="item__step">{entry.title}</span> : 'Your own'}
+                {entry.part && ` · ${entry.part}`}
+              </span>
+            </>
+          )}
           {entry.clash && (
             <span className="item__note item__note--warn">
               Its time crosses another step’s. Move one of them.

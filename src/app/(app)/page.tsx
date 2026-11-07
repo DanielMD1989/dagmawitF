@@ -4,7 +4,7 @@ import { JobDueRow } from '@/components/JobDueRow';
 import { QuickActions } from '@/components/QuickActions';
 import { SaveForOffline } from '@/components/offline/SaveForOffline';
 import { AddStepForm } from '@/components/steps/AddStepForm';
-import { StepEntry } from '@/components/steps/StepEntry';
+import { DayItems } from '@/components/steps/DayItems';
 import { formatDay, formatDayLong, hourIn } from '@/domain/dates';
 import { greetingFor } from '@/domain/greeting';
 import { dueNotShown } from '@/domain/jobs/words';
@@ -79,9 +79,7 @@ export default async function TodayPage() {
             <h2 id="overdue-heading">Not done yet</h2>
           </div>
           <ul className="items">
-            {agenda.overdue.map((s) => (
-              <StepEntry key={s.id} step={s} overdue />
-            ))}
+            <DayItems items={agenda.overdue.map((s) => ({ step: s, overdue: true }))} />
           </ul>
         </section>
       )}
@@ -102,16 +100,11 @@ export default async function TodayPage() {
           )}
           {first.entries.length > 0 ? (
             <ul className="items">
-              {first.entries.map((e) => (
-                <StepEntry
-                  key={e.step.id}
-                  step={e.step}
-                  part={partLabel(e)}
-                  clash={e.clash}
-                  next={e.step.job ? nextOf.get(e.step.job.id) : undefined}
-                  today={today}
-                />
-              ))}
+              <DayItems
+                items={first.entries.map((e) => ({ step: e.step, part: partLabel(e), clash: e.clash }))}
+                nextOf={nextOf}
+                today={today}
+              />
             </ul>
           ) : (
             dueToday.length === 0 && <p className="day-list__empty">Nothing on today.</p>
@@ -129,16 +122,11 @@ export default async function TodayPage() {
             </h2>
           </div>
           <ul className="items">
-            {d.entries.map((e) => (
-              <StepEntry
-                key={e.step.id}
-                step={e.step}
-                part={partLabel(e)}
-                clash={e.clash}
-                next={e.step.job ? nextOf.get(e.step.job.id) : undefined}
-                today={today}
-              />
-            ))}
+            <DayItems
+              items={d.entries.map((e) => ({ step: e.step, part: partLabel(e), clash: e.clash }))}
+              nextOf={nextOf}
+              today={today}
+            />
           </ul>
         </section>
       ))}
@@ -158,9 +146,7 @@ export default async function TodayPage() {
             <h2 id="undated-heading">Steps with no day yet</h2>
           </div>
           <ul className="items">
-            {agenda.undated.map((s) => (
-              <StepEntry key={s.id} step={s} />
-            ))}
+            <DayItems items={agenda.undated.map((s) => ({ step: s }))} />
           </ul>
         </section>
       )}

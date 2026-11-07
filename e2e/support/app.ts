@@ -78,12 +78,29 @@ const esc = (t: string) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
  */
 export function item(scope: Page | Locator, title: string, work?: string): Locator {
   const page = 'goto' in scope ? scope : scope.page();
-  let found = scope
+  const step = page.locator('.item__title, .item__step', { hasText: new RegExp(`^${esc(title)}$`) });
+  if (!work) return scope.locator('li.item').filter({ has: step }).first();
+  // On Today and the calendar, an order's steps of the day are in its card, the order named once (decision 0098).
+  const named = new RegExp(`^${esc(work)}$`);
+  const inCard = scope
+    .locator('li.work')
+    .filter({ has: page.locator('.work__title', { hasText: named }) })
     .locator('li.item')
-    .filter({ has: page.locator('.item__title, .item__step', { hasText: new RegExp(`^${esc(title)}$`) }) });
-  if (work)
-    found = found.filter({ has: page.locator('.item__title', { hasText: new RegExp(`^${esc(work)}$`) }) });
-  return found.first();
+    .filter({ has: step });
+  const alone = scope
+    .locator('li.item')
+    .filter({ has: step })
+    .filter({ has: page.locator('.item__title', { hasText: named }) });
+  return inCard.or(alone).first();
+}
+
+/** An order's card on Today or the calendar (decision 0098), by its name. */
+export function work(scope: Page | Locator, name: string): Locator {
+  const page = 'goto' in scope ? scope : scope.page();
+  return scope
+    .locator('li.work')
+    .filter({ has: page.locator('.work__title', { hasText: new RegExp(`^${esc(name)}$`) }) })
+    .first();
 }
 
 /** A step as the new-job form takes it: what, its day, and a time if it has one (decision 0079). */
@@ -218,4 +235,18 @@ export async function inspect(page: Page, label: string, bestPractice = false): 
 /** Waits until the list item titled `title` shows `words`. */
 export async function until(page: Page, title: string, words: string): Promise<void> {
   await expect(item(page, title)).toContainText(words);
+}
+
+/**
+ * The names a day's list shows, in order (decision 0098): an order's card by its name, a step of her own by its own.
+ */
+export async function listedNames(list: Locator): Promise<string[]> {
+  await list.locator('ul.items > li').first().waitFor();
+  return list
+    .locator('ul.items > li')
+    .evaluateAll((lis) =>
+      lis.map((li) =>
+        (li.querySelector('.work__title') ?? li.querySelector('.item__title'))!.textContent!.trim(),
+      ),
+    );
 }

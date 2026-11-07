@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  groupByWork,
   isRecord,
   isOnCalendar,
   buildAgenda,
@@ -216,5 +217,22 @@ describe('the steps of a finished order (decision 0089)', () => {
     expect(isOnCalendar(step({ onDay: TODAY, doneOn: TODAY, job: { ...JOB, status: 'cancelled' } }))).toBe(
       false,
     );
+  });
+});
+
+describe('a day by order (decision 0098)', () => {
+  it('puts the steps of one order together, where its first one is; her own steps each on their own', () => {
+    const other: JobRef = { ...JOB, id: 'j2', clientName: 'Hanna' };
+    const sewing = { step: step({ title: 'Sewing', job: JOB }) };
+    const lace = { step: step({ title: 'Call the lace supplier', job: null }) };
+    const fitting = { step: step({ title: 'Fitting', job: other }) };
+    const delivery = { step: step({ title: 'Delivery', job: JOB }) };
+    const shears = { step: step({ title: 'Sharpen the shears', job: null }) };
+    expect(groupByWork([sewing, lace, fitting, delivery, shears])).toEqual([
+      { job: JOB, items: [sewing, delivery] },
+      { job: null, items: [lace] },
+      { job: other, items: [fitting] },
+      { job: null, items: [shears] },
+    ]);
   });
 });
