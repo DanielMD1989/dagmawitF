@@ -73,11 +73,10 @@ export function StatusActions({
                       <TextField
                         name="reason"
                         id="hold-reason"
-                        label="Why is it on hold?"
+                        label="Why is it on hold? (optional)"
                         state={state}
                         maxLength={300}
                         hint="For example: client is abroad until December, fabric is not coming."
-                        required
                       />
                       <div className="btn-row">
                         <SubmitButton className={className}>{label}</SubmitButton>

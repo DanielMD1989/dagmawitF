@@ -74,7 +74,12 @@ export default async function OrderLayout({
         {order.status === 'draft' && (
           <p className="hint">A draft is not on your calendar until it is confirmed.</p>
         )}
-        {order.status === 'on_hold' && <p className="hint">On hold: {order.holdReason}</p>}
+        {order.status === 'on_hold' && (
+          <p className="hint">
+            On hold{order.holdReason ? `: ${order.holdReason}` : ''}. Its steps are off your calendar until
+            you resume it.
+          </p>
+        )}
         {order.status === 'delivered' && order.deliveredOn && (
           <p className="hint">Finished on {formatDay(order.deliveredOn)}.</p>
         )}

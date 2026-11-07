@@ -219,8 +219,8 @@ export function parseTransition(
 
   if (to === 'on_hold') {
     const reason = text(data, 'reason');
-    if (chars(reason) === 0) errors.reason = 'Say why, for example "Client is abroad until December".';
-    else if (chars(reason) > 300) errors.reason = 'Keep the reason under 300 characters.';
+    // Why is hers to say, or not (decision 0099): a pause is never refused for want of a reason.
+    if (chars(reason) > 300) errors.reason = 'Keep the reason under 300 characters.';
     change.holdReason = reason;
   }
 

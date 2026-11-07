@@ -786,3 +786,11 @@ Now a day's list is by order (`groupByWork`): one card per order, named once, it
 each with its own tick, part done and notes; a step of her own work is on its own, as before. "Next" (decision 0094)
 and "Delivered" (decision 0097) are said once, on the order's card, when its steps there are all done and what comes
 next is not one of them. The same on Today (and its "not done yet" and "no day yet" lists) and on the calendar's day.
+
+## 0099. Putting an order on hold needs no reason
+
+She put an order on hold and it stayed active: "Why is it on hold?" was required, she left it empty, and the pause was
+refused with a message she did not see (her data showed no pause ever saved). A pause is now never refused for want of
+a reason: "Why is it on hold? (optional)". The order's page says "On hold" and that its steps are off her calendar
+until she resumes it, with her reason when she gave one. The database keeps a reason only while the order is on hold
+(20261111090000_hold_reason_optional.sql).

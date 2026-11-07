@@ -278,10 +278,10 @@ describe('moving an order between statuses', () => {
     );
   });
 
-  it('needs a reason to put an order on hold', () => {
-    expect(parseTransition(move('on_hold'), 'active', at)).toMatchObject({
-      ok: false,
-      errors: { reason: expect.any(String) },
+  it('puts an order on hold with or without a reason (decision 0099)', () => {
+    expect(parseTransition(move('on_hold'), 'active', at)).toEqual({
+      ok: true,
+      value: { to: 'on_hold', holdReason: '' },
     });
     expect(parseTransition(move('on_hold', { reason: ' Client is abroad ' }), 'active', at)).toEqual({
       ok: true,

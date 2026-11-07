@@ -561,15 +561,21 @@ test('order 3: a taken order number is refused at its field', async () => {
   await expect(page.getByLabel('What it is (optional)')).toHaveValue('Trousers hem');
 });
 
-test('order 3: a hold needs a reason, and the reason is shown', async () => {
+test('order 3: put on hold with no reason, it is on hold; with one, the reason is shown', async () => {
   await page.goto(`/orders/${ids.o3}`);
+  // No reason: it is paused all the same (decision 0099).
   await page.locator('summary', { hasText: 'Put on hold' }).click();
   await page.getByRole('button', { name: 'Put on hold' }).click();
-  await page.locator('#hold-reason-error').waitFor();
-  await page.getByLabel('Why is it on hold?').fill('Client abroad until December');
+  await page.locator('.chip', { hasText: 'On hold' }).first().waitFor();
+  expect(await has('On hold. Its steps are off your calendar until you resume it.')).toBe(true);
+  await page.getByRole('button', { name: 'Resume the order' }).click();
+  await page.locator('.chip', { hasText: 'Active' }).first().waitFor();
+  // With a reason, it is said.
+  await page.locator('summary', { hasText: 'Put on hold' }).click();
+  await page.getByLabel('Why is it on hold? (optional)').fill('Client abroad until December');
   await page.getByRole('button', { name: 'Put on hold' }).click();
   await page.locator('.chip', { hasText: 'On hold' }).first().waitFor();
-  expect(await has('On hold: Client abroad until December')).toBe(true);
+  expect(await has('On hold: Client abroad until December.')).toBe(true);
 });
 
 test('order 3: resumed, then finished on a day she chooses', async () => {
