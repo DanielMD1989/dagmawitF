@@ -57,6 +57,12 @@ select concat_ws(E'\n',
                     where l.order_id = o.id and l.action = 'status_changed' and l.details->>'to' = 'delivered'), '?'),
        ' |' order by o.number)
    from public.orders o where o.status = 'delivered'),
+  'Delivery day moves on finished orders:' ||
+  coalesce((select string_agg(' #' || o.number || ' ' || coalesce(l.details->>'from', '?') || '>'
+       || coalesce(l.details->>'to', '?') || ' at ' || to_char(l.at at time zone 'Africa/Addis_Ababa', 'MM-DD HH24:MI'),
+       ' |' order by o.number, l.seq)
+   from public.activity_log l join public.orders o on o.id = l.order_id
+   where o.status = 'delivered' and l.action = 'delivery_changed'), ' none'),
   'Status changes in the last 3 days, newest first:',
   (select string_agg('  ' || to_char(l.at at time zone 'Africa/Addis_Ababa', 'MM-DD HH24:MI') || ' '
        || case when o.client_id is null then 'event' else 'order' end || ' #' || o.number || ': '
