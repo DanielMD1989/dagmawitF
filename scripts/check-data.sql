@@ -51,6 +51,12 @@ select concat_ws(E'\n',
   'Client names used more than once: ' || (select n from clients) || '.',
   'Events by status: ' || coalesce((select string_agg(status || ' ' || n, ', ' order by status) from
        (select status, count(*) as n from o where client_id is null group by status) s), 'none') || '.',
+  'Finished orders: number, day due, day recorded as delivered, when it was marked:',
+  (select string_agg('  #' || o.number || ': due ' || o.delivery_on || ', delivered ' || o.delivered_on || ', marked '
+       || coalesce((select to_char(max(l.at) at time zone 'Africa/Addis_Ababa', 'MM-DD HH24:MI') from public.activity_log l
+                    where l.order_id = o.id and l.action = 'status_changed' and l.details->>'to' = 'delivered'), '?'),
+       E'\n' order by o.number)
+   from public.orders o where o.status = 'delivered'),
   'Status changes in the last 3 days, newest first:',
   (select string_agg('  ' || to_char(l.at at time zone 'Africa/Addis_Ababa', 'MM-DD HH24:MI') || ' '
        || case when o.client_id is null then 'event' else 'order' end || ' #' || o.number || ': '
