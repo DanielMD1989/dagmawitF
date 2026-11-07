@@ -48,6 +48,7 @@ const listRow = z.object({
   order_item: z.array(z.object({ garment_type: z.string() })),
   task: z.array(
     z.object({
+      id: z.string(),
       title: z.string(),
       on_day: isoDay.nullable(),
       starts_at: z.string().nullable(),
@@ -63,7 +64,7 @@ export async function loadOrders(supabase: SupabaseClient): Promise<OrderListIte
     .from('orders')
     .select(
       `id, number, title, status, delivery_on, delivered_on, created_at, client:client(id, name), order_item(garment_type),
-       task(title, on_day, starts_at, done_on, sort)`,
+       task(id, title, on_day, starts_at, done_on, sort)`,
     )
     .order('delivery_on')
     .order('number')
@@ -87,6 +88,7 @@ export async function loadOrders(supabase: SupabaseClient): Promise<OrderListIte
         steps: o.task.length,
         next: nextUp(
           o.task.map((t) => ({
+            id: t.id,
             title: t.title,
             onDay: t.on_day,
             startsAt: t.starts_at?.slice(0, 5) ?? null,

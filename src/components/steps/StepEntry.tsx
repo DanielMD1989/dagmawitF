@@ -4,6 +4,7 @@ import { jobHeadline } from '@/domain/jobs/words';
 import { nextIsLate, nextWords, type NextUp } from '@/domain/orders/lists';
 import { canBePartDone, isRecord, lastDayOf, type Step } from '@/domain/steps/agenda';
 import { partDoneLabel, timeLabel } from '@/domain/steps/words';
+import { DeliverNowButton } from './DeliverNowButton';
 import { PartDoneForm } from './PartDoneForm';
 import { TickButton } from './TickButton';
 
@@ -76,6 +77,10 @@ export function StepEntry({
             <span className={`item__note item__note--next${today && nextIsLate(next, today) ? ' late' : ''}`}>
               {nextWords(next)}
             </span>
+          )}
+          {/* Only its Delivery left: delivered now, even ahead of its day (decision 0097). */}
+          {done && next?.kind === 'step' && next.deliverNow && step.job && !isRecord(step) && (
+            <DeliverNowButton stepId={next.stepId} orderId={step.job.id} whose={work ?? step.title} />
           )}
           {clash && (
             <span className="item__note item__note--warn">
