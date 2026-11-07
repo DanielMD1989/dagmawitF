@@ -48,5 +48,13 @@ select concat_ws(E'\n',
    from twice),
   'Open steps doubled within an order (same name, same day): ' || (select n from doubled_steps) || '.',
   'Orders with more than one Delivery step: ' || (select n from deliveries) || '.',
-  'Client names used more than once: ' || (select n from clients) || '.'
+  'Client names used more than once: ' || (select n from clients) || '.',
+  'Events by status: ' || coalesce((select string_agg(status || ' ' || n, ', ' order by status) from
+       (select status, count(*) as n from o where client_id is null group by status) s), 'none') || '.',
+  'Status changes in the last 3 days, newest first:',
+  (select string_agg('  ' || to_char(l.at at time zone 'Africa/Addis_Ababa', 'MM-DD HH24:MI') || ' '
+       || case when o.client_id is null then 'event' else 'order' end || ' #' || o.number || ': '
+       || coalesce(l.details->>'from', '?') || ' -> ' || coalesce(l.details->>'to', '?'), E'\n' order by l.seq desc)
+   from public.activity_log l join public.orders o on o.id = l.order_id
+   where l.action = 'status_changed' and l.at > now() - interval '3 days')
 ) as report;
