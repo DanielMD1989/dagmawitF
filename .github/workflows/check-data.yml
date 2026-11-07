@@ -1,0 +1,33 @@
+# Looks for orders entered twice, and steps doubled, in her data; read-only, run by hand from the Actions tab.
+#
+# The repository is public, so this says no names: order numbers, days, statuses and counts only.
+name: Check her data
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN1 }}
+      PROJECT: iowwrmnfeaogocnspgvf
+    steps:
+      - uses: actions/checkout@v5
+      - name: Orders entered twice, and doubled steps
+        run: |
+          set -euo pipefail
+          query=$(cat scripts/check-data.sql)
+          body=$(jq -n --arg q "$query" '{query: $q}')
+          status=$(curl -sS -o result.json -w '%{http_code}' -X POST \
+            "https://api.supabase.com/v1/projects/$PROJECT/database/query" \
+            -H "Authorization: Bearer $SUPABASE_ACCESS_TOKEN" -H "Content-Type: application/json" -d "$body")
+          if [ "$status" != "200" ] && [ "$status" != "201" ]; then
+            echo "::error title=Query::Supabase answered $status: $(head -c 300 result.json)"
+            exit 1
+          fi
+          jq -r '.[0].report // "nothing" | split("\n")[] | "::notice title=Her data::" + .' result.json
