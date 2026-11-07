@@ -107,21 +107,21 @@ export async function tidyPictures(): Promise<ActionState> {
 export async function changePassword(_previous: ActionState, formData: FormData): Promise<ActionState> {
   const user = await requireUser();
   const parsed = parsePasswordChange(formData);
-  if (!parsed.ok) return failure('Check the fields marked below.', parsed.errors);
+  if (!parsed.ok) return failure('Check the fields marked in red.', parsed.errors);
   if (!user.email) return failure('This account has no email address, so its password cannot be checked.');
 
   const supabase = await createSupabase();
   const check = await supabase.auth.signInWithPassword({ email: user.email, password: parsed.value.current });
   if (check.error) {
     if (check.error.status === 429) return failure('Too many tries. Wait a few minutes, then try again.');
-    return failure('Check the fields marked below.', {
+    return failure('Check the fields marked in red.', {
       'current-password': 'That is not the password you use now.',
     });
   }
   const { error } = await supabase.auth.updateUser({ password: parsed.value.next });
   if (error) {
     if (error.code === 'weak_password') {
-      return failure('Check the fields marked below.', { 'new-password': 'Choose a stronger password.' });
+      return failure('Check the fields marked in red.', { 'new-password': 'Choose a stronger password.' });
     }
     return unexpected('the new password', error, {});
   }

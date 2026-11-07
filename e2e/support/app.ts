@@ -147,7 +147,10 @@ export async function fillNewJob(
     await page
       .getByLabel(job.client === 'event' ? 'Name of the event' : 'What it is (optional)')
       .fill(job.title);
-  if (job.brief) await page.getByLabel('Design brief (optional)').fill(job.brief);
+  if (job.brief) {
+    await open(page.locator('main'), 'Design brief, notes and order number');
+    await page.getByLabel('Design brief (optional)').fill(job.brief);
+  }
   await page.getByLabel(job.client === 'event' ? 'Event day' : 'Delivery day').fill(job.due);
   if (job.dueAt) await page.locator('#due-at').fill(job.dueAt);
   await buildSteps(page.locator('main'), job.steps ?? []);

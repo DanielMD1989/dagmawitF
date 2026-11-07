@@ -18,7 +18,7 @@ import { createSupabase } from '@/server/supabase';
 //   1. check who is asking  2. validate the input  3. write as her (row-level security applies)
 //   4. refresh what the screens show
 
-const CHECK_FIELDS = 'Check the fields marked below.';
+const CHECK_FIELDS = 'Check the fields marked in red.';
 const BUCKET = 'order-files';
 
 // ---------------------------------------------------------------------------------------------

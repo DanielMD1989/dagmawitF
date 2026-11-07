@@ -30,7 +30,7 @@ export async function createJob(_previous: ActionState, formData: FormData): Pro
   const supabase = await createSupabase();
   const prefs = await loadPreferences(supabase);
   const parsed = parseNewJob(formData, { today: prefs.today });
-  if (!parsed.ok) return failure('Check the fields marked below.', parsed.errors, typed);
+  if (!parsed.ok) return failure('Check the fields marked in red.', parsed.errors, typed);
   const job = parsed.value;
 
   // Her steps, then the delivery's time when she gave one (decision 0079): the database gives it to the order's own
@@ -82,13 +82,13 @@ export async function createJob(_previous: ActionState, formData: FormData): Pro
   if (result.error) {
     if (violates(result.error, 'orders_number_key'))
       return failure(
-        'Check the fields marked below.',
+        'Check the fields marked in red.',
         { number: 'Another order already has this number.' },
         typed,
       );
     if (violates(result.error, 'orders_client_fk'))
       return failure(
-        'Check the fields marked below.',
+        'Check the fields marked in red.',
         { client: 'That client could not be found. Choose another.' },
         typed,
       );

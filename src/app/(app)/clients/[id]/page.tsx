@@ -98,7 +98,19 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
         <div className="section__head">
           <h2 id="details-heading">Details</h2>
         </div>
-        <ClientForm client={client} />
+        {client.notes && (
+          <dl className="facts card">
+            <dt>Notes</dt>
+            <dd className="brief">{client.notes}</dd>
+          </dl>
+        )}
+        {/* Changing them is folded away until she wants to (decision 0100). */}
+        <details className="disclosure">
+          <summary>Change her details</summary>
+          <div className="disclosure__panel">
+            <ClientForm client={client} />
+          </div>
+        </details>
       </section>
 
       <section className="section" aria-labelledby="delete-heading">

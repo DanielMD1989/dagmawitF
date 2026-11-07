@@ -17,8 +17,8 @@ const ICONS = {
 export type QuickAction = { href: string; label: string; icon: keyof typeof ICONS };
 
 /**
- * The page's main actions as green pill buttons with an icon, in a row that scrolls sideways on a narrow phone
- * (decision 0071: her FinTrack design's quick actions).
+ * The page's main actions as green buttons with an icon (decision 0071: her FinTrack design's quick actions); on a
+ * phone, equal tiles that always fit (decision 0100). Not what the bottom bar already holds.
  */
 export function QuickActions({ actions }: { actions: readonly QuickAction[] }) {
   return (

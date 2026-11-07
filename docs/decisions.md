@@ -794,3 +794,21 @@ refused with a message she did not see (her data showed no pause ever saved). A 
 a reason: "Why is it on hold? (optional)". The order's page says "On hold" and that its steps are off her calendar
 until she resumes it, with her reason when she gave one. The database keeps a reason only while the order is on hold
 (20261111090000_hold_reason_optional.sql).
+
+## 0100. The smoothness pass: ask only what is needed, one big button, refusals where she looks
+
+Every screen and form was checked against three rules, after a pause was refused where she could not see it (0099).
+
+Ask only what is needed. A new order asks for whom, what it is, its day and its steps; the design brief joins the notes
+and the order number under "Design brief, notes and order number", opened by itself when one of them is refused. On an
+order and a client, what is saved is shown to read (her notes included) and the form to change it is folded under
+"Change the order details" and "Change her details". "Part done…" is offered on a step only once its day has come,
+it has no day, or it is already started. Today's quick actions are New order, New event and Coming up; the Orders
+page's are New order, Numbers and Events. An order's page lists its steps in day order, its Delivery last.
+
+The main action is a big button. The move that takes an order forward ("Mark as finished", "Start", "Resume") is the
+solid button, first, on a phone on a row of its own; "Put on hold" is plain and "Cancel the order" is in the warning
+colour. Save buttons span the width on a phone.
+
+A refusal shows where she sees it. When a save is refused, the first field marked wrong is opened out of any fold,
+brought into view and focused; with no field to point at, the message is brought into view (`FormNotice`).

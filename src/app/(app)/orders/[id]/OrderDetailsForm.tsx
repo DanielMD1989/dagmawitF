@@ -92,7 +92,7 @@ export function OrderDetailsForm({
       />
       <FormNotice state={state} />
       <div className="btn-row">
-        <SubmitButton>{closed ? 'Save notes' : 'Save'}</SubmitButton>
+        <SubmitButton className="btn btn--main">{closed ? 'Save notes' : 'Save'}</SubmitButton>
       </div>
     </form>
   );

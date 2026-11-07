@@ -8,7 +8,14 @@ import { TickButton } from '@/components/steps/TickButton';
 import { formatDay } from '@/domain/dates';
 import { isUuid } from '@/domain/form-input';
 import { isClosed } from '@/domain/orders/status';
-import { canBePartDone, isDeliveryStep, isOverdue, jobWarnings, lastDayOf } from '@/domain/steps/agenda';
+import {
+  inDayOrder,
+  isDeliveryStep,
+  isOverdue,
+  jobWarnings,
+  lastDayOf,
+  offersPartDone,
+} from '@/domain/steps/agenda';
 import { daysLabel, partDoneLabel, timeLabel } from '@/domain/steps/words';
 import { loadClients } from '@/server/clients';
 import { getOrder } from '@/server/orders';
@@ -33,12 +40,14 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
 
   const supabase = await createSupabase();
   await carryOver(supabase);
-  const [steps, clients, prefs, used] = await Promise.all([
+  const [loaded, clients, prefs, used] = await Promise.all([
     loadJobSteps(supabase, order.id),
     loadClients(supabase),
     loadPreferences(supabase),
     loadUsedStepTitles(supabase),
   ]);
+  // In the order they happen (decision 0100), not the order they were added.
+  const steps = inDayOrder(loaded);
   const closed = isClosed(order.status);
   const warnings = closed ? [] : jobWarnings(steps, order.deliveryOn, prefs.today);
   const done = steps.filter((s) => s.doneOn !== null).length;
@@ -125,7 +134,7 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
                       {after && <span className="item__note">After the order’s day.</span>}
                     </div>
                   </div>
-                  {!closed && canBePartDone(s) && (
+                  {!closed && offersPartDone(s, prefs.today) && (
                     <PartDoneForm
                       stepId={s.id}
                       orderId={order.id}
@@ -161,27 +170,43 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
         <div className="section__head">
           <h2 id="details-heading">About this {noun}</h2>
         </div>
-        {closed && (
+        {/* What is saved, to read; changing it is folded away until she wants to (decision 0100). */}
+        {(closed || order.notes) && (
           <dl className="facts card">
-            <dt>For</dt>
-            <dd>{order.client?.name ?? 'An event'}</dd>
-            <dt>What it is</dt>
-            <dd>{order.title || '—'}</dd>
-            <dt>{order.client ? 'Delivery day' : 'Event day'}</dt>
-            <dd>{formatDay(order.deliveryOn)}</dd>
+            {closed && (
+              <>
+                <dt>For</dt>
+                <dd>{order.client?.name ?? 'An event'}</dd>
+                <dt>What it is</dt>
+                <dd>{order.title || '—'}</dd>
+                <dt>{order.client ? 'Delivery day' : 'Event day'}</dt>
+                <dd>{formatDay(order.deliveryOn)}</dd>
+              </>
+            )}
+            {order.notes && (
+              <>
+                <dt>Notes</dt>
+                <dd className="brief">{order.notes}</dd>
+              </>
+            )}
           </dl>
         )}
-        <OrderDetailsForm
-          order={{
-            id: order.id,
-            status: order.status,
-            clientId: order.client?.id ?? null,
-            title: order.title,
-            dueOn: order.deliveryOn,
-            notes: order.notes,
-          }}
-          clients={clients.map((c) => ({ id: c.id, name: c.name }))}
-        />
+        <details className="disclosure">
+          <summary>{closed ? 'Change the notes' : `Change the ${noun} details`}</summary>
+          <div className="disclosure__panel">
+            <OrderDetailsForm
+              order={{
+                id: order.id,
+                status: order.status,
+                clientId: order.client?.id ?? null,
+                title: order.title,
+                dueOn: order.deliveryOn,
+                notes: order.notes,
+              }}
+              clients={clients.map((c) => ({ id: c.id, name: c.name }))}
+            />
+          </div>
+        </details>
       </section>
 
       <section className="section" aria-labelledby="delete-heading">

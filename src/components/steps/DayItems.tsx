@@ -25,13 +25,13 @@ export function DayItems({
   items: readonly DayItem[];
   /** What comes next for each order, said once its steps here are done (decisions 0094, 0097). */
   nextOf?: ReadonlyMap<string, NextUp>;
-  today?: IsoDate;
+  today: IsoDate;
 }) {
   return groupByWork(items).map((g) =>
     g.job ? (
       <WorkCard key={g.job.id} job={g.job} items={g.items} next={nextOf?.get(g.job.id)} today={today} />
     ) : (
-      <StepEntry key={g.items[0]!.step.id} {...g.items[0]!} />
+      <StepEntry key={g.items[0]!.step.id} {...g.items[0]!} today={today} />
     ),
   );
 }
@@ -45,7 +45,7 @@ function WorkCard({
   job: JobRef;
   items: readonly DayItem[];
   next?: NextUp;
-  today?: IsoDate;
+  today: IsoDate;
 }) {
   const work = jobHeadline(job);
   const allDone = items.every((i) => i.step.doneOn !== null);
@@ -62,12 +62,12 @@ function WorkCard({
       </div>
       <ul className="work__steps">
         {items.map((i) => (
-          <StepEntry key={i.step.id} {...i} inWork />
+          <StepEntry key={i.step.id} {...i} inWork today={today} />
         ))}
       </ul>
       {showNext && (
         <div className="work__next">
-          <span className={`item__note item__note--next${today && nextIsLate(next, today) ? ' late' : ''}`}>
+          <span className={`item__note item__note--next${nextIsLate(next, today) ? ' late' : ''}`}>
             {nextWords(next)}
           </span>
           {next.kind === 'step' && next.deliverNow && (

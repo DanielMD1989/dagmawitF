@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { formatDay, type IsoDate } from '@/domain/dates';
 import { jobHeadline } from '@/domain/jobs/words';
-import { canBePartDone, isRecord, lastDayOf, type Step } from '@/domain/steps/agenda';
+import { isRecord, lastDayOf, offersPartDone, type Step } from '@/domain/steps/agenda';
 import { partDoneLabel, timeLabel } from '@/domain/steps/words';
 import { PartDoneForm } from './PartDoneForm';
 import { TickButton } from './TickButton';
@@ -17,12 +17,15 @@ export function StepEntry({
   clash = false,
   overdue = false,
   inWork = false,
+  today,
 }: {
   step: Step;
   part?: string | null;
   clash?: boolean;
   overdue?: boolean;
   inWork?: boolean;
+  /** Her today: "Part done…" is offered for today's work and late work, not days to come (decision 0100). */
+  today: IsoDate;
 }) {
   const done = step.doneOn !== null;
   const time = timeLabel(step);
@@ -84,7 +87,7 @@ export function StepEntry({
           )}
         </div>
       </div>
-      {canBePartDone(step) && !isRecord(step) && (
+      {offersPartDone(step, today) && !isRecord(step) && (
         <PartDoneForm
           stepId={step.id}
           orderId={step.job?.id ?? null}

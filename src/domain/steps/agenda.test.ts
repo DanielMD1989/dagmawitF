@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  inDayOrder,
   groupByWork,
   isRecord,
   isOnCalendar,
@@ -233,6 +234,27 @@ describe('a day by order (decision 0098)', () => {
       { job: null, items: [lace] },
       { job: other, items: [fitting] },
       { job: null, items: [shears] },
+    ]);
+  });
+});
+
+describe('an order’s steps in the order they happen (decision 0100)', () => {
+  it('by day and time, then the steps with no day, its Delivery last', () => {
+    const steps = [
+      step({ title: 'Appointment', onDay: '2026-11-18', startsAt: '14:00' }),
+      step({ title: 'Sketch', onDay: '2026-11-14' }),
+      step({ title: 'Lace work', onDay: null }),
+      step({ title: 'Delivery', onDay: '2026-11-10' }),
+      step({ title: 'Fitting', onDay: '2026-11-18', startsAt: '10:30' }),
+      step({ title: 'Press', onDay: '2026-11-18' }),
+    ];
+    expect(inDayOrder(steps).map((s) => s.title)).toEqual([
+      'Sketch',
+      'Fitting',
+      'Appointment',
+      'Press',
+      'Lace work',
+      'Delivery',
     ]);
   });
 });

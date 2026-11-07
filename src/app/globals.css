@@ -280,6 +280,27 @@ textarea {
   width: 18px;
   height: 18px;
 }
+/* On a phone, the actions are equal tiles that always fit, icon above label: none hidden off the edge (decision 0100). */
+@media (max-width: 719px) {
+  .actions {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+    overflow-x: visible;
+    margin: 0;
+    padding: 0;
+    gap: 8px;
+  }
+  .action {
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-height: 64px;
+    padding: 8px 6px;
+    font-size: 11px;
+    letter-spacing: 0.03em;
+    text-align: center;
+  }
+}
 /* A section title with its link on the right ("See all"). */
 .section__head.section__head--row {
   flex-direction: row;
@@ -541,6 +562,12 @@ a.btn {
 }
 .btn--warn:hover {
   background: var(--warn-bg);
+}
+/* The one thing a form is for ("Save the order"): on a phone it spans the width, easy to reach with a thumb (0100). */
+@media (max-width: 719px) {
+  .btn--main {
+    width: 100%;
+  }
 }
 .btn-row {
   display: flex;
@@ -970,6 +997,27 @@ a.btn {
 .disclosure--link[open] > summary {
   background: none;
 }
+/* The move that takes an order forward ("Mark as finished", "Start", "Resume"): solid, like a main button (0100). */
+.disclosure--main > summary {
+  border-color: transparent;
+  background: var(--solid);
+  color: var(--on-solid);
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgb(15 63 0 / 22%);
+}
+.disclosure--main > summary:hover,
+.disclosure--main[open] > summary {
+  background: var(--solid-hover);
+}
+/* "Cancel the order": there when needed, in the warning colour, with no weight of its own. */
+.disclosure--warn > summary {
+  background: transparent;
+  color: var(--warn);
+  border-color: var(--warn-border);
+}
+.disclosure--warn[open] > summary {
+  background: var(--warn-bg);
+}
 /* A step's "Change" sits at the top right of its card, not on a line of its own (decision 0076). */
 .item > .disclosure--link:not(.disclosure--under) > summary {
   position: absolute;
@@ -1359,6 +1407,15 @@ a.btn {
   }
   .status-actions > details[open] {
     flex-basis: 100%;
+  }
+  /* The main move has the first row to itself, full size; the quieter ones share the row under it. */
+  .status-actions > :first-child:is(.disclosure--main, form:has(.btn:not(.btn--quiet, .btn--warn))) {
+    flex-basis: 100%;
+  }
+  .status-actions > .disclosure--main > summary,
+  .status-actions > form:first-child .btn:not(.btn--quiet, .btn--warn) {
+    min-height: 48px;
+    font-size: 16px;
   }
 }
 .status-actions > details[open] {

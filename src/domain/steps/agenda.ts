@@ -67,6 +67,18 @@ export function canBePartDone(step: Pick<Step, 'title' | 'doneOn'>): boolean {
 }
 
 /**
+ * Where "Part done…" is offered (decision 0100): a step she can mark part done, that is not on a day still to come
+ * (today's, late, or with no day), or that is part done already, to change what is left. Not on next week's work.
+ */
+export function offersPartDone(
+  step: Pick<Step, 'title' | 'doneOn' | 'onDay' | 'startedOn'>,
+  today: IsoDate,
+): boolean {
+  if (!canBePartDone(step)) return false;
+  return Boolean(step.startedOn) || step.onDay === null || step.onDay <= today;
+}
+
+/**
  * A job's steps are on her calendar while it is confirmed; studio work always is. Once an order is finished, what was
  * done stays on its day, done (decision 0089): ticking the Delivery finishes the order, and the tick stays where she
  * made it.
@@ -222,4 +234,21 @@ export function groupByKey<T>(items: readonly T[], key: (item: T) => string | nu
  */
 export function groupByWork<T extends { step: Pick<Step, 'job'> }>(items: readonly T[]): WorkGroup<T>[] {
   return groupByKey(items, (i) => i.step.job?.id ?? null).map((g) => ({ job: g[0]!.step.job, items: g }));
+}
+
+/**
+ * An order's steps in the order they happen (decision 0100): by day, then by time (a step with a time first), then
+ * in her order; the steps with no day yet after them; its Delivery last.
+ */
+export function inDayOrder<S extends Pick<Step, 'title' | 'onDay' | 'startsAt'> & { sort?: number }>(
+  steps: readonly S[],
+): S[] {
+  const rank = (s: S) => (isDeliveryStep(s.title) ? 2 : s.onDay === null ? 1 : 0);
+  return [...steps].sort(
+    (a, b) =>
+      rank(a) - rank(b) ||
+      (a.onDay ?? '').localeCompare(b.onDay ?? '') ||
+      (a.startsAt ?? '99').localeCompare(b.startsAt ?? '99') ||
+      (a.sort ?? 0) - (b.sort ?? 0),
+  );
 }

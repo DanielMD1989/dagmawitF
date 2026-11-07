@@ -34,13 +34,21 @@ function MoveForm({
   );
 }
 
-const BUTTON: Readonly<Record<OrderStatus, string>> = {
-  active: 'btn',
-  delivered: 'btn',
-  draft: 'btn btn--quiet',
-  on_hold: 'btn btn--quiet',
-  cancelled: 'btn btn--warn',
+/**
+ * The one move that takes the job forward, from where it is (decision 0100): it is the big solid button, first in
+ * the row. The others are there when needed, quieter: a cancel says so in the warning colour, the rest are plain.
+ */
+const MAIN: Readonly<Partial<Record<OrderStatus, OrderStatus>>> = {
+  draft: 'active',
+  active: 'delivered',
+  on_hold: 'active',
 };
+
+function look(from: OrderStatus, to: OrderStatus): { button: string; disclosure: string } {
+  if (MAIN[from] === to) return { button: 'btn', disclosure: 'disclosure disclosure--main' };
+  if (to === 'cancelled') return { button: 'btn btn--warn', disclosure: 'disclosure disclosure--warn' };
+  return { button: 'btn btn--quiet', disclosure: 'disclosure' };
+}
 
 /**
  * The moves this job can make, as buttons. A move that needs an answer (why it is on hold, which day it
@@ -54,17 +62,19 @@ export function StatusActions({
   order: { id: string; status: OrderStatus; deliveryOn: string; event: boolean };
   today: string;
 }) {
-  const moves = movesFrom(order.status);
+  const main = MAIN[order.status];
+  // The main move first; the rest keep their order.
+  const moves = [...movesFrom(order.status)].sort((a, b) => Number(b === main) - Number(a === main));
   return (
     <div className="status-actions">
       {moves.map((to) => {
         const label = moveLabel(order.status, to, order.event ? 'event' : 'order');
-        const className = BUTTON[to];
+        const { button: className, disclosure } = look(order.status, to);
         const dayPassed = to === 'active' && order.deliveryOn < today;
 
         if (to === 'on_hold') {
           return (
-            <details key={to} className="disclosure">
+            <details key={to} className={disclosure}>
               <summary>{label}</summary>
               <div className="disclosure__panel">
                 <MoveForm orderId={order.id} to={to}>
@@ -90,7 +100,7 @@ export function StatusActions({
         }
         if (to === 'delivered') {
           return (
-            <details key={to} className="disclosure">
+            <details key={to} className={disclosure}>
               <summary>{label}</summary>
               <div className="disclosure__panel">
                 <MoveForm orderId={order.id} to={to}>
@@ -117,7 +127,7 @@ export function StatusActions({
         }
         if (to === 'cancelled') {
           return (
-            <details key={to} className="disclosure">
+            <details key={to} className={disclosure}>
               <summary>{label}</summary>
               <div className="disclosure__panel">
                 <MoveForm orderId={order.id} to={to}>
@@ -147,7 +157,7 @@ export function StatusActions({
         }
         if (dayPassed) {
           return (
-            <details key={to} className="disclosure">
+            <details key={to} className={disclosure}>
               <summary>{label}</summary>
               <div className="disclosure__panel">
                 <MoveForm orderId={order.id} to={to}>

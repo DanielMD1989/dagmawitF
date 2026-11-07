@@ -129,7 +129,7 @@ export async function addSteps(_previous: ActionState, formData: FormData): Prom
   const orderId = idField(formData, 'order-id');
   if (!orderId) return failure('That order could not be found. Reload the page.', {}, typed);
   const rows = parseStepRows(formData);
-  if (!rows.ok) return failure('Check the steps marked below.', rows.errors, typed);
+  if (!rows.ok) return failure('Check the steps marked in red.', rows.errors, typed);
   if (rows.value.length === 0) return failure('Tap a step first.', {}, typed);
   const supabase = await createSupabase();
 

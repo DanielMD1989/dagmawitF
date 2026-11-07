@@ -122,16 +122,6 @@ export function NewJobForm({
             <option key={g} value={g} />
           ))}
         </datalist>
-        {!event && (
-          <TextArea
-            name="brief"
-            label="Design brief (optional)"
-            state={state}
-            rows={3}
-            maxLength={4000}
-            hint="What the client asked for: neckline, sleeves, fabric ideas, the occasion."
-          />
-        )}
         <div className="form-grid form-grid--pair">
           <TextField
             name="due-on"
@@ -165,9 +155,23 @@ export function NewJobForm({
         </section>
       )}
 
-      <details className="disclosure disclosure--link">
-        <summary>{event ? 'Notes and number' : 'Notes and order number'}</summary>
+      {/* What can wait comes last, folded (decision 0100): the brief, notes and number. Open when one needs fixing. */}
+      <details
+        className="disclosure disclosure--link"
+        open={Boolean(state.errors.brief || state.errors.notes || state.errors.number) || undefined}
+      >
+        <summary>{event ? 'Notes and number' : 'Design brief, notes and order number'}</summary>
         <div className="disclosure__panel">
+          {!event && (
+            <TextArea
+              name="brief"
+              label="Design brief (optional)"
+              state={state}
+              rows={3}
+              maxLength={4000}
+              hint="What the client asked for: neckline, sleeves, fabric ideas, the occasion."
+            />
+          )}
           <TextArea
             name="notes"
             label="Notes (optional)"
@@ -195,7 +199,7 @@ export function NewJobForm({
 
       <FormNotice state={state} />
       <div className="btn-row">
-        <button type="submit" className="btn" disabled={pending}>
+        <button type="submit" className="btn btn--main" disabled={pending}>
           {pending ? 'Saving…' : event ? 'Save the event' : 'Save the order'}
         </button>
       </div>

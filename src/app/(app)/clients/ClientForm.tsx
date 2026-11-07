@@ -48,7 +48,7 @@ export function ClientForm({
       />
       <FormNotice state={state} />
       <div className="btn-row">
-        <SubmitButton>{client ? 'Save details' : 'Add client'}</SubmitButton>
+        <SubmitButton className="btn btn--main">{client ? 'Save details' : 'Add client'}</SubmitButton>
       </div>
     </form>
   );

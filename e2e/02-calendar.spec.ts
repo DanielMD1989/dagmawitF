@@ -190,6 +190,7 @@ test('moving an order’s day moves its steps not done yet by as many days', asy
   // Done steps stay where they were.
   await page.getByRole('button', { name: 'Mark Beading as done' }).click();
   await page.getByRole('button', { name: 'Beading: done. Mark as not done' }).waitFor();
+  await open(page.locator('main'), 'Change the order details');
   await page.getByLabel('Delivery day').fill(inDays(67));
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   // Seven: the eight steps with a day, less Beading, done. Lace work has no day and stays without one.

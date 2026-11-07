@@ -133,7 +133,7 @@ export async function saveMeasurementDefaults(
   const user = await requireUser();
   const typed = typedIn(formData);
   const parsed = parseMeasurementDefaults(formData);
-  if (!parsed.ok) return failure('Check the fields marked below.', parsed.errors, typed);
+  if (!parsed.ok) return failure('Check the fields marked in red.', parsed.errors, typed);
 
   const supabase = await createSupabase();
   const { data, error } = await supabase

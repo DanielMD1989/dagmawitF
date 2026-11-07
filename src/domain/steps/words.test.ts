@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { canBePartDone, type Step } from './agenda';
+import { canBePartDone, offersPartDone, type Step } from './agenda';
 import { clashMessage, clock, daysLabel, partDoneLabel, timeLabel } from './words';
 
 const step = (over: Partial<Step>): Step => ({
@@ -66,6 +66,18 @@ describe('a step part done (decision 0087)', () => {
   it('says nothing once it is done, or when it was never started', () => {
     expect(partDoneLabel({ doneOn: '2026-11-03', startedOn: '2026-11-02', leftNote: 'x' })).toBeNull();
     expect(partDoneLabel({ doneOn: null, startedOn: null, leftNote: null })).toBeNull();
+  });
+
+  it('is offered for today’s work, late work and work with no day; not for days to come (decision 0100)', () => {
+    const today = '2026-11-07';
+    const open = { title: 'Sewing', doneOn: null, startedOn: null };
+    expect(offersPartDone({ ...open, onDay: today }, today)).toBe(true);
+    expect(offersPartDone({ ...open, onDay: '2026-11-05' }, today)).toBe(true);
+    expect(offersPartDone({ ...open, onDay: null }, today)).toBe(true);
+    expect(offersPartDone({ ...open, onDay: '2026-11-12' }, today)).toBe(false);
+    // Part done already: what is left can be changed whatever its day.
+    expect(offersPartDone({ ...open, onDay: '2026-11-12', startedOn: today }, today)).toBe(true);
+    expect(offersPartDone({ ...open, title: 'Delivery', onDay: today }, today)).toBe(false);
   });
 
   it('is offered for any open step but a Delivery, in any capitals', () => {

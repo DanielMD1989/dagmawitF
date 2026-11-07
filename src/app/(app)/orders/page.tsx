@@ -49,7 +49,6 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
           { href: '/orders/new', label: 'New order', icon: 'add' },
           { href: '/numbers', label: 'Numbers', icon: 'numbers' },
           { href: '/events', label: 'Events', icon: 'event' },
-          { href: '/clients', label: 'Clients', icon: 'clients' },
         ]}
       />
 

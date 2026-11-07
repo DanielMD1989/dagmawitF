@@ -75,6 +75,8 @@ test('a refused form keeps what she typed, her steps too, and says what is missi
   });
   await page.getByRole('button', { name: 'Save the order' }).click();
   await expect(page.locator('#due-on-error')).toHaveText('Choose a day.');
+  // A refusal takes her to the field to fix (decision 0100).
+  await expect(page.getByLabel('Delivery day')).toBeFocused();
   await expect(page.getByLabel("Client's name")).toHaveValue('Selam Bekele');
   await expect(page.getByLabel('Design brief (optional)')).toHaveValue(/^Ivory/);
   await expect(page.locator('.step-row')).toHaveCount(1);
@@ -107,7 +109,7 @@ test('she takes order 1, a bridal gown, building its steps with a tap each and g
   await page.getByRole('button', { name: 'Remove step 8, Fix' }).click();
   await expect(page.locator('.step-row')).toHaveCount(7);
   await page.locator('#due-at').fill('15:00');
-  await page.getByText('Notes and order number').click();
+  await open(page.locator('main'), 'Design brief, notes and order number');
   await page.getByLabel('Notes (optional)').fill('Pays in two parts. Mother collects.');
   await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
@@ -554,7 +556,7 @@ test('order 3: a client added on her own, then a fix started from the client pag
 
 test('order 3: a taken order number is refused at its field', async () => {
   await fillNewJob(page, { client: 'Yonas Alemu', title: 'Trousers hem', due: inDays(1) });
-  await page.getByText('Notes and order number').click();
+  await open(page.locator('main'), 'Design brief, notes and order number');
   await page.getByLabel('Order number').fill('1');
   await page.getByRole('button', { name: 'Save the order' }).click();
   await expect(page.locator('.error').first()).toHaveText(/already/i);
@@ -581,6 +583,9 @@ test('order 3: put on hold with no reason, it is on hold; with one, the reason i
 test('order 3: resumed, then finished on a day she chooses', async () => {
   await page.getByRole('button', { name: 'Resume the order' }).click();
   await page.locator('.chip', { hasText: 'Active' }).first().waitFor();
+  // The move forward is the main button, first; the others are quieter (decision 0100).
+  await expect(page.locator('.status-actions > *').first()).toHaveClass(/disclosure--main/);
+  await expect(page.locator('.status-actions > *').last()).toHaveClass(/disclosure--warn/);
   await page.locator('summary', { hasText: 'Mark as finished' }).click();
   await expect(page.getByLabel('Finished on')).toHaveValue(today());
   await page.getByRole('button', { name: 'Mark as finished' }).click();
@@ -595,6 +600,7 @@ test('order 3: a finished order is a record: nothing on it can be edited', async
   await expect(page.getByText('Add a step')).toHaveCount(0);
   await expect(page.getByRole('form', { name: 'Add steps' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
+  await open(page.locator('main'), 'Change the notes');
   await expect(page.getByRole('button', { name: 'Save notes' })).toHaveCount(1);
   await page.goto(`/orders/${ids.o3}/brief`);
   await expect(page.getByText('Add another piece')).toHaveCount(0);

@@ -69,7 +69,6 @@ export default async function TodayPage() {
           { href: '/orders/new', label: 'New order', icon: 'add' },
           { href: '/orders/new?event=1', label: 'New event', icon: 'event' },
           { href: '/coming-up', label: 'Coming up', icon: 'upcoming' },
-          { href: '/calendar', label: 'Month', icon: 'month' },
         ]}
       />
 
@@ -79,7 +78,11 @@ export default async function TodayPage() {
             <h2 id="overdue-heading">Not done yet</h2>
           </div>
           <ul className="items">
-            <DayItems items={agenda.overdue.map((s) => ({ step: s, overdue: true }))} />
+            <DayItems
+              items={agenda.overdue.map((s) => ({ step: s, overdue: true }))}
+              nextOf={nextOf}
+              today={today}
+            />
           </ul>
         </section>
       )}
@@ -146,7 +149,7 @@ export default async function TodayPage() {
             <h2 id="undated-heading">Steps with no day yet</h2>
           </div>
           <ul className="items">
-            <DayItems items={agenda.undated.map((s) => ({ step: s }))} />
+            <DayItems items={agenda.undated.map((s) => ({ step: s }))} nextOf={nextOf} today={today} />
           </ul>
         </section>
       )}
