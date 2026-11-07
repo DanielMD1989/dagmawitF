@@ -179,10 +179,12 @@ describe('what each status needs', () => {
     });
   });
 
-  it('needs a reason to put an order on hold, and keeps it only while on hold', async () => {
+  it('puts an order on hold with or without a reason, and keeps one only while on hold (decision 0099)', async () => {
     await signedIn(async (c) => {
       const { orderId } = await orderIn(c, 'active');
-      expect(await setStatus(c, orderId, `status = 'on_hold'`)).toMatchObject({ ok: false, code: CHECK });
+      expect((await setStatus(c, orderId, `status = 'on_hold'`)).ok).toBe(true);
+      expect((await setStatus(c, orderId, `status = 'active'`)).ok).toBe(true);
+      // A reason is as she wrote it, trimmed, never only spaces.
       expect(await setStatus(c, orderId, `status = 'on_hold', hold_reason = '  '`)).toMatchObject({
         ok: false,
         code: CHECK,
