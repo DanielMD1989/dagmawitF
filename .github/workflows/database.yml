@@ -24,7 +24,7 @@ jobs:
       # Her project (it is in the project's address, so not a secret).
       SUPABASE_PROJECT_ID: iowwrmnfeaogocnspgvf
       # Repository secrets, set by hand: Settings > Secrets and variables > Actions.
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN1 }}
       SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
     steps:
       - uses: actions/checkout@v5
@@ -35,7 +35,7 @@ jobs:
       - name: Check the secrets are set
         run: |
           missing=""
-          [ -n "$SUPABASE_ACCESS_TOKEN" ] || missing="$missing SUPABASE_ACCESS_TOKEN"
+          [ -n "$SUPABASE_ACCESS_TOKEN" ] || missing="$missing SUPABASE_ACCESS_TOKEN1"
           [ -n "$SUPABASE_DB_PASSWORD" ] || missing="$missing SUPABASE_DB_PASSWORD"
           if [ -n "$missing" ]; then
             echo "::error title=Database not updated::Missing repository secrets:$missing (Settings > Secrets and variables > Actions)."

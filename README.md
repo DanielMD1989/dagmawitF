@@ -60,7 +60,8 @@ In this order. Each step says how to check it before going on.
 2. **Supabase project.** Create one in the region nearest Addis Ababa that Supabase offers, with a strong database
    password kept in a password manager. Its ref (in the project's address) goes in `.github/workflows/database.yml`.
    Then, in GitHub, Settings > Secrets and variables > Actions, add two **repository secrets**:
-   - `SUPABASE_ACCESS_TOKEN`: a personal access token from supabase.com/dashboard/account/tokens;
+   - `SUPABASE_ACCESS_TOKEN1`: a personal access token from supabase.com/dashboard/account/tokens, made with no
+     expiry (it replaced `SUPABASE_ACCESS_TOKEN` when that one stopped working in November 2026);
    - `SUPABASE_DB_PASSWORD`: the database password.
 
    The **Database** workflow then applies the migrations every time CI passes on `main` (or run it from the Actions
