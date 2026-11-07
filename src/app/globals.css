@@ -2086,6 +2086,23 @@ h4 {
 .item__note--next {
   color: var(--accent);
 }
+/* "Delivered" under "Next: Delivery" (decision 0097). */
+.rows--links li.row--action {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0;
+}
+.row--action .deliver-now {
+  margin: 0;
+  padding: 0 14px 12px;
+}
+.deliver-now {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+}
 
 /* ------------------------------------------------------------------------------------------- */
 /* Numbers (decision 0091) */

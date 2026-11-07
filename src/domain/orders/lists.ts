@@ -1,4 +1,5 @@
 import { daysBetween, formatDay, type IsoDate } from '../dates';
+import { isDeliveryStep } from '../steps/agenda';
 import { clock } from '../steps/words';
 import type { OrderStatus } from './status';
 
@@ -94,6 +95,7 @@ export function eventsList<O extends Listed>(
 
 /** A step of an order, as its "Next" needs it. */
 export interface OpenStep {
+  id: string;
   title: string;
   onDay: IsoDate | null;
   startsAt: string | null;
@@ -103,7 +105,15 @@ export interface OpenStep {
 
 /** What comes next for an order in progress (decision 0092). */
 export type NextUp =
-  | { kind: 'step'; title: string; onDay: IsoDate; startsAt: string | null }
+  | {
+      kind: 'step';
+      stepId: string;
+      title: string;
+      onDay: IsoDate;
+      startsAt: string | null;
+      /** The order's own Delivery, with no other step left: it can be delivered now (decision 0097). */
+      deliverNow: boolean;
+    }
   | { kind: 'undated'; title: string }
   | { kind: 'delivery'; onDay: IsoDate }
   | { kind: 'event'; onDay: IsoDate };
@@ -125,7 +135,15 @@ export function nextUp(steps: readonly OpenStep[], deliveryOn: IsoDate, isEvent 
         a.sort - b.sort,
     );
   const first = dated[0];
-  if (first) return { kind: 'step', title: first.title, onDay: first.onDay!, startsAt: first.startsAt };
+  if (first)
+    return {
+      kind: 'step',
+      stepId: first.id,
+      title: first.title,
+      onDay: first.onDay!,
+      startsAt: first.startsAt,
+      deliverNow: !isEvent && open.length === 1 && isDeliveryStep(first.title),
+    };
   const undated = [...open].sort((a, b) => a.sort - b.sort)[0];
   if (undated) return { kind: 'undated', title: undated.title };
   // An event is not delivered: what comes is its day.

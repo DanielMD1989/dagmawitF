@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { QuickActions } from '@/components/QuickActions';
 import { StatusChip } from '@/components/StatusChip';
+import { DeliverNowButton } from '@/components/steps/DeliverNowButton';
 import { formatDay } from '@/domain/dates';
 import { daysLeft, jobHeadline } from '@/domain/jobs/words';
 import {
@@ -116,8 +117,9 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
 /** An order in progress: when it is due and how its steps stand; a draft or a paused one says so. */
 function ActiveRow({ order: o, today }: { order: OrderListItem; today: string }) {
   const late = o.status === 'active' && o.deliveryOn < today;
+  const deliverNow = o.next.kind === 'step' && o.next.deliverNow ? o.next.stepId : null;
   return (
-    <li>
+    <li className={deliverNow ? 'row--action' : undefined}>
       <Link href={`/orders/${o.id}`} className="row-link">
         <span className="row-link__title">{jobHeadline(o)}</span>
         <span className="hint">
@@ -134,6 +136,8 @@ function ActiveRow({ order: o, today }: { order: OrderListItem; today: string })
           </span>
         )}
       </Link>
+      {/* Only its Delivery left: delivered now, even ahead of its day (decision 0097). */}
+      {deliverNow && <DeliverNowButton stepId={deliverNow} orderId={o.id} whose={jobHeadline(o)} />}
     </li>
   );
 }

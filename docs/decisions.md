@@ -765,3 +765,11 @@ by the database (20261110090000_delivery_step.sql):
 
 It shows on Today and the calendar on its day like any step, so the order's day shows once, by it, and the morning
 summary counts it as a delivery.
+
+## 0097. An order can be delivered ahead of its day, from where she ticks its last step
+
+She finished an order's work early and found no way to close it where she was: Today said "Next: Delivery, Fri 13
+Nov" with nothing to tap, and the Delivery step is on its own day. Once an order's Delivery is all that is left, a
+"Delivered" button stands under "Next: Delivery" on Today and the calendar, and beside the order in the Orders list.
+It ticks the Delivery today, ahead of its day if so, the same tick as the step's own mark, so it finishes the order
+that day (decision 0089) and History says how early ("· 3 days early"). "Mark as finished" on the order's page stays.

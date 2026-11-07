@@ -518,6 +518,37 @@ test('events have their own list, and Numbers counts the orders taken and delive
   await inspect(page, 'numbers by month');
 });
 
+test('an order finished ahead of its day is delivered from its last step, and goes to History', async () => {
+  const party = await value(`select id::text from public.orders where title = 'Party dress'`);
+  await page.goto(`/orders/${party}`);
+  await ready(page);
+  await page.getByRole('button', { name: 'Mark Buy fabric as done' }).click();
+  await expect(page.getByRole('button', { name: /^Buy fabric: done/ })).toBeVisible();
+  // Its last step, on its day in the calendar, done today: its Delivery is all that is left (decision 0097).
+  await page.goto(`/calendar?day=${inDays(5)}`);
+  const sewing = item(page, 'Sewing', 'Hanna Tesfaye · Party dress');
+  await sewing.getByRole('button', { name: /^Mark Sewing/ }).click();
+  await expect(sewing.locator('.item__note--next')).toHaveText(/^Next: Delivery, \w{3} \d{1,2} \w{3}$/);
+  // The Orders list offers it too.
+  await page.goto('/orders');
+  await expect(page.getByRole('button', { name: 'Delivered: Hanna Tesfaye · Party dress' })).toBeVisible();
+  await inspect(page, 'orders, ready to deliver');
+  await page.goto(`/calendar?day=${inDays(5)}`);
+  await item(page, 'Sewing', 'Hanna Tesfaye · Party dress')
+    .getByRole('button', { name: 'Delivered: Hanna Tesfaye · Party dress' })
+    .click();
+  await expect
+    .poll(() =>
+      value(
+        `select status || ' ' || (delivered_on = app.today_for(owner_id))::text from public.orders where id = $1`,
+        [party],
+      ),
+    )
+    .toBe('delivered true');
+  await page.goto('/orders?tab=history');
+  await expect(page.locator('.row-link', { hasText: 'Party dress' })).toContainText(/· 10 days early$/);
+});
+
 test('desktop, and a phone in dark mode: every calendar screen', async ({ browser }) => {
   const screens = [
     '/',

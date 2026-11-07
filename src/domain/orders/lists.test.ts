@@ -79,6 +79,7 @@ describe('her events (decision 0090)', () => {
 describe('what comes next for an order (decision 0092)', () => {
   let sort = 0;
   const step = (over: Partial<OpenStep>): OpenStep => ({
+    id: `s${sort}`,
     title: 'Step',
     onDay: null,
     startsAt: null,
@@ -122,9 +123,37 @@ describe('what comes next for an order (decision 0092)', () => {
     expect(nextWords(nextUp([], due, true))).toBe('Event day: Fri 13 Nov');
   });
 
+  it('can be delivered now once its Delivery is all that is left, ahead of its day (decision 0097)', () => {
+    const delivery = step({ title: 'Delivery', onDay: due });
+    const sewing = step({ title: 'Sewing', onDay: '2026-11-03', doneOn: '2026-11-03' });
+    expect(nextUp([sewing, delivery], due)).toMatchObject({
+      kind: 'step',
+      stepId: delivery.id,
+      title: 'Delivery',
+      deliverNow: true,
+    });
+    // Another step still to do: not yet.
+    expect(nextUp([step({ title: 'Press' }), delivery], due)).toMatchObject({
+      title: 'Delivery',
+      deliverNow: false,
+    });
+    // An event's steps are never a delivery.
+    expect(nextUp([delivery], due, true)).toMatchObject({ deliverNow: false });
+  });
+
   it('is late when its day has passed; a step with no day never is', () => {
     expect(
-      nextIsLate({ kind: 'step', title: 'Sewing', onDay: '2026-11-02', startsAt: null }, '2026-11-03'),
+      nextIsLate(
+        {
+          kind: 'step',
+          stepId: 's',
+          title: 'Sewing',
+          onDay: '2026-11-02',
+          startsAt: null,
+          deliverNow: false,
+        },
+        '2026-11-03',
+      ),
     ).toBe(true);
     expect(nextIsLate({ kind: 'delivery', onDay: '2026-11-03' }, '2026-11-03')).toBe(false);
     expect(nextIsLate({ kind: 'undated', title: 'Sketch' }, '2026-11-03')).toBe(false);
