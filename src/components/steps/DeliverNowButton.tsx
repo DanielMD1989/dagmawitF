@@ -1,39 +1,27 @@
-'use client';
-
-import { useActionState } from 'react';
-import { toggleStep } from '@/app/(app)/steps/actions';
-import { SubmitButton } from '@/components/SubmitButton';
-import { idle } from '@/lib/action-state';
+import type { IsoDate } from '@/domain/dates';
+import { DeliveredForm } from './DeliveredForm';
 
 /**
- * "Delivered", under "Next: Delivery" once an order's Delivery is all that is left (decision 0097): it ticks the
- * Delivery today, ahead of its day if she delivered early, which finishes the order (decision 0089). The same tick as
- * the Delivery step's own mark, so it goes the same way and by the same rules.
+ * "Delivered…", under "Next: Delivery" once an order's Delivery is all that is left (decision 0097). It opens to ask
+ * the day it was handed over, today unless she says otherwise (decision 0101), and finishes the order on that day,
+ * ahead of its day if she delivered early.
  */
 export function DeliverNowButton({
-  stepId,
   orderId,
+  today,
   whose,
 }: {
-  stepId: string;
   orderId: string;
+  today: IsoDate;
   /** "Tiest · Fetil outfit", said to a screen reader. */
   whose: string;
 }) {
-  const [state, action] = useActionState(toggleStep, idle);
   return (
-    <form action={action} className="deliver-now">
-      <input type="hidden" name="step-id" value={stepId} />
-      <input type="hidden" name="order-id" value={orderId} />
-      <input type="hidden" name="saw-done" value="false" />
-      <SubmitButton className="btn btn--small" pendingText="Finishing…" aria-label={`Delivered: ${whose}`}>
-        Delivered
-      </SubmitButton>
-      {state.status === 'error' && (
-        <span className="error" role="alert">
-          {state.message}
-        </span>
-      )}
-    </form>
+    <details className="disclosure disclosure--main deliver-now">
+      <summary aria-label={`Delivered: ${whose}`}>Delivered…</summary>
+      <div className="disclosure__panel">
+        <DeliveredForm orderId={orderId} today={today} idPrefix={`now-${orderId}`} />
+      </div>
+    </details>
   );
 }

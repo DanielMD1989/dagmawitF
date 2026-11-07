@@ -4,6 +4,7 @@ import { AddStepForm } from '@/components/steps/AddStepForm';
 import { AddStepsForm } from '@/components/steps/AddStepsForm';
 import { PartDoneForm } from '@/components/steps/PartDoneForm';
 import { StepEditor } from '@/components/steps/StepEditor';
+import { DeliveryTick } from '@/components/steps/DeliveryTick';
 import { TickButton } from '@/components/steps/TickButton';
 import { formatDay } from '@/domain/dates';
 import { isUuid } from '@/domain/form-input';
@@ -106,6 +107,9 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
                         aria-label={s.doneOn ? 'Done' : 'Not done'}
                         role="img"
                       />
+                    ) : !event && order.status === 'active' && !s.doneOn && isDeliveryStep(s.title) ? (
+                      // Ticking the Delivery hands the order over, on a day she gives (decision 0101).
+                      <DeliveryTick orderId={order.id} title={s.title} today={prefs.today} />
                     ) : (
                       <TickButton
                         stepId={s.id}

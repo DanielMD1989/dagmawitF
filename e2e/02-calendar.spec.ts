@@ -445,7 +445,14 @@ test('ticking an order’s Delivery finishes it: it leaves Active for History, a
   const before = Number(/Active \((\d+)\)/.exec(await text(page))![1]);
 
   await page.goto('/');
-  await page.getByRole('button', { name: 'Mark Delivery, Yonas Alemu · Hem trousers as done' }).click();
+  // Ticking the Delivery asks the day it was delivered, today unless she says otherwise (decision 0101).
+  const hemDelivery = item(section('Today'), 'Delivery', 'Yonas Alemu · Hem trousers');
+  await hemDelivery
+    .getByRole('button', { name: 'Mark Delivery, Yonas Alemu · Hem trousers as delivered' })
+    .click();
+  await expect(hemDelivery.getByLabel('Delivered on')).toHaveValue(today());
+  await inspect(page, 'delivery asks its day');
+  await hemDelivery.getByRole('button', { name: 'Delivered', exact: true }).click();
   // Still there, done, and no longer to be changed: the order is finished (decision 0089).
   const delivered = item(section('Today'), 'Delivery', 'Yonas Alemu · Hem trousers');
   await expect(delivered.getByRole('img', { name: 'Done' })).toBeVisible();
@@ -560,22 +567,42 @@ test('an order finished ahead of its day is delivered from its last step, and go
   await expect(party_.locator('.item__note--next')).toHaveText(/^Next: Delivery, \w{3} \d{1,2} \w{3}$/);
   // The Orders list offers it too.
   await page.goto('/orders');
-  await expect(page.getByRole('button', { name: 'Delivered: Hanna Tesfaye · Party dress' })).toBeVisible();
+  await expect(page.getByLabel('Delivered: Hanna Tesfaye · Party dress')).toBeVisible();
   await inspect(page, 'orders, ready to deliver');
   await page.goto(`/calendar?day=${inDays(5)}`);
-  await work(page, 'Hanna Tesfaye · Party dress')
-    .getByRole('button', { name: 'Delivered: Hanna Tesfaye · Party dress' })
-    .click();
+  const card = work(page, 'Hanna Tesfaye · Party dress');
+  // It asks the day it was handed over (decision 0101): not a day still to come.
+  await card.getByLabel('Delivered: Hanna Tesfaye · Party dress').click();
+  const deliveredOn = card.getByLabel('Delivered on');
+  await expect(deliveredOn).toHaveValue(today());
+  await deliveredOn.fill(inDays(1));
+  await card.getByRole('button', { name: 'Delivered', exact: true }).click();
+  await expect(card.locator('#now-' + party + '-delivered-on-error')).toHaveText(
+    'An order cannot be delivered on a day that has not come yet.',
+  );
+  await expect(deliveredOn).toBeFocused();
+  await settled(page);
+  // She handed it over two days ago, and only records it now.
+  await deliveredOn.fill(inDays(-2));
+  await card.getByRole('button', { name: 'Delivered', exact: true }).click();
   await expect
     .poll(() =>
       value(
-        `select status || ' ' || (delivered_on = app.today_for(owner_id))::text from public.orders where id = $1`,
+        `select status || ' ' || (delivered_on = app.today_for(owner_id) - 2)::text from public.orders where id = $1`,
         [party],
       ),
     )
     .toBe('delivered true');
+  // Its Delivery step is done that day too.
+  expect(
+    await value(
+      `select (done_on = delivered_on)::text from public.task t join public.orders o on o.id = t.order_id
+                 where o.id = $1 and t.title = 'Delivery'`,
+      [party],
+    ),
+  ).toBe('true');
   await page.goto('/orders?tab=history');
-  await expect(page.locator('.row-link', { hasText: 'Party dress' })).toContainText(/· 10 days early$/);
+  await expect(page.locator('.row-link', { hasText: 'Party dress' })).toContainText(/· 12 days early$/);
 });
 
 test('desktop, and a phone in dark mode: every calendar screen', async ({ browser }) => {

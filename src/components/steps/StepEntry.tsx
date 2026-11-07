@@ -1,10 +1,22 @@
 import Link from 'next/link';
 import { formatDay, type IsoDate } from '@/domain/dates';
 import { jobHeadline } from '@/domain/jobs/words';
-import { isRecord, lastDayOf, offersPartDone, type Step } from '@/domain/steps/agenda';
+import { isDeliveryStep, isRecord, lastDayOf, offersPartDone, type Step } from '@/domain/steps/agenda';
 import { partDoneLabel, timeLabel } from '@/domain/steps/words';
+import { DeliveryTick } from './DeliveryTick';
 import { PartDoneForm } from './PartDoneForm';
 import { TickButton } from './TickButton';
+
+/** An active order's Delivery, not yet ticked: ticking it hands the order over, on a day she gives (decision 0101). */
+function delivers(step: Step): boolean {
+  return (
+    step.doneOn === null &&
+    step.job !== null &&
+    step.job.clientName !== null &&
+    step.job.status === 'active' &&
+    isDeliveryStep(step.title)
+  );
+}
 
 /**
  * One step on Today or the calendar. On its own, the work comes first, in large: "Megan · Bridal gown" (her Task 7);
@@ -42,6 +54,12 @@ export function StepEntry({
             className={done ? 'item__mark item__mark--done' : 'item__mark'}
             aria-label={done ? 'Done' : 'Not done'}
             role="img"
+          />
+        ) : delivers(step) ? (
+          <DeliveryTick
+            orderId={step.job!.id}
+            title={work ? `${step.title}, ${work}` : step.title}
+            today={today}
           />
         ) : (
           <TickButton

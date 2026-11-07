@@ -2204,11 +2204,32 @@ h4 {
   padding: 0 14px 12px;
 }
 .deliver-now {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 8px;
   margin-top: 6px;
+}
+/* Closed, it is a button the width of its words; opened, it asks the day it was delivered (decision 0101). */
+.deliver-now > summary {
+  min-height: 40px;
+  font-size: 15px;
+}
+.deliver-now > .disclosure__panel {
+  margin-top: 8px;
+}
+/* The Delivery's own mark opens the same question under the step, the width of its card. */
+.item__head:has(> .deliver-panel) {
+  flex-wrap: wrap;
+}
+.item__head > .deliver-panel {
+  order: 1;
+  flex: 1 1 100%;
+  margin-top: 0;
+}
+/* Under a step with "Change" in its corner, the question takes the card's full width, not the words' (0101). */
+.item:has(> .disclosure--link:not(.disclosure--under)) > .item__head > .deliver-panel {
+  margin-right: -64px;
+}
+.tick--asking svg {
+  border-color: var(--accent);
+  background: var(--tint);
 }
 
 /* ------------------------------------------------------------------------------------------- */

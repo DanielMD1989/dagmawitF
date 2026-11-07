@@ -812,3 +812,22 @@ colour. Save buttons span the width on a phone.
 
 A refusal shows where she sees it. When a save is refused, the first field marked wrong is opened out of any fold,
 brought into view and focused; with no field to point at, the message is brought into view (`FormNotice`).
+
+## 0101. Delivered asks the day; the Delivery stays on the promised day
+
+Her finished orders all said they were delivered on the day she recorded them, some delivered on other days. A read of
+her data (no names: `.github/workflows/check-data.yml`) showed two causes. First, ticking an order's Delivery, or
+"Delivered", recorded the day of the tap: seven orders recorded on Sat 7 Nov all said "delivered Sat 7 Nov". Second,
+unfinished steps whose day has passed move to today (decision 0080), and since the Delivery became a step (decision 0096) it moved with them, and the order's day with it: three orders due Fri 6 Nov became due Sat 7 Nov by themselves,
+so they never looked late and were recorded "on time".
+
+Delivered now asks the day, every time she chose to be asked: "Delivered…" under "Next: Delivery", and the Delivery
+step's own mark, open "Delivered on", today unless she says otherwise and never a day to come, then finish the order
+that day, the same move as "Mark as finished"; the database ticks its Delivery that day (decision 0096). A draft or a
+paused order is not delivered from a list: it is started or resumed first.
+
+A client's Delivery is no longer moved for her (20261112090000_delivery_day_stays.sql): a late order stays on its day,
+under "Not done yet" and in the late colour, until she delivers it or gives it a new day. One already moved on a paused
+order or a draft goes back to its day; on an active order it stays where it is, saying "Moved from" its day, since an
+active order is never given a day that has passed (the orders' own rule). Orders already finished keep what was
+recorded.

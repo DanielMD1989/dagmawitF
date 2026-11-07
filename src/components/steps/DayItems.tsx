@@ -71,7 +71,7 @@ function WorkCard({
             {nextWords(next)}
           </span>
           {next.kind === 'step' && next.deliverNow && (
-            <DeliverNowButton stepId={next.stepId} orderId={job.id} whose={work} />
+            <DeliverNowButton orderId={job.id} today={today} whose={work} />
           )}
         </div>
       )}

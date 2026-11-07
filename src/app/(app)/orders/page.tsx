@@ -116,7 +116,8 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
 /** An order in progress: when it is due and how its steps stand; a draft or a paused one says so. */
 function ActiveRow({ order: o, today }: { order: OrderListItem; today: string }) {
   const late = o.status === 'active' && o.deliveryOn < today;
-  const deliverNow = o.next.kind === 'step' && o.next.deliverNow ? o.next.stepId : null;
+  // Only an active order is handed over: a draft or a paused one is started or resumed first.
+  const deliverNow = o.status === 'active' && o.next.kind === 'step' && o.next.deliverNow;
   return (
     <li className={deliverNow ? 'row--action' : undefined}>
       <Link href={`/orders/${o.id}`} className="row-link">
@@ -136,7 +137,7 @@ function ActiveRow({ order: o, today }: { order: OrderListItem; today: string })
         )}
       </Link>
       {/* Only its Delivery left: delivered now, even ahead of its day (decision 0097). */}
-      {deliverNow && <DeliverNowButton stepId={deliverNow} orderId={o.id} whose={jobHeadline(o)} />}
+      {deliverNow && <DeliverNowButton orderId={o.id} today={today} whose={jobHeadline(o)} />}
     </li>
   );
 }
