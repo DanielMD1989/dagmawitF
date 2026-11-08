@@ -1,8 +1,9 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useRef } from 'react';
 import { markPartDone } from '@/app/(app)/steps/actions';
 import { FormNotice } from '@/components/FormNotice';
+import { useCloseOnSaved } from '@/components/Sheet';
 import { SubmitButton } from '@/components/SubmitButton';
 import { TextField } from '@/components/fields';
 import { MAX_LEFT_NOTE } from '@/domain/steps/forms';
@@ -35,16 +36,18 @@ export function PartDoneForm({
   leftNote: string | null;
 }) {
   const [state, action] = useActionState(save, { ...idle, saves: 0 });
+  const form = useRef<HTMLFormElement>(null);
+  useCloseOnSaved(form, state);
   return (
     // A new, closed form after each save: the step itself now says what is left.
     <details
       key={state.saves}
-      className="disclosure disclosure--link disclosure--under"
+      className="disclosure disclosure--row"
       open={state.status === 'error' || undefined}
     >
-      <summary>{started ? 'Change what is left' : 'Part done…'}</summary>
+      <summary>{started ? 'Change what is left' : 'Part done, say what is left'}</summary>
       <div className="disclosure__panel">
-        <form action={action} className="form" noValidate aria-label={`Part done: ${title}`}>
+        <form ref={form} action={action} className="form" noValidate aria-label={`Part done: ${title}`}>
           <input type="hidden" name="step-id" value={stepId} />
           {orderId && <input type="hidden" name="order-id" value={orderId} />}
           <TextField

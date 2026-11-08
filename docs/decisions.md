@@ -867,3 +867,25 @@ Now a done step is on the day it was done, once, whatever day it was planned for
 day she finished it, and is no longer on the day ahead it was planned for. The month shows it after what is still to
 do, quieter (grey, with a ✓): the step's name, or for a delivered order her client's first name. A finished event
 stays on its day. Today keeps the past week's done steps the same way.
+
+## 0105. A phone app, not a website: rows that open sheets
+
+She found the app did not feel like a well designed phone app. Looking at every screen on a phone showed why:
+underlined text links everywhere ("Change", "Part done…", "← Orders"), every item its own floating card, heavy green
+tiles in capitals, three buttons for an order's moves side by side, tabs running off the screen, and forms that kept
+the tab bar under them. A mockup of four screens (Today, an order, a step's sheet, New order) was approved first.
+
+Her green stays, calmer: a light grey page, white lists lying flat on it (no shadows), green for the one main button
+and what is open. A phone's type scale: a large title, 20px section titles, 16px text, nothing in capitals.
+
+- A step is a row: its round mark ticks it; the rest of the row opens its sheet from the bottom of the screen: Done,
+  Part done, Change day or time, Open the order, Remove (in red). An order's steps on a day are rows of one block.
+- An order's page: back and ⋯ at the top; its name, its client and number, its day and how many days are left; its one
+  main move (Mark as finished, Resume, Start) as the big button. Put on hold, Cancel, Reopen, Change the details and
+  Delete are in the ⋯ sheet. Its pages are a segmented control that always fits: Steps, Brief, Measures, History. Its
+  steps are joined by a seam, sewn solid through the steps that are done. A client's page has its own ⋯ sheet.
+- A tab's title has its one action on its right as a round "+": Today's opens New order, New event, Something for
+  yourself; Orders, Clients and Events add directly. Coming up, the month, Events and Numbers are rows.
+- A form fills the screen: Cancel at the top, no tab bar, and its Save fixed at the bottom over the safe area.
+- A sheet is a native dialog: it holds the focus, Escape or a tap outside closes it, and focus goes back to the row;
+  what is in it is made when it opens; a form in it closes it once saved.

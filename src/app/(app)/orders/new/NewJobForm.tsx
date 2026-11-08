@@ -53,7 +53,9 @@ export function NewJobForm({
         <input type="hidden" name="client" value={NO_CLIENT} />
       ) : (
         <section className="section" aria-labelledby="who-heading">
-          <h2 id="who-heading">Who it is for</h2>
+          <h2 id="who-heading" className="sr-only">
+            Who it is for
+          </h2>
           <div className="field">
             <label htmlFor="client">For</label>
             <select
@@ -103,7 +105,9 @@ export function NewJobForm({
       )}
 
       <section className="section" aria-labelledby="what-heading">
-        <h2 id="what-heading">{event ? 'The event' : 'What it is'}</h2>
+        <h2 id="what-heading" className="sr-only">
+          {event ? 'The event' : 'What it is'}
+        </h2>
         <TextField
           name="title"
           label={event ? 'Name of the event' : 'What it is (optional)'}
@@ -167,7 +171,7 @@ export function NewJobForm({
       </details>
 
       <FormNotice state={state} />
-      <div className="btn-row">
+      <div className="btn-row form-bar">
         <button type="submit" className="btn btn--main" disabled={pending}>
           {pending ? 'Saving…' : event ? 'Save the event' : 'Save the order'}
         </button>

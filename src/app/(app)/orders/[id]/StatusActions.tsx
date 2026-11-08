@@ -43,10 +43,20 @@ const MAIN: Readonly<Partial<Record<OrderStatus, OrderStatus>>> = {
   on_hold: 'active',
 };
 
-function look(from: OrderStatus, to: OrderStatus): { button: string; disclosure: string } {
-  if (MAIN[from] === to) return { button: 'btn', disclosure: 'disclosure disclosure--main' };
-  if (to === 'cancelled') return { button: 'btn btn--warn', disclosure: 'disclosure disclosure--warn' };
-  return { button: 'btn btn--quiet', disclosure: 'disclosure' };
+/**
+ * The main move is the big button under the order's name; the others are rows of the order's ⋯ sheet (decision
+ * 0105), a cancel in the warning colour.
+ */
+function look(from: OrderStatus, to: OrderStatus): { button: string; disclosure: string; row: string } {
+  if (MAIN[from] === to)
+    return { button: 'btn btn--main', disclosure: 'disclosure disclosure--main', row: 'btn btn--main' };
+  if (to === 'cancelled')
+    return {
+      button: 'btn btn--warn',
+      disclosure: 'disclosure disclosure--row disclosure--warn',
+      row: 'sheet__row',
+    };
+  return { button: 'btn', disclosure: 'disclosure disclosure--row', row: 'sheet__row' };
 }
 
 /**
@@ -57,18 +67,21 @@ function look(from: OrderStatus, to: OrderStatus): { button: string; disclosure:
 export function StatusActions({
   order,
   today,
+  part,
 }: {
   order: { id: string; status: OrderStatus; deliveryOn: string; event: boolean };
   today: string;
+  /** The main move, under the order's name; or the others, in its ⋯ sheet. */
+  part: 'main' | 'more';
 }) {
   const main = MAIN[order.status];
-  // The main move first; the rest keep their order.
-  const moves = [...movesFrom(order.status)].sort((a, b) => Number(b === main) - Number(a === main));
+  const moves = movesFrom(order.status).filter((to) => (part === 'main') === (to === main));
+  if (moves.length === 0) return null;
   return (
-    <div className="status-actions">
+    <div className={part === 'main' ? 'status-actions' : 'status-actions status-actions--more'}>
       {moves.map((to) => {
         const label = moveLabel(order.status, to, order.event ? 'event' : 'order');
-        const { button: className, disclosure } = look(order.status, to);
+        const { button: className, disclosure, row } = look(order.status, to);
         const dayPassed = to === 'active' && order.deliveryOn < today;
 
         if (to === 'on_hold') {
@@ -182,11 +195,7 @@ export function StatusActions({
         }
         return (
           <MoveForm key={to} orderId={order.id} to={to}>
-            {() => (
-              <div className="btn-row">
-                <SubmitButton className={className}>{label}</SubmitButton>
-              </div>
-            )}
+            {() => <SubmitButton className={row}>{label}</SubmitButton>}
           </MoveForm>
         );
       })}

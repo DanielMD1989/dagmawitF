@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { BackLink } from '@/components/BackLink';
+import { CancelLink } from '@/components/BackLink';
 import { loadMeasurementFields } from '@/server/measurements';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
@@ -13,12 +13,12 @@ export default async function NewClientPage() {
   const supabase = await createSupabase();
   const [fields, prefs] = await Promise.all([loadMeasurementFields(supabase), loadPreferences(supabase)]);
   return (
-    <>
+    <div className="form-screen">
       <div className="page-head">
-        <BackLink href="/clients">Clients</BackLink>
+        <CancelLink href="/clients" />
         <h1>New client</h1>
       </div>
       <NewClientForm fields={fields.filter((f) => !f.archived)} unit={prefs.measurementUnit} />
-    </>
+    </div>
   );
 }

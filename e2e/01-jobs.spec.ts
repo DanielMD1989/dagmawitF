@@ -1,5 +1,15 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test';
-import { fillNewJob, inspect, open, settled, signedInContext, text, texts, watchErrors } from './support/app';
+import {
+  fillNewJob,
+  inspect,
+  more,
+  open,
+  settled,
+  signedInContext,
+  text,
+  texts,
+  watchErrors,
+} from './support/app';
 import { sql, value } from './support/db';
 import { env, inDays, today } from './support/env';
 import { bigSketch, noise, notAPicture, smallSwatch } from './support/pictures';
@@ -115,9 +125,8 @@ test('she takes order 1, a bridal gown, building its steps with a tap each and g
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   ids.o1 = orderOfUrl();
   // The work is the title: who it is for and what it is.
-  await expect(page.locator('h1')).toHaveText('Selam Bekele · Bridal gown');
-  await expect(page.locator('.lede')).toContainText('#1');
-  await expect(page.locator('.chip').first()).toHaveText('Active');
+  await expect(page.locator('h1')).toHaveText('Bridal gown');
+  await expect(page.locator('.order-head')).toContainText('#1');
   expect(await stepTitles()).toEqual([
     'Appointment',
     'Sketch',
@@ -156,7 +165,7 @@ test('from any page of an order, the way back to Orders is at the top', async ()
   for (const path of ['', '/brief', '/measurements', '/history']) {
     await page.goto(`/orders/${ids.o1}${path}`);
     const back = page.locator('main .back-link');
-    await expect(back).toHaveText('← Orders');
+    await expect(back).toHaveText('Orders');
     await expect(back).toBeVisible();
     // Above the title, and big enough for a finger.
     const [link, title] = [await back.boundingBox(), await page.locator('h1').boundingBox()];
@@ -178,7 +187,7 @@ test('brief: the tab and the page say the same, and a second piece goes on the s
   await page.goto(`/orders/${ids.o1}`);
   await page
     .getByRole('navigation', { name: 'This order' })
-    .getByRole('link', { name: 'Design brief' })
+    .getByRole('link', { name: 'Brief', exact: true })
     .click();
   await page.waitForURL(/\/brief$/);
   await expect(page.getByRole('heading', { level: 2 })).toHaveText(['What is made', 'Pictures']);
@@ -459,7 +468,7 @@ test('order 2: an evening dress for another new client, with a few steps', async
   await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   ids.o2 = orderOfUrl();
-  await expect(page.locator('h1')).toHaveText('Hanna Tesfaye · Evening dress');
+  await expect(page.locator('h1')).toHaveText('Evening dress');
   // Its Delivery comes with it, on its day (decision 0096).
   expect(await stepTitles()).toEqual(['Buy fabric', 'Fitting', 'Delivery']);
 });
@@ -506,7 +515,7 @@ test('order 3: a client added on her own, then a fix started from the client pag
   await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   ids.o3 = orderOfUrl();
-  await expect(page.locator('h1')).toHaveText('Yonas Alemu · Suit alteration');
+  await expect(page.locator('h1')).toHaveText('Suit alteration');
   expect(await stepTitles()).toEqual(['Fix', 'Delivery']);
 });
 
@@ -521,32 +530,34 @@ test('order 3: a taken order number is refused at its field', async () => {
 
 test('order 3: put on hold with no reason, it is on hold; with one, the reason is shown', async () => {
   await page.goto(`/orders/${ids.o3}`);
-  // No reason: it is paused all the same (decision 0099).
-  await page.locator('summary', { hasText: 'Put on hold' }).click();
+  // No reason: it is paused all the same (decision 0099). Pausing is in the order's ⋯ sheet (decision 0105).
+  await open(await more(page), 'Put on hold');
   await page.getByRole('button', { name: 'Put on hold' }).click();
   await page.locator('.chip', { hasText: 'On hold' }).first().waitFor();
-  expect(await has('On hold.')).toBe(true);
+  await expect(page.locator('.order-head__state')).toHaveText('On hold');
+  await page.keyboard.press('Escape');
+  // Resuming is the main move, the big button.
   await page.getByRole('button', { name: 'Resume the order' }).click();
-  await page.locator('.chip', { hasText: 'Active' }).first().waitFor();
+  await page.locator('summary', { hasText: 'Mark as finished' }).waitFor();
   // With a reason, it is said.
-  await page.locator('summary', { hasText: 'Put on hold' }).click();
+  await open(await more(page), 'Put on hold');
   await page.getByLabel('Why is it on hold? (optional)').fill('Client abroad until December');
   await page.getByRole('button', { name: 'Put on hold' }).click();
   await page.locator('.chip', { hasText: 'On hold' }).first().waitFor();
-  expect(await has('On hold: Client abroad until December.')).toBe(true);
+  await expect(page.locator('.order-head__state')).toHaveText('On hold Client abroad until December');
+  await page.keyboard.press('Escape');
 });
 
 test('order 3: resumed, then finished on a day she chooses', async () => {
   await page.getByRole('button', { name: 'Resume the order' }).click();
-  await page.locator('.chip', { hasText: 'Active' }).first().waitFor();
-  // The move forward is the main button, first; the others are quieter (decision 0100).
-  await expect(page.locator('.status-actions > *').first()).toHaveClass(/disclosure--main/);
-  await expect(page.locator('.status-actions > *').last()).toHaveClass(/disclosure--warn/);
+  // The move forward is the one big button under the order's name; the others are in its ⋯ sheet (decision 0105).
+  await expect(page.locator('.status-actions > *')).toHaveCount(1);
+  await expect(page.locator('.status-actions > *')).toHaveClass(/disclosure--main/);
   await page.locator('summary', { hasText: 'Mark as finished' }).click();
   await expect(page.getByLabel('Finished on')).toHaveValue(today());
   await page.getByRole('button', { name: 'Mark as finished' }).click();
   await page.locator('.chip', { hasText: 'Finished' }).first().waitFor();
-  expect(await has('Finished on')).toBe(true);
+  await expect(page.locator('.order-head__state')).toHaveText(/^Finished On \w{3} \d{1,2} \w{3}\.$/);
   await inspect(page, 'finished order');
 });
 
@@ -556,7 +567,7 @@ test('order 3: a finished order is a record: nothing on it can be edited', async
   await expect(page.getByText('Add a step')).toHaveCount(0);
   await expect(page.getByRole('form', { name: 'Add steps' })).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Save', exact: true })).toHaveCount(0);
-  await open(page.locator('main'), 'Change the notes');
+  await open(await more(page), 'Change the notes');
   await expect(page.getByRole('button', { name: 'Save notes' })).toHaveCount(1);
   await page.goto(`/orders/${ids.o3}/brief`);
   await expect(page.getByText('Add another piece')).toHaveCount(0);
@@ -568,17 +579,18 @@ test('order 3: a finished order is a record: nothing on it can be edited', async
 
 test('order 3: reopened, cancelled with a reason, reopened as a draft and deleted', async () => {
   await page.goto(`/orders/${ids.o3}`);
-  await page.getByRole('button', { name: 'Reopen the order' }).click();
-  await page.locator('.chip', { hasText: 'Active' }).first().waitFor();
-  await page.locator('summary', { hasText: 'Cancel the order' }).click();
+  await (await more(page)).getByRole('button', { name: 'Reopen the order' }).click();
+  await page.locator('summary', { hasText: 'Mark as finished' }).waitFor();
+  await page.keyboard.press('Escape');
+  await open(await more(page), 'Cancel the order');
   await page.getByLabel('Why? (optional)').fill('Client found another tailor');
   await page.getByRole('button', { name: 'Cancel the order' }).click();
   await page.locator('.chip', { hasText: 'Cancelled' }).first().waitFor();
-  expect(await has('Cancelled: Client found another tailor')).toBe(true);
-  await page.getByRole('button', { name: 'Reopen as draft' }).click();
+  await expect(page.locator('.order-head__state')).toHaveText('Cancelled Client found another tailor');
+  await page.getByRole('dialog').getByRole('button', { name: 'Reopen as draft' }).click();
   await page.locator('.chip', { hasText: 'Draft' }).first().waitFor();
-  expect(await has('Draft: not on your calendar yet.')).toBe(true);
-  await page.getByRole('button', { name: 'Delete this order' }).click();
+  expect(await has('Not on your calendar yet.')).toBe(true);
+  await page.getByRole('dialog').getByRole('button', { name: 'Delete this order' }).click();
   await page.getByRole('button', { name: 'Yes, delete' }).click();
   await page.waitForURL(`${env.baseURL}/orders`);
   expect(await has('Suit alteration')).toBe(false);
@@ -594,8 +606,7 @@ test('an order made by mistake is deleted at once, whatever its state', async ()
   await fillNewJob(page, { client: 'Yonas Alemu', title: 'Typed by mistake', due: inDays(3) });
   await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
-  await expect(page.locator('.chip').first()).toHaveText('Active');
-  await page.getByRole('button', { name: 'Delete this order' }).click();
+  await (await more(page)).getByRole('button', { name: 'Delete this order' }).click();
   await page.getByRole('button', { name: 'Yes, delete' }).click();
   await page.waitForURL(`${env.baseURL}/orders`);
   expect(await has('Typed by mistake')).toBe(false);
@@ -612,7 +623,7 @@ test('order 3 again: the same client, a second fix, kept this time', async () =>
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   ids.o3 = orderOfUrl();
   // Deleted jobs promised nothing, so the next number is the one after the last kept.
-  await expect(page.locator('.lede')).toContainText('#3');
+  await expect(page.locator('.order-head')).toContainText('#3');
 });
 
 // ---------------------------------------------------------------- history, lists, clients
@@ -648,13 +659,14 @@ test('orders list: soonest first, two tabs, steps shown', async () => {
 
 test('clients: a client with orders cannot be deleted; one without can', async () => {
   await page.goto(`/clients/${ids.client1}`);
-  await expect(page.getByRole('button', { name: 'Remove this client' })).toHaveCount(0);
-  expect(await has('kept as a record')).toBe(true);
+  const sheet = await more(page);
+  await expect(sheet.getByRole('button', { name: 'Remove this client' })).toHaveCount(0);
+  await expect(sheet).toContainText('kept as a record');
   await page.goto('/clients/new');
   await page.getByLabel('Name', { exact: true }).fill('Walk-in, no order');
   await page.getByRole('button', { name: 'Save' }).click();
   await page.waitForURL(/\/clients\/[0-9a-f-]{36}$/);
-  await page.getByRole('button', { name: 'Remove this client' }).click();
+  await (await more(page)).getByRole('button', { name: 'Remove this client' }).click();
   await page.getByRole('button', { name: 'Yes, remove' }).click();
   await page.waitForURL(`${env.baseURL}/clients`);
   expect(await has('Walk-in, no order')).toBe(false);

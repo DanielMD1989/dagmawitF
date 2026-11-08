@@ -33,8 +33,7 @@ export default async function NumbersPage({ searchParams }: { searchParams: Prom
     <>
       <BackLink href="/orders">Orders</BackLink>
       <div className="page-head">
-        <p className="eyebrow">Numbers</p>
-        <h1>How it’s going</h1>
+        <h1>Numbers</h1>
       </div>
 
       <nav aria-label="By week or by month">

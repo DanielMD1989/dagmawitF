@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useRef } from 'react';
 import { addStep } from '@/app/(app)/steps/actions';
 import { FormNotice } from '@/components/FormNotice';
+import { useCloseOnSaved } from '@/components/Sheet';
 import { SubmitButton } from '@/components/SubmitButton';
 import { TextField } from '@/components/fields';
 import { idle } from '@/lib/action-state';
@@ -17,6 +18,7 @@ export function AddStepForm({
   summary,
   idPrefix,
   usual = [],
+  row = false,
 }: {
   orderId: string | null;
   /** The day it starts on unless she changes it. */
@@ -25,14 +27,20 @@ export function AddStepForm({
   idPrefix: string;
   /** Her usual steps, offered as she types the title. */
   usual?: readonly string[];
+  /** A row of a sheet (Today's "+"), rather than a link under a list. */
+  row?: boolean;
 }) {
   const [state, action] = useActionState(addStep, idle);
   const form = useRef<HTMLFormElement>(null);
   useEffect(() => {
     if (state.status === 'success') form.current?.reset();
   }, [state]);
+  useCloseOnSaved(form, state);
   return (
-    <details className="disclosure disclosure--link" open={state.status === 'error' || undefined}>
+    <details
+      className={row ? 'disclosure disclosure--row' : 'disclosure disclosure--link'}
+      open={state.status === 'error' || undefined}
+    >
       <summary>{summary}</summary>
       <div className="disclosure__panel">
         <form ref={form} action={action} className="form" noValidate>

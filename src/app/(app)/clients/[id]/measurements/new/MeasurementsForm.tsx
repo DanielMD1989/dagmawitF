@@ -49,7 +49,7 @@ export function MeasurementsForm({
         required
       />
       <FormNotice state={state} />
-      <div className="btn-row">
+      <div className="btn-row form-bar">
         <SubmitButton className="btn btn--main">Save measurements</SubmitButton>
       </div>
     </form>

@@ -192,14 +192,52 @@ export async function addSteps(page: Page, steps: NewStep[], wait = true): Promi
   return form;
 }
 
-/** Opens the disclosure whose summary starts with `summary`, inside `scope`, and returns it. */
+/**
+ * Opens the disclosure whose summary starts with `summary`, inside `scope`, and returns it. A step's or an order's
+ * less used actions are in a sheet (decision 0105): when the disclosure is not there yet and `scope` has one sheet
+ * opener (a step's row), that sheet is opened first.
+ */
 export async function open(scope: Locator, summary: string): Promise<Locator> {
-  const d = scope
-    .locator('details', { has: scope.page().locator('summary', { hasText: new RegExp(`^${esc(summary)}`) }) })
-    .first();
+  const find = () =>
+    scope
+      .locator('details', {
+        has: scope.page().locator('summary', { hasText: new RegExp(`^${esc(summary)}`) }),
+      })
+      .first();
+  if ((await find().count()) === 0) {
+    const openers = scope.locator('[aria-haspopup="dialog"]');
+    if ((await openers.count()) === 1) await openers.click();
+  }
+  const d = find();
+  await d.waitFor();
   if (!(await d.evaluate((el) => (el as HTMLDetailsElement).open)))
     await d.locator('summary').first().click();
   return d;
+}
+
+/**
+ * Opens what Today's "+" offers (decision 0105), and in it the disclosure whose summary starts with `summary`
+ * ("Something for yourself"). Returns it.
+ */
+export async function openNew(page: Page, summary: string): Promise<Locator> {
+  await page.getByRole('button', { name: 'New order, event, or something for yourself' }).click();
+  return open(page.getByRole('dialog'), summary);
+}
+
+/** Opens a step's sheet from its row (decision 0105) and returns the sheet. */
+export async function openStep(row: Locator): Promise<Locator> {
+  await row.locator('.item__open').click();
+  const sheet = row.page().getByRole('dialog');
+  await sheet.waitFor();
+  return sheet;
+}
+
+/** Opens an order's or a client's ⋯ sheet: its other moves, its details, removing it (decision 0105). Returns it. */
+export async function more(page: Page): Promise<Locator> {
+  await page.getByRole('button', { name: /^More for this (order|event|client)$/ }).click();
+  const sheet = page.getByRole('dialog');
+  await sheet.waitFor();
+  return sheet;
 }
 
 /**

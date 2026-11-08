@@ -1,32 +1,16 @@
 import { notFound } from 'next/navigation';
-import { ConfirmAction } from '@/components/ConfirmAction';
 import { AddStepForm } from '@/components/steps/AddStepForm';
 import { AddStepsForm } from '@/components/steps/AddStepsForm';
-import { PartDoneForm } from '@/components/steps/PartDoneForm';
-import { StepEditor } from '@/components/steps/StepEditor';
-import { DeliveryTick } from '@/components/steps/DeliveryTick';
-import { TickButton } from '@/components/steps/TickButton';
-import { formatDay } from '@/domain/dates';
+import { StepEntry } from '@/components/steps/StepEntry';
 import { isUuid } from '@/domain/form-input';
 import { isClosed } from '@/domain/orders/status';
-import {
-  inDayOrder,
-  isDeliveryStep,
-  isOverdue,
-  jobWarnings,
-  lastDayOf,
-  offersPartDone,
-} from '@/domain/steps/agenda';
-import { daysLabel, partDoneLabel, timeLabel } from '@/domain/steps/words';
-import { loadClients } from '@/server/clients';
+import { inDayOrder, isDeliveryStep, isOverdue, jobWarnings } from '@/domain/steps/agenda';
+import { usualSteps } from '@/domain/steps/usual';
 import { getOrder } from '@/server/orders';
 import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
 import { carryOver, loadJobSteps, loadUsedStepTitles } from '@/server/steps';
 import { createSupabase } from '@/server/supabase';
-import { OrderDetailsForm } from './OrderDetailsForm';
-import { usualSteps } from '@/domain/steps/usual';
-import { deleteJob } from './actions';
 
 /**
  * A job's steps, each on its day, and the job itself (docs/calendar-first.md). An event (no client) is its name and
@@ -41,9 +25,8 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
 
   const supabase = await createSupabase();
   await carryOver(supabase);
-  const [loaded, clients, prefs, used] = await Promise.all([
+  const [loaded, prefs, used] = await Promise.all([
     loadJobSteps(supabase, order.id),
-    loadClients(supabase),
     loadPreferences(supabase),
     loadUsedStepTitles(supabase),
   ]);
@@ -56,17 +39,16 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
   const work = steps.filter((s) => !isDeliveryStep(s.title));
   const usual = usualSteps(used);
   const event = !order.client;
-  const noun = event ? 'event' : 'order';
 
   return (
     <>
       <section className="section" aria-labelledby="steps-heading">
-        <div className="section__head">
+        <div className="section__head section__head--row">
           <h2 id="steps-heading">{event ? 'To prepare' : 'Steps'}</h2>
-          {event && steps.length === 0 && <p className="hint">Nothing yet.</p>}
+          {event && steps.length === 0 && <p className="hint">Nothing yet</p>}
           {steps.length > 0 && (
             <p className="hint">
-              {done} of {steps.length} done.
+              {done} of {steps.length} done
             </p>
           )}
         </div>
@@ -87,68 +69,21 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
             <p>No steps yet.</p>
           </div>
         )}
+        {/* Her steps in the order they happen, joined by a seam that is sewn as they are done (decision 0105). */}
         {steps.length > 0 && (
-          <ul className="items">
-            {steps.map((s) => {
-              const late = !closed && isOverdue(s, prefs.today);
-              const after = s.doneOn === null && (lastDayOf(s) ?? '') > order.deliveryOn;
-              const time = timeLabel(s);
-              return (
-                <li key={s.id} className={late || after ? 'item item--late' : 'item'}>
-                  <div className="item__head">
-                    {closed ? (
-                      <span
-                        className={s.doneOn ? 'item__mark item__mark--done' : 'item__mark'}
-                        aria-label={s.doneOn ? 'Done' : 'Not done'}
-                        role="img"
-                      />
-                    ) : !event && order.status === 'active' && !s.doneOn && isDeliveryStep(s.title) ? (
-                      // Ticking the Delivery hands the order over, on a day she gives (decision 0101).
-                      <DeliveryTick orderId={order.id} title={s.title} today={prefs.today} />
-                    ) : (
-                      <TickButton
-                        stepId={s.id}
-                        orderId={order.id}
-                        title={s.title}
-                        done={s.doneOn !== null}
-                        started={partDoneLabel(s) !== null}
-                      />
-                    )}
-                    <div className="item__main">
-                      <span className={s.doneOn ? 'item__title today__done' : 'item__title'}>{s.title}</span>
-                      <span className="hint">
-                        {daysLabel(s)}
-                        {time && ` · ${time}`}
-                        {s.doneOn && ` · done ${formatDay(s.doneOn)}`}
-                      </span>
-                      {late && <span className="item__note">Not done yet.</span>}
-                      {partDoneLabel(s) && (
-                        <span className="item__note item__note--started">{partDoneLabel(s)}</span>
-                      )}
-                      {!s.doneOn && s.movedFrom && (
-                        <span className="item__note item__note--moved">
-                          Moved from {formatDay(s.movedFrom)}
-                        </span>
-                      )}
-                      {after && <span className="item__note">After the order’s day.</span>}
-                    </div>
-                  </div>
-                  {!closed && offersPartDone(s, prefs.today) && (
-                    <PartDoneForm
-                      stepId={s.id}
-                      orderId={order.id}
-                      title={s.title}
-                      started={partDoneLabel(s) !== null}
-                      leftNote={s.leftNote ?? null}
-                    />
-                  )}
-                  {!closed && (
-                    <StepEditor orderId={order.id} step={s} delivery={!event && isDeliveryStep(s.title)} />
-                  )}
-                </li>
-              );
-            })}
-          </ul>
+          <ol className="items seam" aria-label={event ? 'To prepare' : 'Steps, in the order they happen'}>
+            {steps.map((s) => (
+              <StepEntry
+                key={s.id}
+                step={s}
+                overdue={!closed && isOverdue(s, prefs.today)}
+                inWork
+                showDay
+                atOrder
+                today={prefs.today}
+              />
+            ))}
+          </ol>
         )}
 
         {!closed &&
@@ -165,63 +100,12 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
           ))}
       </section>
 
-      <section className="section" aria-labelledby="details-heading">
-        <div className="section__head">
-          <h2 id="details-heading">About this {noun}</h2>
-        </div>
-        {/* What is saved, to read; changing it is folded away until she wants to (decision 0100). */}
-        {(closed || order.notes) && (
-          <dl className="facts card">
-            {closed && (
-              <>
-                <dt>For</dt>
-                <dd>{order.client?.name ?? 'An event'}</dd>
-                <dt>What it is</dt>
-                <dd>{order.title || '—'}</dd>
-                <dt>{order.client ? 'Delivery day' : 'Event day'}</dt>
-                <dd>{formatDay(order.deliveryOn)}</dd>
-              </>
-            )}
-            {order.notes && (
-              <>
-                <dt>Notes</dt>
-                <dd className="brief">{order.notes}</dd>
-              </>
-            )}
-          </dl>
-        )}
-        <details className="disclosure">
-          <summary>{closed ? 'Change the notes' : `Change the ${noun} details`}</summary>
-          <div className="disclosure__panel">
-            <OrderDetailsForm
-              order={{
-                id: order.id,
-                status: order.status,
-                clientId: order.client?.id ?? null,
-                title: order.title,
-                dueOn: order.deliveryOn,
-                notes: order.notes,
-              }}
-              clients={clients.map((c) => ({ id: c.id, name: c.name }))}
-            />
-          </div>
-        </details>
-      </section>
-
-      <section className="section" aria-labelledby="delete-heading">
-        <div className="section__head">
-          <h2 id="delete-heading">Delete this {noun}</h2>
-          <p className="hint">Only if it was added by mistake. To keep a record, cancel it.</p>
-        </div>
-        <ConfirmAction
-          action={deleteJob}
-          fields={{ id: order.id }}
-          label={`Delete this ${noun}`}
-          question={`Delete ${event ? `“${order.title}”` : `order #${order.number}`} completely? This cannot be undone.`}
-          confirmLabel="Yes, delete"
-          pendingText="Deleting…"
-        />
-      </section>
+      {order.notes && (
+        <section className="section" aria-labelledby="notes-heading">
+          <h2 id="notes-heading">Notes</h2>
+          <p className="card brief">{order.notes}</p>
+        </section>
+      )}
     </>
   );
 }

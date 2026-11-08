@@ -6,8 +6,8 @@ import { useEffect, useRef } from 'react';
 
 const TABS = [
   { path: '', label: 'Steps' },
-  { path: '/brief', label: 'Design brief' },
-  { path: '/measurements', label: 'Measurements' },
+  { path: '/brief', label: 'Brief' },
+  { path: '/measurements', label: 'Measures' },
   { path: '/history', label: 'History' },
 ] as const;
 

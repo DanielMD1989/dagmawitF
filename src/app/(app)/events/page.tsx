@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { BackLink } from '@/components/BackLink';
-import { QuickActions } from '@/components/QuickActions';
+import { AddLink, PageTitle } from '@/components/PageTitle';
 import { StatusChip } from '@/components/StatusChip';
 import { formatDay } from '@/domain/dates';
 import { daysLeft } from '@/domain/jobs/words';
@@ -26,19 +26,14 @@ export default async function EventsPage() {
   return (
     <>
       <BackLink href="/orders">Orders</BackLink>
-      <div className="page-head">
-        <p className="eyebrow">Events</p>
-        <h1>Your events</h1>
-      </div>
-
-      <QuickActions actions={[{ href: '/orders/new?event=1', label: 'New event', icon: 'event' }]} />
+      <PageTitle title="Events" action={<AddLink href="/orders/new?event=1" label="New event" />} />
 
       <section className="section" aria-labelledby="coming-heading">
         <h2 id="coming-heading" className="h3">
           Coming
         </h2>
         {coming.length === 0 ? (
-          <p className="day-list__empty">No events coming. Press “New event” to add one.</p>
+          <p className="day-list__empty">No events coming. Press + to add one.</p>
         ) : (
           <ul className="rows rows--links">
             {coming.map((e) => (

@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { QuickActions } from '@/components/QuickActions';
+import { AddLink, PageTitle } from '@/components/PageTitle';
+import { Chevron } from '@/components/Sheet';
 import { StatusChip } from '@/components/StatusChip';
 import { DeliverNowButton } from '@/components/steps/DeliverNowButton';
 import { formatDay } from '@/domain/dates';
@@ -39,21 +40,10 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
 
   return (
     <>
-      <div className="page-head">
-        <p className="eyebrow">Orders</p>
-        <h1>Your orders</h1>
-      </div>
-
-      <QuickActions
-        actions={[
-          { href: '/orders/new', label: 'New order', icon: 'add' },
-          { href: '/numbers', label: 'Numbers', icon: 'numbers' },
-          { href: '/events', label: 'Events', icon: 'event' },
-        ]}
-      />
+      <PageTitle title="Orders" action={<AddLink href="/orders/new" label="New order" />} />
 
       <nav aria-label="Orders">
-        <div className="segmented">
+        <div className="segmented segmented--bar">
           <Link href="/orders" aria-current={tab === 'active' ? 'true' : undefined}>
             Active ({active.length})
           </Link>
@@ -68,7 +58,7 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
           <div className="card">
             <p>
               {historyCount === 0
-                ? 'No orders yet. Press “New order” to take the first one.'
+                ? 'No orders yet. Press + to take the first one.'
                 : 'Nothing in progress. Finished orders are under History.'}
             </p>
           </div>
@@ -109,6 +99,18 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
           </section>
         ))
       )}
+
+      {/* Further on from her orders: her events, and how it is going (decision 0105). */}
+      <nav className="link-rows" aria-label="More">
+        <Link href="/events" className="sheet__row">
+          Events
+          <Chevron />
+        </Link>
+        <Link href="/numbers" className="sheet__row">
+          Numbers
+          <Chevron />
+        </Link>
+      </nav>
     </>
   );
 }

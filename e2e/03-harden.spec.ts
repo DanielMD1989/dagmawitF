@@ -440,7 +440,7 @@ test('the keyboard alone: take an order', async () => {
   await tabTo(page.getByRole('button', { name: 'Save the order' }));
   await page.keyboard.press('Enter');
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
-  await expect(page.locator('h1')).toHaveText('Hanna Tesfaye · Netela shawl');
+  await expect(page.locator('h1')).toHaveText('Netela shawl');
   // Its Delivery comes with it, last (decision 0096).
   await expect(page.locator('li.item .item__title')).toHaveText(['Fitting', 'Delivery']);
 });
@@ -468,7 +468,7 @@ test('a computer in dark mode still shows the light look, and Settings offers no
     page: getComputedStyle(document.body).backgroundColor,
     bar: getComputedStyle(document.querySelector('.nav')!).backgroundColor,
   }));
-  expect(colours).toEqual({ page: 'rgb(250, 248, 245)', bar: 'rgb(15, 63, 0)' });
+  expect(colours).toEqual({ page: 'rgb(244, 245, 241)', bar: 'rgb(15, 63, 0)' });
   await p.goto('/settings');
   await expect(p.getByRole('heading', { name: 'Appearance' })).toHaveCount(0);
   await c.close();
@@ -510,4 +510,18 @@ test('every screen passes axe with best practices, on a phone and on a computer 
 
 test('no browser errors along the way', async () => {
   expect(errors.list).toEqual([]);
+});
+
+test('the keyboard alone: a step’s sheet opens, holds the focus, and Escape closes it (decision 0105)', async () => {
+  await page.goto('/');
+  const row = page.locator('button.item__open').first();
+  await page.locator('body').focus();
+  await tabTo(row);
+  await page.keyboard.press('Enter');
+  const sheet = page.getByRole('dialog');
+  await expect(sheet).toBeVisible();
+  expect(await page.evaluate(() => document.activeElement?.closest('dialog') !== null)).toBe(true);
+  await page.keyboard.press('Escape');
+  await expect(sheet).toHaveCount(0);
+  await expect(row).toBeFocused();
 });

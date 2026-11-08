@@ -6,7 +6,10 @@ import {
   fillNewJob,
   inspect,
   item,
+  more,
   open,
+  openNew,
+  openStep,
   ready,
   settled,
   signedInContext,
@@ -74,7 +77,7 @@ test('she ticks a step done, it tells the order’s history, and she can open it
 });
 
 test('something of her own for today, at a time', async () => {
-  const form = await open(section('Today'), 'Add something for yourself');
+  const form = await openNew(page, 'Something for yourself');
   await form.getByLabel('Step').fill('Sharpen the shears');
   await form.getByLabel('From (optional)').fill('10:00');
   await form.getByLabel('To (optional)').fill('10:30');
@@ -86,7 +89,7 @@ test('something of her own for today, at a time', async () => {
 
 test('a refused step keeps what she typed and says why next to the field', async () => {
   await page.goto('/');
-  const form = await open(section('Today'), 'Add something for yourself');
+  const form = await openNew(page, 'Something for yourself');
   await form.getByLabel('Step').fill('Press the veil');
   await form.getByLabel('From (optional)').fill('11:00');
   await form.getByLabel('To (optional)').fill('10:00');
@@ -116,8 +119,8 @@ test('an appointment is a step at a time on its day; a time already taken is ref
   await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   ids.o4 = /\/orders\/([0-9a-f-]{36})/.exec(page.url())![1]!;
-  await expect(page.locator('h1')).toHaveText('Selam Bekele · Wedding guest dress');
-  await expect(page.locator('.lede')).toContainText('#4');
+  await expect(page.locator('h1')).toHaveText('Wedding guest dress');
+  await expect(page.locator('.order-head')).toContainText('#4');
   await page.goto('/');
   const appointment = item(section('Today'), 'Appointment', 'Selam Bekele · Wedding guest dress');
   await expect(appointment.locator('.item__time')).toHaveText('10:30 AM');
@@ -129,7 +132,7 @@ test('an appointment is a step at a time on its day; a time already taken is ref
 });
 
 test('a step’s time already taken is refused there too', async () => {
-  const form = await open(section('Today'), 'Add something for yourself');
+  const form = await openNew(page, 'Something for yourself');
   await form.getByLabel('Step').fill('Call the lace supplier');
   // The appointment is at 10:30.
   await form.getByLabel('From (optional)').fill('10:30');
@@ -149,7 +152,8 @@ test('a step not done on its day moves to today, and says the day it was for', a
   const form = await open(step, 'Change');
   await form.getByLabel('Day', { exact: true }).fill(inDays(-2));
   await form.getByRole('button', { name: 'Save the step' }).click();
-  await form.locator('.notice--success').waitFor();
+  // Saved, its sheet closes (decision 0105).
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   // The next morning, so to speak: opening the app moves it to today (decision 0080).
   await page.goto('/');
   const moved = item(section('Today'), 'Sketch', 'Selam Bekele · Bridal gown');
@@ -176,7 +180,7 @@ test('a step over several days shows on each of them', async () => {
   const change = await open(beading, 'Change');
   await change.getByLabel('Last day (optional)').fill(inDays(2));
   await change.getByRole('button', { name: 'Save the step' }).click();
-  await change.locator('.notice--success').waitFor();
+  await expect(page.getByRole('dialog')).toHaveCount(0);
   await expect(item(page, 'Beading')).toContainText('–');
   await page.goto('/');
   await expect(item(section('Today'), 'Beading')).toContainText('Day 1 of 3');
@@ -190,13 +194,14 @@ test('moving an order’s day moves its steps not done yet by as many days', asy
   // Done steps stay where they were.
   await page.getByRole('button', { name: 'Mark Beading as done' }).click();
   await page.getByRole('button', { name: 'Beading: done. Mark as not done' }).waitFor();
-  await open(page.locator('main'), 'Change the order details');
+  await open(await more(page), 'Change the order details');
   await page.getByLabel('Delivery day').fill(inDays(67));
   await page.getByRole('button', { name: 'Save', exact: true }).click();
   // Seven: the eight steps with a day, less Beading, done. Lace work has no day and stays without one.
   // Its Delivery moves with the day by itself (decision 0096); the other steps by as many days.
   await expect(page.locator('.notice--success').last()).toHaveText(/^Saved\. 6 steps moved with the day\.$/);
   expect(await stepDay(ids.o1!, 'Fitting')).toBe(inDays(39));
+  await page.keyboard.press('Escape');
   expect(await stepDay(ids.o1!, 'Delivery')).toBe(inDays(67));
   expect(await stepDay(ids.o1!, 'Sketch')).toBe(inDays(7));
   expect(await stepDay(ids.o1!, 'Beading')).toBe(today());
@@ -218,11 +223,10 @@ test('a step after the order’s day is pointed out', async () => {
   await page.goto(`/orders/${ids.o3}`);
   await addSteps(page, [{ title: 'Press', day: inDays(5) }]);
   await expect(page.locator('.card--warn')).toContainText('“Press” is after the order’s day.');
-  await expect(item(page, 'Press')).toContainText('After the order’s day.');
+  await expect(item(page, 'Press')).toContainText('After the order’s day');
   // Removed again.
   const press = item(page, 'Press');
-  await open(press, 'Change');
-  await press.getByRole('button', { name: 'Remove this step' }).click();
+  await (await openStep(press)).getByRole('button', { name: 'Remove this step' }).click();
   await press.getByRole('button', { name: 'Yes, remove' }).click();
   await press.waitFor({ state: 'detached' });
 });
@@ -273,7 +277,9 @@ test('there is no Library: her steps are the same each time, so the step buttons
 
 test('an event, such as a bazaar or a show, is its name and its day, counted down on Today however far', async () => {
   await page.goto('/');
-  await page.getByRole('link', { name: 'New event' }).click();
+  // From Today's "+" (decision 0105).
+  await page.getByRole('button', { name: 'New order, event, or something for yourself' }).click();
+  await page.getByRole('dialog').getByRole('link', { name: 'New event' }).click();
   await page.waitForURL(/\/orders\/new\?event=1$/);
   await expect(page.locator('h1')).toHaveText('New event');
   // An event is for no customer: it is not asked which (decision 0084).
@@ -288,7 +294,7 @@ test('an event, such as a bazaar or a show, is its name and its day, counted dow
   await page.getByRole('button', { name: 'Save the event' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
   await expect(page.locator('h1')).toHaveText('Fashion show at the Sheraton');
-  await expect(page.locator('.lede')).toContainText('70 days left');
+  await expect(page.locator('.order-head')).toContainText('70 days left');
   await expect(page.getByRole('navigation', { name: 'This event' }).getByRole('link')).toHaveText([
     'To prepare',
     'History',
@@ -407,7 +413,7 @@ test('a step part done stays open, says what is left, and is on the history; a D
   await page.goto(`/orders/${ids.o1}`);
   await ready(page);
   const lace = item(page, 'Lace work');
-  const form = await open(lace, 'Part done…');
+  const form = await open(lace, 'Part done');
   await inspect(page, 'part done form');
   await form.getByLabel('What is left (optional)').fill('Sleeves and hem');
   await form.getByRole('button', { name: 'Mark part done' }).click();
@@ -427,7 +433,7 @@ test('a step part done stays open, says what is left, and is on the history; a D
     ),
   ).toBe('Hem');
   // A Delivery is not offered it.
-  await expect(item(page, 'Delivery').getByText('Part done…')).toHaveCount(0);
+  await expect(item(page, 'Delivery').getByText('Part done')).toHaveCount(0);
   await page.goto(`/orders/${ids.o1}/history`);
   expect(await text(page)).toContain('Part done: Lace work. Left: Hem.');
   await settled(page);
@@ -475,7 +481,7 @@ test('ticking an order’s Delivery finishes it: it leaves Active for History, a
   await inspect(page, 'order history');
   // Its page goes back to History.
   await month.getByRole('link', { name: /Hem trousers/ }).click();
-  await expect(page.locator('.back-link')).toHaveText('← History');
+  await expect(page.locator('.back-link')).toHaveText('History');
   await expect(page.locator('.back-link')).toHaveAttribute('href', '/orders?tab=history');
 });
 
@@ -512,7 +518,8 @@ test('an order with several steps on a day is shown once, its steps inside it', 
   await card.getByRole('button', { name: /Fix, Yonas Alemu · Suit alteration: done/ }).click();
   await page.goto(`/orders/${id}`);
   const press = item(page, 'Press');
-  await (await open(press, 'Change')).getByRole('button', { name: 'Remove this step' }).click();
+  // Removing is in its sheet, on its own (decision 0105).
+  await (await openStep(press)).getByRole('button', { name: 'Remove this step' }).click();
   await page.getByRole('button', { name: 'Yes, remove' }).click();
   await expect(item(page, 'Press')).toHaveCount(0);
 });

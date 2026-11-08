@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { BackLink } from '@/components/BackLink';
+import { CancelLink } from '@/components/BackLink';
 import { notFound } from 'next/navigation';
 import { asId, isUuid } from '@/domain/form-input';
 import { loadClient } from '@/server/clients';
@@ -40,9 +40,9 @@ export default async function RecordMeasurementsPage({
   const visible = fields.filter((f) => !f.archived);
 
   return (
-    <>
+    <div className="form-screen">
       <div className="page-head">
-        <BackLink href={`/clients/${client.id}`}>{client.name}</BackLink>
+        <CancelLink href={orderId ? `/orders/${orderId}/measurements` : `/clients/${client.id}`} />
         <h1>Measurements</h1>
       </div>
       {visible.length === 0 ? (
@@ -59,6 +59,6 @@ export default async function RecordMeasurementsPage({
           startingValues={continues ? latest.measures : {}}
         />
       )}
-    </>
+    </div>
   );
 }

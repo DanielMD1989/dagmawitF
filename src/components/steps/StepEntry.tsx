@@ -3,8 +3,11 @@ import { formatDay, type IsoDate } from '@/domain/dates';
 import { jobHeadline } from '@/domain/jobs/words';
 import { isDeliveryStep, isRecord, lastDayOf, offersPartDone, type Step } from '@/domain/steps/agenda';
 import { partDoneLabel, timeLabel } from '@/domain/steps/words';
+import { Chevron, Sheet } from '@/components/Sheet';
+import { DeliveredForm } from './DeliveredForm';
 import { DeliveryTick } from './DeliveryTick';
 import { PartDoneForm } from './PartDoneForm';
+import { RemoveStep, StepEditor } from './StepEditor';
 import { TickButton } from './TickButton';
 
 /** An active order's Delivery, not yet ticked: ticking it hands the order over, on a day she gives (decision 0101). */
@@ -18,10 +21,21 @@ function delivers(step: Step): boolean {
   );
 }
 
+/** "Today · 10:00 AM", "Thu 19 Nov", "Done Sun 8 Nov", "No day yet". */
+function whenWords(step: Step, today: IsoDate): string {
+  if (step.doneOn) return `Done ${step.doneOn === today ? 'today' : formatDay(step.doneOn)}`;
+  if (!step.onDay) return 'No day yet';
+  const day = step.onDay === today ? 'Today' : formatDay(step.onDay);
+  const until = step.untilDay ? ` – ${formatDay(step.untilDay)}` : '';
+  const time = timeLabel(step);
+  return `${day}${until}${time ? ` · ${time}` : ''}`;
+}
+
 /**
- * One step on Today or the calendar. On its own, the work comes first, in large: "Megan · Bridal gown" (her Task 7);
- * the step and its time under it; her own steps, of no job, are their own title. In its order's card (`inWork`,
- * decision 0098) the order is said once above, so the step is the title.
+ * One step on Today, the calendar or its order (decision 0105): a row with its round mark, which ticks it, and the
+ * rest of the row, which opens its sheet: Done, Part done, Change day or time, Open the order, Remove. In its order's
+ * card or on its order's page (`inWork`) the order is said once above, so the row is the step; on its own it says
+ * whose it is under the step.
  */
 export function StepEntry({
   step,
@@ -29,6 +43,8 @@ export function StepEntry({
   clash = false,
   overdue = false,
   inWork = false,
+  showDay = false,
+  atOrder = false,
   today,
 }: {
   step: Step;
@@ -36,19 +52,64 @@ export function StepEntry({
   clash?: boolean;
   overdue?: boolean;
   inWork?: boolean;
-  /** Her today: "Part done…" is offered for today's work and late work, not days to come (decision 0100). */
+  /** On its order's page each row says its day; on a day's list the day is the list's. */
+  showDay?: boolean;
+  /** On its order's page: its sheet does not offer to open the order. */
+  atOrder?: boolean;
+  /** Her today: "Part done" is offered for today's work and late work, not days to come (decision 0100). */
   today: IsoDate;
 }) {
   const done = step.doneOn !== null;
+  const record = isRecord(step);
   const time = timeLabel(step);
   const last: IsoDate | null = lastDayOf(step);
   const work = step.job ? jobHeadline(step.job) : null;
-  const titleClass = done ? 'item__title today__done' : 'item__title';
   const partDone = partDoneLabel(step);
+  const delivery = step.job !== null && step.job.clientName !== null && isDeliveryStep(step.title);
+  // On its order's page the order is plain, so the mark says the step alone.
+  const label = work && !atOrder ? `${step.title}, ${work}` : step.title;
+  // A step planned after its order is due, while it can still be moved.
+  const after = !done && !record && !delivery && step.job !== null && last !== null && last > step.job.dueOn;
+  // Under the step: its day on its order's page; whose it is when it stands alone; which day of several.
+  const rest = [
+    showDay ? whenWords(step, today) : null,
+    part,
+    !inWork && step.job ? `#${step.job.number}` : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  const row = (
+    <>
+      {time && !showDay && <span className="item__time">{time}</span>}
+      <span
+        className={['item__title', inWork ? 'item__title--step' : '', done ? 'today__done' : '']
+          .filter(Boolean)
+          .join(' ')}
+      >
+        {step.title}
+      </span>
+      {(!inWork || rest) && (
+        <span className="item__sub">
+          {!inWork && <span className="item__work">{work ?? 'Your own'}</span>}
+          {!inWork && rest && ' · '}
+          {rest}
+        </span>
+      )}
+      {overdue && last && <span className="item__note late">Was for {formatDay(last)}</span>}
+      {partDone && <span className="item__note item__note--started">{partDone}</span>}
+      {!done && step.movedFrom && (
+        <span className="item__note item__note--moved">Moved from {formatDay(step.movedFrom)}</span>
+      )}
+      {clash && <span className="item__note item__note--warn">Its time crosses another step’s</span>}
+      {after && <span className="item__note item__note--warn">After the order’s day</span>}
+    </>
+  );
+
   return (
-    <li className={overdue ? 'item item--late' : 'item'}>
+    <li className={['item', overdue ? 'item--late' : '', done ? 'item--done' : ''].filter(Boolean).join(' ')}>
       <div className="item__head">
-        {isRecord(step) ? (
+        {record ? (
           // Its order is finished: the step is shown as it was left.
           <span
             className={done ? 'item__mark item__mark--done' : 'item__mark'}
@@ -56,64 +117,63 @@ export function StepEntry({
             role="img"
           />
         ) : delivers(step) ? (
-          <DeliveryTick
-            orderId={step.job!.id}
-            title={work ? `${step.title}, ${work}` : step.title}
-            today={today}
-          />
+          <DeliveryTick orderId={step.job!.id} title={label} today={today} />
         ) : (
           <TickButton
             stepId={step.id}
             orderId={step.job?.id ?? null}
-            title={work ? `${step.title}, ${work}` : step.title}
+            title={label}
             done={done}
             started={partDone !== null}
           />
         )}
-        <div className="item__main">
-          {time && <span className="item__time">{time}</span>}
-          {inWork ? (
-            <>
-              <span className={`${titleClass} item__title--step`}>{step.title}</span>
-              {part && <span className="hint">{part}</span>}
-            </>
-          ) : (
-            <>
-              {step.job && work ? (
-                <Link href={`/orders/${step.job.id}`} className={`${titleClass} step-work`}>
-                  {work}
-                </Link>
-              ) : (
-                <span className={titleClass}>{step.title}</span>
+        {record ? (
+          <div className="item__open item__open--still">{row}</div>
+        ) : (
+          <Sheet title={step.title} opener={row} openerClass="item__open">
+            <p className="sheet__when">
+              {whenWords(step, today)}
+              {work && <> · {work}</>}
+            </p>
+            {partDone && <p className="sheet__when">{partDone}</p>}
+            {delivers(step) ? (
+              <DeliveredForm orderId={step.job!.id} today={today} idPrefix={`sheet-${step.id}`} />
+            ) : (
+              <TickButton
+                stepId={step.id}
+                orderId={step.job?.id ?? null}
+                title={label}
+                done={done}
+                started={partDone !== null}
+                wide
+              />
+            )}
+            <div className="sheet__group">
+              {offersPartDone(step, today) && (
+                <PartDoneForm
+                  stepId={step.id}
+                  orderId={step.job?.id ?? null}
+                  title={step.title}
+                  started={partDone !== null}
+                  leftNote={step.leftNote ?? null}
+                />
               )}
-              <span className="hint">
-                {step.job ? <span className="item__step">{step.title}</span> : 'Your own'}
-                {part && ` · ${part}`}
-                {step.job && ` · #${step.job.number}`}
-              </span>
-            </>
-          )}
-          {overdue && last && <span className="item__note">Was for {formatDay(last)}, not done yet.</span>}
-          {partDone && <span className="item__note item__note--started">{partDone}</span>}
-          {!done && step.movedFrom && (
-            <span className="item__note item__note--moved">Moved from {formatDay(step.movedFrom)}</span>
-          )}
-          {clash && (
-            <span className="item__note item__note--warn">
-              Its time crosses another step’s. Move one of them.
-            </span>
-          )}
-        </div>
+              <StepEditor orderId={step.job?.id ?? null} step={step} delivery={delivery} />
+              {step.job && !atOrder && (
+                <Link href={`/orders/${step.job.id}`} className="sheet__row">
+                  Open the order
+                  <Chevron />
+                </Link>
+              )}
+            </div>
+            {!delivery && (
+              <div className="sheet__group sheet__group--warn">
+                <RemoveStep stepId={step.id} orderId={step.job?.id ?? null} title={step.title} />
+              </div>
+            )}
+          </Sheet>
+        )}
       </div>
-      {offersPartDone(step, today) && !isRecord(step) && (
-        <PartDoneForm
-          stepId={step.id}
-          orderId={step.job?.id ?? null}
-          title={step.title}
-          started={partDone !== null}
-          leftNote={step.leftNote ?? null}
-        />
-      )}
     </li>
   );
 }

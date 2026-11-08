@@ -1,5 +1,5 @@
 import type { Metadata } from 'next';
-import { BackLink } from '@/components/BackLink';
+import { CancelLink } from '@/components/BackLink';
 import { asId } from '@/domain/form-input';
 import { NO_CLIENT } from '@/domain/orders/forms';
 import { usualSteps } from '@/domain/steps/usual';
@@ -36,9 +36,9 @@ export default async function NewJobPage({
   const event = initialClient === NO_CLIENT;
 
   return (
-    <>
+    <div className="form-screen">
       <div className="page-head">
-        {event ? <BackLink href="/events">Events</BackLink> : <BackLink href="/orders">Orders</BackLink>}
+        <CancelLink href={event ? '/events' : '/orders'} />
         <h1>{event ? 'New event' : 'New order'}</h1>
       </div>
       <NewJobForm
@@ -49,6 +49,6 @@ export default async function NewJobPage({
         nextNumber={hints.nextNumber}
         garmentTypes={hints.garmentTypes}
       />
-    </>
+    </div>
   );
 }

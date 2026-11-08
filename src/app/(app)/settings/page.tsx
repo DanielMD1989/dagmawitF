@@ -30,7 +30,6 @@ export default async function SettingsPage() {
   return (
     <>
       <div className="page-head">
-        <p className="eyebrow">Settings</p>
         <h1>Settings</h1>
       </div>
 

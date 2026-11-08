@@ -44,7 +44,7 @@ export function NewClientForm({ fields, unit }: { fields: MeasurementField[]; un
         placeholder="Fit preferences, etc."
       />
       <FormNotice state={state} />
-      <div className="btn-row">
+      <div className="btn-row form-bar">
         <SubmitButton className="btn btn--main">Save</SubmitButton>
       </div>
     </form>

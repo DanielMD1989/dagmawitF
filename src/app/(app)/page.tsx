@@ -1,12 +1,12 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { JobDueRow } from '@/components/JobDueRow';
-import { QuickActions } from '@/components/QuickActions';
+import { PageTitle, Plus } from '@/components/PageTitle';
+import { Chevron, Sheet } from '@/components/Sheet';
 import { SaveForOffline } from '@/components/offline/SaveForOffline';
 import { AddStepForm } from '@/components/steps/AddStepForm';
 import { DayItems } from '@/components/steps/DayItems';
-import { formatDay, formatDayLong, hourIn } from '@/domain/dates';
-import { greetingFor } from '@/domain/greeting';
+import { formatDay, formatDayLong } from '@/domain/dates';
 import { dueNotShown } from '@/domain/jobs/words';
 import { buildAgenda } from '@/domain/steps/agenda';
 import { makeSnapshot } from '@/domain/steps/offline';
@@ -55,21 +55,31 @@ export default async function TodayPage() {
   return (
     <>
       <SaveForOffline snapshot={snapshot} />
-      <div className="page-head">
-        <p className="eyebrow">{formatDayLong(today).replace(' ', ' · ')}</p>
-        <div className="title-row">
-          <h1>
-            {greetingFor(hourIn(timezone))}
-            {firstName ? `, ${firstName}` : ''}.
-          </h1>
-        </div>
-      </div>
-      <QuickActions
-        actions={[
-          { href: '/orders/new', label: 'New order', icon: 'add' },
-          { href: '/orders/new?event=1', label: 'New event', icon: 'event' },
-          { href: '/coming-up', label: 'Coming up', icon: 'upcoming' },
-        ]}
+      <PageTitle
+        eyebrow={formatDayLong(today)}
+        title="Today"
+        action={
+          // What can be added from Today, in one sheet behind one "+" (decision 0105).
+          <Sheet
+            title="New"
+            opener={<Plus />}
+            openerClass="icon-btn icon-btn--round icon-btn--solid"
+            openerLabel="New order, event, or something for yourself"
+            chevron={false}
+          >
+            <div className="sheet__group">
+              <Link href="/orders/new" className="sheet__row">
+                New order
+                <Chevron />
+              </Link>
+              <Link href="/orders/new?event=1" className="sheet__row">
+                New event
+                <Chevron />
+              </Link>
+              <AddStepForm orderId={null} day={today} summary="Something for yourself" idPrefix="own" row />
+            </div>
+          </Sheet>
+        }
       />
 
       {agenda.overdue.length > 0 && (
@@ -89,11 +99,10 @@ export default async function TodayPage() {
 
       {first && (
         <section className="section day-list" aria-labelledby="today-heading">
-          <div className="day-list__head">
-            <h2 id="today-heading" className="h3">
-              Today
-            </h2>
-          </div>
+          {/* The page is Today: its list needs no title of its own on screen. */}
+          <h2 id="today-heading" className="sr-only">
+            Today
+          </h2>
           {dueToday.length > 0 && (
             <ul className="rows rows--links" aria-label="Due today">
               {dueToday.map((job) => (
@@ -112,7 +121,6 @@ export default async function TodayPage() {
           ) : (
             dueToday.length === 0 && <p className="day-list__empty">Nothing on today.</p>
           )}
-          <AddStepForm orderId={null} day={today} summary="Add something for yourself" idPrefix="own" />
         </section>
       )}
 
@@ -151,9 +159,16 @@ export default async function TodayPage() {
         </section>
       )}
 
-      <p className="hint">
-        <Link href="/calendar">See the whole month</Link>
-      </p>
+      <nav className="link-rows" aria-label="Further on">
+        <Link href="/coming-up" className="sheet__row">
+          Coming up
+          <Chevron />
+        </Link>
+        <Link href="/calendar" className="sheet__row">
+          The whole month
+          <Chevron />
+        </Link>
+      </nav>
     </>
   );
 }

@@ -22,6 +22,21 @@ function Mark({ title, done, started }: { title: string; done: boolean; started:
   );
 }
 
+/** The same tick as the sheet's big button: "Done", or "Not done" for one already ticked (decision 0105). */
+function Wide({ done }: { done: boolean }) {
+  const { pending } = useFormStatus();
+  return (
+    <button
+      type="submit"
+      className={done ? 'btn btn--quiet btn--main sheet__done' : 'btn btn--main sheet__done'}
+      aria-busy={pending}
+      disabled={pending}
+    >
+      {done ? 'Not done' : 'Done'}
+    </button>
+  );
+}
+
 /** The round mark beside a step: one tap ticks it done today, another opens it again. */
 export function TickButton({
   stepId,
@@ -29,6 +44,7 @@ export function TickButton({
   title,
   done,
   started = false,
+  wide = false,
 }: {
   stepId: string;
   orderId: string | null;
@@ -36,14 +52,20 @@ export function TickButton({
   done: boolean;
   /** Part done (decision 0087): the mark is half filled until it is ticked done. */
   started?: boolean;
+  /** The big button in a step's sheet, which closes it (decision 0105). */
+  wide?: boolean;
 }) {
   const [state, action] = useActionState(toggleStep, idle);
   return (
-    <form action={action} className="tick-form">
+    <form
+      action={action}
+      className={wide ? 'sheet__primary' : 'tick-form'}
+      data-closes={wide ? '' : undefined}
+    >
       <input type="hidden" name="step-id" value={stepId} />
       {orderId && <input type="hidden" name="order-id" value={orderId} />}
       <input type="hidden" name="saw-done" value={String(done)} />
-      <Mark title={title} done={done} started={started} />
+      {wide ? <Wide done={done} /> : <Mark title={title} done={done} started={started} />}
       {state.status === 'error' && (
         <span className="error tick-form__error" role="alert">
           {state.message}

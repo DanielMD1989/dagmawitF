@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { QuickActions } from '@/components/QuickActions';
+import { AddLink, PageTitle } from '@/components/PageTitle';
 import { loadClients } from '@/server/clients';
 import { requireUser } from '@/server/session';
 import { createSupabase } from '@/server/supabase';
@@ -13,12 +13,7 @@ export default async function ClientsPage() {
 
   return (
     <>
-      <div className="page-head">
-        <p className="eyebrow">Clients</p>
-        <h1>Your clients</h1>
-      </div>
-
-      <QuickActions actions={[{ href: '/clients/new', label: 'New client', icon: 'add' }]} />
+      <PageTitle title="Clients" action={<AddLink href="/clients/new" label="New client" />} />
 
       {clients.length === 0 ? (
         <div className="card">
