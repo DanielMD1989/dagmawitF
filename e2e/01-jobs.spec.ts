@@ -341,9 +341,9 @@ test('measurements: the form asks for her list, in her order, with today and her
   await page.waitForURL(/\/clients\/[0-9a-f-]{36}\/measurements\/new\?order=/);
   ids.client1 = /clients\/([0-9a-f-]{36})/.exec(page.url())![1]!;
   const labels = await texts(page.locator('.measure-grid label'));
-  expect(labels).toHaveLength(12);
+  expect(labels).toHaveLength(13);
   expect(labels[0]).toMatch(/^Bust/);
-  expect(labels[11]).toMatch(/^Inseam/);
+  expect(labels[12]).toMatch(/^Height/);
   await expect(page.getByLabel('Measured on')).toHaveValue(today());
   await expect(page.getByLabel('Centimetres')).toBeChecked();
   await inspect(page, 'record measurements');
@@ -369,10 +369,10 @@ test('measurements: nothing at all is refused', async () => {
 
 test('measurements: saving from an order returns to it, every garment made to version 1', async () => {
   await page.locator('#m-bust').fill('92.5');
-  await page.locator('#m-underbust').fill('78');
+  await page.locator('#m-shoulder_to_bust').fill('78');
   await page.locator('#m-waist').fill('70');
   await page.locator('#m-hip').fill('98');
-  await page.locator('#m-dress_length').fill('150');
+  await page.locator('#m-coat_length').fill('150');
   await page.getByLabel('Note (optional)').fill('Measured standing, in her wedding shoes');
   await page.getByRole('button', { name: 'Save measurements' }).click();
   await page.waitForURL(`${env.baseURL}/orders/${ids.o1}/measurements`);
@@ -408,7 +408,7 @@ test('measurements: the order says what changed and moves no garment by itself',
   expect(t).toContain('A newer version, 2');
   expect(t).toContain('Waist: 70 cm → 68 cm (-2 cm)');
   expect(t).toContain('Hip: 98 cm → 99.5 cm (+1.5 cm)');
-  expect(t).toContain('Sleeve length: now 58 cm');
+  expect(t).toContain('Sleeve: now 58 cm');
   await inspect(page, 'order measurements outdated');
 });
 
@@ -446,25 +446,25 @@ test('clients: her list of measurements can be renamed, reordered, hidden, shown
       .locator('.field-row__name input.input')
       .evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value));
   expect((await labels())[0]).toBe('Bust');
-  expect(await labels()).toHaveLength(12);
+  expect(await labels()).toHaveLength(13);
   await page.locator('input[id$="-label"]').first().fill('Bust (fullest part)');
   await page.getByRole('button', { name: 'Save name of Bust' }).click();
   await page.locator('.notice--success').first().waitFor();
-  await page.getByRole('button', { name: 'Move Waist up' }).click();
-  await expect.poll(async () => (await labels())[1]).toBe('Waist');
-  expect((await labels()).slice(0, 4)).toEqual(['Bust (fullest part)', 'Waist', 'Under bust', 'Hip']);
+  await page.getByRole('button', { name: 'Move Hip up' }).click();
+  await expect.poll(async () => (await labels())[1]).toBe('Hip');
+  expect((await labels()).slice(0, 4)).toEqual(['Bust (fullest part)', 'Hip', 'Waist', 'Shoulder to bust']);
   await expect(page.getByRole('button', { name: 'Move Bust (fullest part) up' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Move Inseam down' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: 'Move Height down' })).toBeDisabled();
   // A name already taken, in other capitals, is refused.
-  await page.locator('input[id$="-label"]').nth(2).fill('WAIST');
-  await page.getByRole('button', { name: 'Save name of Under bust' }).click();
+  await page.locator('input[id$="-label"]').nth(2).fill('HIP');
+  await page.getByRole('button', { name: 'Save name of Waist' }).click();
   await expect(page.locator('.error').first()).toContainText('already have a measurement');
   await page.reload();
-  await page.getByRole('button', { name: 'Hide Neck from new forms' }).click();
-  await page.getByRole('button', { name: 'Show Neck on new forms' }).waitFor();
-  expect(await labels()).toHaveLength(11);
-  await page.getByRole('button', { name: 'Show Neck on new forms' }).click();
-  await expect.poll(async () => (await labels()).length).toBe(12);
+  await page.getByRole('button', { name: 'Hide Height from new forms' }).click();
+  await page.getByRole('button', { name: 'Show Height on new forms' }).waitFor();
+  expect(await labels()).toHaveLength(12);
+  await page.getByRole('button', { name: 'Show Height on new forms' }).click();
+  await expect.poll(async () => (await labels()).length).toBe(13);
   await page.getByLabel('A measurement to add').fill('Knee to hem');
   await page.getByRole('button', { name: 'Add to the list' }).click();
   await expect.poll(async () => (await labels()).at(-1)).toBe('Knee to hem');
@@ -472,7 +472,7 @@ test('clients: her list of measurements can be renamed, reordered, hidden, shown
   await page.goto(`/clients/${ids.client1}/measurements/new`);
   const names = await texts(page.locator('.measure-grid label'));
   expect(names[0]).toMatch(/^Bust \(fullest part\)/);
-  expect(names[1]).toMatch(/^Waist/);
+  expect(names[1]).toMatch(/^Hip/);
   expect(names.at(-1)).toMatch(/^Knee to hem/);
   // An old version still shows its numbers, under the new name.
   await page.goto(`/clients/${ids.client1}`);

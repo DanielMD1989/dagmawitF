@@ -66,22 +66,23 @@ describe('client', () => {
 });
 
 describe('measurement_field: her own list', () => {
-  it('starts every new designer with a starter list', async () => {
+  it('starts every new designer with her list, in the order she measures (decision 0102)', async () => {
     await signedIn(async (c) => {
-      const { rows } = await c.query(`select key from public.measurement_field order by sort`);
-      expect(rows.map((r) => r.key)).toEqual([
-        'bust',
-        'underbust',
-        'waist',
-        'hip',
-        'shoulder',
-        'back_length',
-        'sleeve',
-        'armhole',
-        'neck',
-        'dress_length',
-        'skirt_length',
-        'inseam',
+      const { rows } = await c.query(`select label from public.measurement_field order by sort`);
+      expect(rows.map((r) => r.label)).toEqual([
+        'Bust',
+        'Waist',
+        'Hip',
+        'Shoulder to bust',
+        'Shoulder to waist',
+        'Coat length',
+        'Back shoulder',
+        'Half shoulder',
+        'Sleeve',
+        'Armhole',
+        'Trouser waist',
+        'Skirt length',
+        'Height',
       ]);
     });
   });
@@ -91,7 +92,7 @@ describe('measurement_field: her own list', () => {
       const id = await createUser(c, 'a@example.test');
       await c.query(`select app.seed_measurement_fields($1)`, [id]);
       const { rows } = await c.query(`select count(*)::int as n from public.measurement_field`);
-      expect(rows[0]!.n).toBe(12);
+      expect(rows[0]!.n).toBe(13);
     });
   });
 
@@ -139,10 +140,10 @@ describe('measurement_field: her own list', () => {
 
     it('changes nothing at all when one entry is not her visible field', async () => {
       await signedIn(async (c) => {
-        await c.query(`update public.measurement_field set archived = true where key = 'neck'`);
+        await c.query(`update public.measurement_field set archived = true where key = 'height'`);
         const before = await order(c);
         const [first, second] = await ids(c, ['bust', 'waist']);
-        const [hidden] = await ids(c, ['neck']);
+        const [hidden] = await ids(c, ['height']);
         for (const bad of [randomUUID(), hidden!]) {
           const r = await attempt(c, `select public.reorder_measurement_fields($1)`, [[second, first, bad]]);
           expect(r).toMatchObject({ ok: false, code: CHECK });
@@ -342,7 +343,7 @@ describe('another designer cannot reach clients or measurements', () => {
         expect(rows[0]!.n, t).toBe(0);
       }
       const { rows } = await c.query(`select count(*)::int as n from public.measurement_field`);
-      expect(rows[0]!.n).toBe(12);
+      expect(rows[0]!.n).toBe(13);
     });
   });
 
@@ -391,6 +392,55 @@ describe('another designer cannot reach clients or measurements', () => {
         ok: false,
         code: NO_RIGHT,
       });
+    });
+  });
+});
+
+describe('add_client: a new client with her first measurements (decision 0102)', () => {
+  const add = (c: PoolClient, measures: object, extra = '') =>
+    attempt(c, `select public.add_client('Megan', '0911 22 33 44', '', $1, $2, 'cm', current_date) as id`, [
+      JSON.stringify(measures),
+      extra,
+    ]);
+  const counts = async (c: PoolClient) =>
+    (
+      await c.query<{ clients: number; sets: number }>(
+        `select (select count(*)::int from public.client) as clients,
+                (select count(*)::int from public.measurement_set) as sets`,
+      )
+    ).rows[0];
+
+  it('saves the client and version 1 of her measurements, with the extra words', async () => {
+    await signedIn(async (c) => {
+      const r = await add(c, { bust: 92, height: 168.5 }, 'Wears heels');
+      expect(r.ok).toBe(true);
+      if (!r.ok) throw new Error(r.message);
+      const id = String(r.rows[0]!.id);
+      const set = (
+        await c.query(
+          `select version, unit, measures, note from public.measurement_set where client_id = $1`,
+          [id],
+        )
+      ).rows;
+      expect(set).toEqual([
+        { version: 1, unit: 'cm', measures: { bust: 92, height: 168.5 }, note: 'Wears heels' },
+      ]);
+    });
+  });
+
+  it('adds the client alone when nothing was measured', async () => {
+    await signedIn(async (c) => {
+      expect((await add(c, {})).ok).toBe(true);
+      expect(await counts(c)).toEqual({ clients: 1, sets: 0 });
+    });
+  });
+
+  it('saves neither when a measurement is refused, so she is never added twice', async () => {
+    await signedIn(async (c) => {
+      expect(await add(c, { bust: 0 })).toMatchObject({ ok: false, code: CHECK });
+      expect(await add(c, { neck: 30 })).toMatchObject({ ok: false, code: CHECK });
+      expect(await add(c, {}, 'Wears heels')).toMatchObject({ ok: false, code: CHECK });
+      expect(await counts(c)).toEqual({ clients: 0, sets: 0 });
     });
   });
 });
