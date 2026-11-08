@@ -63,6 +63,14 @@ select concat_ws(E'\n',
        ' |' order by o.number, l.seq)
    from public.activity_log l join public.orders o on o.id = l.order_id
    where o.status = 'delivered' and l.action = 'delivery_changed'), ' none'),
+  'Measurement fields (key=label sort, x if hidden):' ||
+  coalesce((select string_agg(' ' || f.key || '=' || f.label || ' ' || f.sort || case when f.archived then ' x' else '' end,
+       ' |' order by f.owner_id, f.sort) from public.measurement_field f), ' none'),
+  'Measurement sets: ' || (select count(*) from public.measurement_set) || '; keys used:' ||
+  coalesce((select string_agg(' ' || k || ' ' || n, ',' order by k) from
+       (select k, count(*) as n from public.measurement_set s, jsonb_object_keys(s.measures) k group by k) x), ' none')
+  || '; with a note: ' || (select count(*) from public.measurement_set where note <> '') || '; owners: '
+  || (select count(distinct owner_id) from public.measurement_field),
   'Status changes in the last 5 days, oldest first:' ||
   coalesce((select string_agg(' ' || to_char(l.at at time zone 'Africa/Addis_Ababa', 'MM-DD HH24:MI') || ' '
        || case when o.client_id is null then 'event' else 'order' end || ' #' || o.number || ' '
