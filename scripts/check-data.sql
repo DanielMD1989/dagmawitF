@@ -38,6 +38,14 @@ with
       select 1 from public.client c group by c.owner_id, lower(btrim(c.name)) having count(*) > 1) x
   )
 select concat_ws(E'\n',
+  'Measurement fields (key=label sort, x if hidden):' ||
+  coalesce((select string_agg(' ' || f.key || '=' || f.label || ' ' || f.sort || case when f.archived then ' x' else '' end,
+       ' |' order by f.owner_id, f.sort) from public.measurement_field f), ' none'),
+  'Measurement sets: ' || (select count(*) from public.measurement_set) || '; keys used:' ||
+  coalesce((select string_agg(' ' || k || ' ' || n, ',' order by k) from
+       (select k, count(*) as n from public.measurement_set s, jsonb_object_keys(s.measures) k group by k) x), ' none')
+  || '; with a note: ' || (select count(*) from public.measurement_set where note <> '') || '; owners: '
+  || (select count(distinct owner_id) from public.measurement_field),
   'Orders: ' || (select count(*) from o where client_id is not null) || ' for clients ('
     || coalesce((select string_agg(status || ' ' || n, ', ' order by status) from
          (select status, count(*) as n from o where client_id is not null group by status) s), 'none')
@@ -63,14 +71,6 @@ select concat_ws(E'\n',
        ' |' order by o.number, l.seq)
    from public.activity_log l join public.orders o on o.id = l.order_id
    where o.status = 'delivered' and l.action = 'delivery_changed'), ' none'),
-  'Measurement fields (key=label sort, x if hidden):' ||
-  coalesce((select string_agg(' ' || f.key || '=' || f.label || ' ' || f.sort || case when f.archived then ' x' else '' end,
-       ' |' order by f.owner_id, f.sort) from public.measurement_field f), ' none'),
-  'Measurement sets: ' || (select count(*) from public.measurement_set) || '; keys used:' ||
-  coalesce((select string_agg(' ' || k || ' ' || n, ',' order by k) from
-       (select k, count(*) as n from public.measurement_set s, jsonb_object_keys(s.measures) k group by k) x), ' none')
-  || '; with a note: ' || (select count(*) from public.measurement_set where note <> '') || '; owners: '
-  || (select count(distinct owner_id) from public.measurement_field),
   'Status changes in the last 5 days, oldest first:' ||
   coalesce((select string_agg(' ' || to_char(l.at at time zone 'Africa/Addis_Ababa', 'MM-DD HH24:MI') || ' '
        || case when o.client_id is null then 'event' else 'order' end || ' #' || o.number || ' '
