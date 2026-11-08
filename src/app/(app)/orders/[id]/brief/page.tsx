@@ -40,14 +40,10 @@ export default async function OrderBriefPage({ params }: { params: Promise<{ id:
       <section className="section" aria-labelledby="made-heading">
         <div className="section__head">
           <h2 id="made-heading">What is made</h2>
-          <p className="hint">
-            What the client asked for. Two pieces for one client, such as a matching outfit, go on the same
-            order.
-          </p>
         </div>
         {order.garments.length === 0 ? (
           <div className="card">
-            <p>Nothing written yet. Add what is being made or fixed.</p>
+            <p>Nothing written yet.</p>
           </div>
         ) : (
           order.garments.map((g) => (
@@ -66,7 +62,6 @@ export default async function OrderBriefPage({ params }: { params: Promise<{ id:
       <section className="section" aria-labelledby="pictures-heading">
         <div className="section__head">
           <h2 id="pictures-heading">Pictures</h2>
-          <p className="hint">A revised sketch is kept next to the first, numbered.</p>
         </div>
         {closed && groups.length === 0 && (
           <div className="card">

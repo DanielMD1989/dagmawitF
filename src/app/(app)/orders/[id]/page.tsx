@@ -63,12 +63,7 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
       <section className="section" aria-labelledby="steps-heading">
         <div className="section__head">
           <h2 id="steps-heading">{event ? 'To prepare' : 'Steps'}</h2>
-          {event && steps.length === 0 && (
-            <p className="hint">
-              Nothing yet. If it needs work on certain days (sewing stock, packing), add it here and it shows
-              on those days of your calendar.
-            </p>
-          )}
+          {event && steps.length === 0 && <p className="hint">Nothing yet.</p>}
           {steps.length > 0 && (
             <p className="hint">
               {done} of {steps.length} done.
@@ -89,7 +84,7 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
         {/* Its Delivery is always there (decision 0096): "no steps" is none besides it. */}
         {!event && work.length === 0 && (
           <div className="card">
-            <p>No steps yet.{!closed && ' Tap the ones this order needs, and give each its day.'}</p>
+            <p>No steps yet.</p>
           </div>
         )}
         {steps.length > 0 && (
@@ -216,10 +211,7 @@ export default async function JobStepsPage({ params }: { params: Promise<{ id: s
       <section className="section" aria-labelledby="delete-heading">
         <div className="section__head">
           <h2 id="delete-heading">Delete this {noun}</h2>
-          <p className="hint">
-            For {event ? 'an event' : 'an order'} added by mistake: it goes completely, with everything on it
-            and its history. To keep a record of one that is called off, cancel it instead.
-          </p>
+          <p className="hint">Only if it was added by mistake. To keep a record, cancel it.</p>
         </div>
         <ConfirmAction
           action={deleteJob}

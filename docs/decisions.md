@@ -831,3 +831,20 @@ under "Not done yet" and in the late colour, until she delivers it or gives it a
 order or a draft goes back to its day; on an active order it stays where it is, saying "Moved from" its day, since an
 active order is never given a day that has passed (the orders' own rule). Orders already finished keep what was
 recorded.
+
+## 0102. Her measurements, on the client form; fewer words everywhere
+
+She found the app said too much, and showed the form she wanted for a client: name, phone, her measurements two to a
+row, notes, Save. Her measurements, in the order she takes them: Bust, Waist, Hip, Shoulder to bust, Shoulder to
+waist, Coat length, Back shoulder, Half shoulder, Sleeve, Armhole, Trouser waist, Skirt length, Height, and Extra.
+
+The list is hers (20261113090000_her_measurements.sql): nothing had been measured, so the starter measurements that are
+not hers are gone (one a saved set used would be hidden instead). "Extra" is in words: it is the note a set of
+measurements already has, so words in it need a measurement beside them; notes about her go in Notes.
+
+"New client" adds her and her first measurements on one screen; `add_client` saves both or neither, so a refused
+measurement never leaves her added once already. Recording measurements later is the same grid, then "Measured on";
+the unit is chosen once, beside her list, and said above the measurements and in each box.
+
+Fewer words: page descriptions and field hints are gone, and what explained a screen is cut to what she needs to act
+(a reason, a count, a state). Refusals still say what to fix, where she sees it (decision 0100).

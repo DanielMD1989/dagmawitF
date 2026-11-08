@@ -5,23 +5,23 @@ import { FormNotice } from '@/components/FormNotice';
 import { SubmitButton } from '@/components/SubmitButton';
 import { TextArea, TextField } from '@/components/fields';
 import { idle } from '@/lib/action-state';
-import { createClient, saveClient } from './actions';
+import { saveClient } from './actions';
 
-/** Adds a client, or (with `client`) changes one. Only what a job and a phone call need. */
+/** Changes a client's details: only what a job and a phone call need. A new one is added with NewClientForm. */
 export function ClientForm({
   client,
 }: {
-  client?: { id: string; name: string; phone: string; notes: string };
+  client: { id: string; name: string; phone: string; notes: string };
 }) {
-  const [state, action] = useActionState(client ? saveClient : createClient, idle);
+  const [state, action] = useActionState(saveClient, idle);
   return (
     <form action={action} className="form" noValidate>
-      {client && <input type="hidden" name="id" value={client.id} />}
+      <input type="hidden" name="id" value={client.id} />
       <TextField
         name="name"
         label="Name"
         state={state}
-        saved={client?.name}
+        saved={client.name}
         autoComplete="off"
         maxLength={120}
         required
@@ -30,25 +30,24 @@ export function ClientForm({
         name="phone"
         label="Phone (optional)"
         state={state}
-        saved={client?.phone}
+        saved={client.phone}
         type="tel"
+        placeholder="09…"
         autoComplete="off"
         inputMode="tel"
         maxLength={30}
-        hint="Digits, spaces and + ( ) . - only."
       />
       <TextArea
         name="notes"
         label="Notes (optional)"
         state={state}
-        saved={client?.notes}
+        saved={client.notes}
         rows={3}
         maxLength={2000}
-        hint="Anything to remember about her: how she likes to be reached, allergies to fabric, her sister who pays."
       />
       <FormNotice state={state} />
       <div className="btn-row">
-        <SubmitButton className="btn btn--main">{client ? 'Save details' : 'Add client'}</SubmitButton>
+        <SubmitButton className="btn btn--main">Save details</SubmitButton>
       </div>
     </form>
   );

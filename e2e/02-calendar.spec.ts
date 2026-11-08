@@ -231,7 +231,7 @@ test('an order taken with no steps gets its steps afterwards, each on its day', 
   await fillNewJob(page, { client: 'Hanna Tesfaye', title: 'Party dress', due: inDays(10) });
   await page.getByRole('button', { name: 'Save the order' }).click();
   await page.waitForURL(/\/orders\/[0-9a-f-]{36}$/);
-  expect(await has('No steps yet. Tap the ones this order needs, and give each its day.')).toBe(true);
+  expect(await has('No steps yet.')).toBe(true);
   // The same step buttons as a new order, open by themselves (decision 0085): several at once, with a time if any.
   const form = page.getByRole('form', { name: 'Add steps' });
   await expect(form.getByRole('group', { name: 'Your usual steps' })).toBeVisible();
@@ -392,7 +392,6 @@ test('an order’s Delivery is a step with its day and time only, and no second 
   await expect(change.getByLabel('Step', { exact: true })).toHaveCount(0);
   await expect(change.getByLabel('Last day (optional)')).toHaveCount(0);
   await expect(change.getByLabel('Day', { exact: true })).toBeVisible();
-  await expect(change).toContainText('its day is the order’s delivery day');
   await expect(delivery.getByRole('button', { name: 'Remove this step' })).toHaveCount(0);
   // A day that has passed is refused, plainly.
   await change.getByLabel('Day', { exact: true }).fill(inDays(-1));

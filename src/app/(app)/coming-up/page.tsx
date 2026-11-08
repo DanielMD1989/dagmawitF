@@ -29,14 +29,12 @@ export default async function ComingUpPage() {
       <div className="page-head">
         <BackLink href="/">Today</BackLink>
         <h1>Coming up</h1>
-        <p className="lede">Deliveries and events ahead, soonest first.</p>
       </div>
 
       {upcoming.length === 0 ? (
         <div className="card">
           <p>Nothing due after today.</p>
           <p className="hint">
-            An order&apos;s delivery day or an event&apos;s day shows here, counted down.{' '}
             <Link href="/orders/new?event=1">Add an event</Link>
           </p>
         </div>

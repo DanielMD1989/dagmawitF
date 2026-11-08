@@ -75,10 +75,6 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
       <section className="section" aria-labelledby="measurements-heading">
         <div className="section__head">
           <h2 id="measurements-heading">Measurements</h2>
-          <p className="hint">
-            Every time she is measured is saved as a new version, so a garment can always be traced to the
-            numbers it was made to.
-          </p>
         </div>
         {sets.length === 0 ? (
           <div className="card">
@@ -121,8 +117,7 @@ export default async function ClientPage({ params }: { params: Promise<{ id: str
           <p className="hint">
             {client.name} has {client.orders.length === 1 ? 'an order' : 'orders'} (
             {orderLabel(client.orders[0]!.number, client.orders[0]!.garmentTypes)}
-            {client.orders.length > 1 ? ' and more' : ''}), and orders are kept as a record, so she cannot be
-            removed.
+            {client.orders.length > 1 ? ' and more' : ''}), kept as a record, so she cannot be removed.
           </p>
         ) : (
           <ConfirmAction

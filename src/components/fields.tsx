@@ -79,7 +79,8 @@ export function TextArea({
   hint,
   rows = 4,
   maxLength,
-}: Common & { saved?: string; rows?: number; maxLength?: number }) {
+  placeholder,
+}: Common & { saved?: string; rows?: number; maxLength?: number; placeholder?: string }) {
   const error = state.errors[name];
   return (
     <div className="field">
@@ -90,6 +91,7 @@ export function TextArea({
         className="textarea"
         rows={rows}
         maxLength={maxLength}
+        placeholder={placeholder}
         defaultValue={fieldValue(state, name, saved)}
         aria-invalid={Boolean(error)}
         aria-describedby={describedBy(id, hint, error)}

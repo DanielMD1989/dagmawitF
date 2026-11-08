@@ -345,7 +345,9 @@ test('measurements: the form asks for her list, in her order, with today and her
   expect(labels[0]).toMatch(/^Bust/);
   expect(labels[12]).toMatch(/^Height/);
   await expect(page.getByLabel('Measured on')).toHaveValue(today());
-  await expect(page.getByLabel('Centimetres')).toBeChecked();
+  // Her unit, said once above them; each box says it too (decision 0102).
+  await expect(page.locator('.measure-set legend')).toHaveText('Measurements (cm)');
+  await expect(page.locator('#m-bust')).toHaveAttribute('placeholder', 'cm');
   await inspect(page, 'record measurements');
 });
 
@@ -373,7 +375,7 @@ test('measurements: saving from an order returns to it, every garment made to ve
   await page.locator('#m-waist').fill('70');
   await page.locator('#m-hip').fill('98');
   await page.locator('#m-coat_length').fill('150');
-  await page.getByLabel('Note (optional)').fill('Measured standing, in her wedding shoes');
+  await page.getByLabel('Extra').fill('Measured standing, in her wedding shoes');
   await page.getByRole('button', { name: 'Save measurements' }).click();
   await page.waitForURL(`${env.baseURL}/orders/${ids.o1}/measurements`);
   expect((await text(page)).match(/Made to measurements version 1, taken/g)).toHaveLength(2);
@@ -422,18 +424,24 @@ test('measurements: she moves one garment to the new version and the other stays
 });
 
 test('measurements: inches stay inches; numbers are never converted into another unit', async () => {
+  const unit = async (label: 'Inches' | 'Centimetres') => {
+    await page.goto('/clients/measurements');
+    await page.locator('.segmented label', { hasText: label }).click();
+    await page.getByRole('button', { name: 'Save the unit' }).click();
+    await page.locator('.notice--success', { hasText: 'Saved.' }).waitFor();
+  };
+  await unit('Inches');
   await page.goto(`/clients/${ids.client1}/measurements/new`);
-  await page.locator('.segmented label', { hasText: 'Inches' }).click();
+  await expect(page.locator('.measure-set legend')).toHaveText('Measurements (in)');
   await page.locator('#m-bust').fill('36.5');
   await page.getByRole('button', { name: 'Save measurements' }).click();
   await page.waitForURL(`${env.baseURL}/clients/${ids.client1}`);
   expect(await text(page)).toMatch(/Version 3 · taken [^·]+ · in/);
   await page.locator('summary', { hasText: 'Version 3' }).click();
   expect(await text(page)).toMatch(/Bust\s*36\.5 in/);
-  // With her default unit still centimetres, the form starts empty and says why.
+  // Back in centimetres, the form starts empty: inches are not turned into centimetres.
+  await unit('Centimetres');
   await page.goto(`/clients/${ids.client1}/measurements/new`);
-  await expect(page.getByLabel('Centimetres')).toBeChecked();
-  expect(await has('Version 3 was taken in inches, so this form starts empty')).toBe(true);
   await expect(page.locator('#m-bust')).toHaveValue('');
 });
 
@@ -533,10 +541,26 @@ test('order 3: a client added on her own, then a fix started from the client pag
   await page.goto('/clients/new');
   await page.getByLabel('Name', { exact: true }).fill('Yonas Alemu');
   await page.getByLabel('Phone (optional)').fill('+251 911 000 111');
+  // Her measurements on the same screen (decision 0102).
+  const asked = page.locator('.measure-grid label');
+  await expect(asked.first()).toBeVisible();
+  for (const name of ['Trouser waist', 'Height'])
+    await expect(asked.filter({ hasText: name })).toHaveCount(1);
+  await page.getByLabel('Extra').fill('Wears his suits loose');
+  // Words in Extra go with a measurement: refused alone, and nobody is added.
+  await page.getByRole('button', { name: 'Save' }).click();
+  await expect(page.locator('#m-extra-error')).toHaveText('Add a measurement with it, or write it in Notes.');
+  await expect(page.getByLabel('Extra')).toBeFocused();
+  await settled(page);
+  await page.getByLabel('Trouser waist').fill('86');
+  await page.getByLabel('Height').fill('181');
   await page.getByLabel('Notes (optional)').fill('Prefers a call after 5pm');
-  await page.getByRole('button', { name: 'Add client' }).click();
+  await inspect(page, 'new client');
+  await page.getByRole('button', { name: 'Save' }).click();
   await page.waitForURL(/\/clients\/[0-9a-f-]{36}$/);
   ids.client3 = page.url().split('/').pop()!;
+  expect(await text(page)).toMatch(/Version 1 · taken/);
+  expect(await value(`select count(*)::text from public.client where name = 'Yonas Alemu'`)).toBe('1');
   await inspect(page, 'client page (no orders)');
   await page.getByRole('link', { name: 'New order for Yonas Alemu' }).click();
   await page.waitForURL(/orders\/new\?client=/);
@@ -569,7 +593,7 @@ test('order 3: put on hold with no reason, it is on hold; with one, the reason i
   await page.locator('summary', { hasText: 'Put on hold' }).click();
   await page.getByRole('button', { name: 'Put on hold' }).click();
   await page.locator('.chip', { hasText: 'On hold' }).first().waitFor();
-  expect(await has('On hold. Its steps are off your calendar until you resume it.')).toBe(true);
+  expect(await has('On hold.')).toBe(true);
   await page.getByRole('button', { name: 'Resume the order' }).click();
   await page.locator('.chip', { hasText: 'Active' }).first().waitFor();
   // With a reason, it is said.
@@ -621,7 +645,7 @@ test('order 3: reopened, cancelled with a reason, reopened as a draft and delete
   expect(await has('Cancelled: Client found another tailor')).toBe(true);
   await page.getByRole('button', { name: 'Reopen as draft' }).click();
   await page.locator('.chip', { hasText: 'Draft' }).first().waitFor();
-  expect(await has('A draft is not on your calendar')).toBe(true);
+  expect(await has('Draft: not on your calendar yet.')).toBe(true);
   await page.getByRole('button', { name: 'Delete this order' }).click();
   await page.getByRole('button', { name: 'Yes, delete' }).click();
   await page.waitForURL(`${env.baseURL}/orders`);
@@ -693,10 +717,10 @@ test('orders list: soonest first, two tabs, steps shown', async () => {
 test('clients: a client with orders cannot be deleted; one without can', async () => {
   await page.goto(`/clients/${ids.client1}`);
   await expect(page.getByRole('button', { name: 'Remove this client' })).toHaveCount(0);
-  expect(await has('orders are kept as a record')).toBe(true);
+  expect(await has('kept as a record')).toBe(true);
   await page.goto('/clients/new');
   await page.getByLabel('Name', { exact: true }).fill('Walk-in, no order');
-  await page.getByRole('button', { name: 'Add client' }).click();
+  await page.getByRole('button', { name: 'Save' }).click();
   await page.waitForURL(/\/clients\/[0-9a-f-]{36}$/);
   await page.getByRole('button', { name: 'Remove this client' }).click();
   await page.getByRole('button', { name: 'Yes, remove' }).click();

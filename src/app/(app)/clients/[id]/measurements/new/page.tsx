@@ -3,7 +3,6 @@ import { BackLink } from '@/components/BackLink';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { asId, isUuid } from '@/domain/form-input';
-import { formatDay } from '@/domain/dates';
 import { loadClient } from '@/server/clients';
 import { loadMeasurementFields, loadMeasurementSets } from '@/server/measurements';
 import { loadPreferences } from '@/server/preferences';
@@ -37,7 +36,7 @@ export default async function RecordMeasurementsPage({
 
   const latest = sets[0] ?? null;
   // Start from the last version so she changes only what changed. Numbers are never converted between units,
-  // so if the last version is in the other unit the form starts empty and says why.
+  // so if the last version is in the other unit the form starts empty.
   const continues = latest !== null && latest.unit === prefs.measurementUnit;
   const visible = fields.filter((f) => !f.archived);
 
@@ -45,19 +44,11 @@ export default async function RecordMeasurementsPage({
     <>
       <div className="page-head">
         <BackLink href={`/clients/${client.id}`}>{client.name}</BackLink>
-        <h1>Measurements for {client.name}</h1>
-        <p className="lede">
-          {latest === null
-            ? 'Fill in what you measured and leave the rest empty.'
-            : continues
-              ? `Starting from version ${latest.version}, taken ${formatDay(latest.takenOn)}. Change only what is different; this is saved as version ${latest.version + 1}.`
-              : `Version ${latest.version} was taken in ${latest.unit === 'cm' ? 'centimetres' : 'inches'}, so this form starts empty. It is saved as version ${latest.version + 1}.`}
-        </p>
+        <h1>Measurements</h1>
       </div>
       {visible.length === 0 ? (
         <div className="card card--warn" role="alert">
           <p>
-            Your list of measurements is empty.{' '}
             <Link href="/clients/measurements">Add the measurements you take</Link> first.
           </p>
         </div>

@@ -1316,10 +1316,29 @@ a.btn {
 }
 
 /* Measurements */
+/* Her measurements (decision 0102): two to a row on a phone, each name short and small above its box. */
+.measure-set {
+  display: grid;
+  gap: 14px;
+}
+.measure-set > legend {
+  padding: 0;
+  margin-bottom: 10px;
+  font-size: 15px;
+}
 .measure-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+@media (min-width: 720px) {
+  .measure-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
+.measure-grid .field > label {
+  font-size: 13px;
+  color: var(--muted);
 }
 .measures {
   display: grid;

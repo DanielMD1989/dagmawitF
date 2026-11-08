@@ -16,12 +16,11 @@ export default async function ClientsPage() {
       <div className="page-head">
         <p className="eyebrow">Clients</p>
         <h1>Your clients</h1>
-        <p className="lede">Name, phone and measurements over time. Open one to see her orders.</p>
       </div>
 
       <QuickActions
         actions={[
-          { href: '/clients/new', label: 'Add a client', icon: 'add' },
+          { href: '/clients/new', label: 'New client', icon: 'add' },
           // Her list of measurements and their unit (decision 0093): about her clients, so here, not in Settings.
           { href: '/clients/measurements', label: 'Measurements', icon: 'measure' },
         ]}

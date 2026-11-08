@@ -34,9 +34,6 @@ export default async function OrderHistoryPage({ params }: { params: Promise<{ i
     <section className="section" aria-labelledby="history-heading">
       <div className="section__head">
         <h2 id="history-heading">History</h2>
-        <p className="hint">
-          Every change to the promise, the garments, what the order waits for and its pictures.
-        </p>
       </div>
       {days.length === 0 ? (
         <div className="card">

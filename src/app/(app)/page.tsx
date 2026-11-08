@@ -137,9 +137,6 @@ export default async function TodayPage() {
       {nothingAhead && (
         <div className="card">
           <p>Nothing on the calendar for the coming week.</p>
-          <p className="hint">
-            Take an order with <strong>New order</strong>: its steps get their days and show here.
-          </p>
         </div>
       )}
 

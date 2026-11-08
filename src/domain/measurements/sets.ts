@@ -66,6 +66,31 @@ export function measuresValid(measures: unknown): boolean {
 /** The form field for a measurement: m-bust. */
 export const measureFieldName = (key: string) => `m-${key}`;
 
+/** What she typed for each measurement shown, rounded to a tenth; a field left empty is not measured this time. */
+function readMeasures(
+  data: FormData,
+  shown: MeasurementField[],
+  errors: FieldErrors,
+): Record<string, number> {
+  const measures: Record<string, number> = {};
+  for (const field of shown) {
+    const name = measureFieldName(field.key);
+    const raw = text(data, name);
+    if (raw === '') continue;
+    const problem = measureProblem(raw);
+    if (problem) errors[name] = problem;
+    else measures[field.key] = toTenth(parseDecimal(raw)!);
+  }
+  return measures;
+}
+
+/** "Extra": what she noted beside the numbers, in words (decision 0102). It is the set's note. */
+function readExtra(data: FormData, errors: FieldErrors): string {
+  const extra = text(data, 'note');
+  if (chars(extra) > 300) errors.note = 'Keep it under 300 characters.';
+  return extra;
+}
+
 /**
  * Reads the "record measurements" form. The form shows her visible fields; a field left empty is simply
  * not measured this time, and at least one must be given. A saved value is rounded to a tenth.
@@ -84,24 +109,34 @@ export function parseMeasurementSet(
   const unit = text(data, 'unit');
   if (!isMeasurementUnit(unit)) errors.unit = 'Choose centimetres or inches.';
 
-  const note = text(data, 'note');
-  if (chars(note) > 300) errors.note = 'Keep the note under 300 characters.';
-
-  const measures: Record<string, number> = {};
-  for (const field of shown) {
-    const name = measureFieldName(field.key);
-    const raw = text(data, name);
-    if (raw === '') continue;
-    const problem = measureProblem(raw);
-    if (problem) errors[name] = problem;
-    else measures[field.key] = toTenth(parseDecimal(raw)!);
-  }
+  const note = readExtra(data, errors);
+  const measures = readMeasures(data, shown, errors);
   if (Object.keys(errors).length === 0 && Object.keys(measures).length === 0) {
     errors.form = 'Enter at least one measurement.';
   }
 
   if (Object.keys(errors).length > 0) return { ok: false, errors };
   return { ok: true, value: { takenOn, unit: unit as MeasurementUnit, measures, note } };
+}
+
+/** A new client's first measurements, on the form that adds her (decision 0102): none at all is fine. */
+export interface FirstMeasurements {
+  measures: Record<string, number>;
+  extra: string;
+}
+
+/**
+ * Reads the measurements on the new-client form: any of them, or none. Words in "Extra" belong to measurements, so
+ * they are refused without one (her notes about the client go in Notes).
+ */
+export function parseFirstMeasurements(data: FormData, shown: MeasurementField[]): Result<FirstMeasurements> {
+  const errors: FieldErrors = {};
+  const extra = readExtra(data, errors);
+  const measures = readMeasures(data, shown, errors);
+  if (!errors.note && extra !== '' && Object.keys(measures).length === 0)
+    errors.note = 'Add a measurement with it, or write it in Notes.';
+  if (Object.keys(errors).length > 0) return { ok: false, errors };
+  return { ok: true, value: { measures, extra } };
 }
 
 export interface MeasureLine {

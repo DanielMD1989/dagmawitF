@@ -20,7 +20,6 @@ export function AddGarmentForm({ orderId, first }: { orderId: string; first: boo
             name="garment-type"
             id="add-garment-type"
             label="What it is"
-            hint="For example “Matching shirt for the groom”."
             state={state}
             maxLength={80}
             autoComplete="off"

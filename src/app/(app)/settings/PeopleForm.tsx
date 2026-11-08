@@ -23,7 +23,6 @@ export function AddPersonForm() {
         inputMode="email"
         autoComplete="off"
         state={state}
-        hint="The email of an account already made for them. They sign in with it as usual."
       />
       <FormNotice state={state} />
       <div className="btn-row">

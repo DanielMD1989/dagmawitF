@@ -45,9 +45,7 @@ export function OfflineDay() {
         <div className="page-head">
           <p className="eyebrow">No signal</p>
           <h1>Nothing is kept on this phone yet</h1>
-          <p className="lede">
-            Open Today once with signal, and it will be here the next time there is none.
-          </p>
+          <p className="lede">Open Today once with signal.</p>
         </div>
         <TryAgain from={from} signal={signal} />
       </>
@@ -68,9 +66,7 @@ export function OfflineDay() {
           {today ? 'Today' : formatDayLong(snapshot.day)}, as of {madeAt ? clock(madeAt.time) : 'earlier'}
         </h1>
         <p className="lede">
-          {today
-            ? 'This is your calendar as it was when you last opened it. What you tick here waits on this phone and is sent when the signal is back.'
-            : `This is the calendar from ${formatDayLong(snapshot.day)}, the last time it was opened with signal. It is a reminder, so nothing can be ticked here.`}
+          {today ? 'Ticks are sent when the signal is back.' : 'Nothing can be ticked here.'}
         </p>
       </div>
 

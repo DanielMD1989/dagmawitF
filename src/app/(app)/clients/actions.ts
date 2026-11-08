@@ -7,7 +7,7 @@ import { failure, success, typedIn, type ActionState } from '@/lib/action-state'
 import { violates } from '@/lib/database-errors';
 import { parseClient } from '@/domain/clients/forms';
 import { idField } from '@/domain/form-input';
-import { parseMeasurementSet } from '@/domain/measurements/sets';
+import { parseFirstMeasurements, parseMeasurementSet } from '@/domain/measurements/sets';
 import { isClosed } from '@/domain/orders/status';
 import { missing, saveFailed, unexpected } from '@/server/action-errors';
 import { loadMeasurementFields } from '@/server/measurements';
@@ -22,18 +22,41 @@ import { createSupabase } from '@/server/supabase';
 
 const CHECK_FIELDS = 'Check the fields marked in red.';
 
+/**
+ * Adds a client with her first measurements, if any were taken (decision 0102): both saved together, or neither, so
+ * a refused save never leaves her added once already.
+ */
 export async function createClient(_previous: ActionState, formData: FormData): Promise<ActionState> {
   await requireUser();
   const typed = typedIn(formData);
-  const parsed = parseClient(formData);
-  if (!parsed.ok) return failure(CHECK_FIELDS, parsed.errors, typed);
-
   const supabase = await createSupabase();
-  const { data, error } = await supabase.from('client').insert(parsed.value).select('id').single();
+  const [prefs, fields] = await Promise.all([loadPreferences(supabase), loadMeasurementFields(supabase)]);
+  const client = parseClient(formData);
+  const first = parseFirstMeasurements(
+    formData,
+    fields.filter((f) => !f.archived),
+  );
+  if (!client.ok || !first.ok) {
+    return failure(
+      CHECK_FIELDS,
+      { ...(client.ok ? {} : client.errors), ...(first.ok ? {} : first.errors) },
+      typed,
+    );
+  }
+
+  const { data, error } = await supabase.rpc('add_client', {
+    p_name: client.value.name,
+    p_phone: client.value.phone,
+    p_notes: client.value.notes,
+    p_measures: first.value.measures,
+    p_extra: first.value.extra,
+    p_unit: prefs.measurementUnit,
+    p_taken_on: prefs.today,
+  });
   if (error) return saveFailed('the client', error, typed);
 
   changed('/', 'layout');
-  redirect(`/clients/${String(data.id)}`);
+  redirect(`/clients/${String(data)}`);
 }
 
 export async function saveClient(_previous: ActionState, formData: FormData): Promise<ActionState> {

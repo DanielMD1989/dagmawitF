@@ -125,7 +125,7 @@ test('with no signal, opening the app shows the day as of when it was kept', asy
   await page.locator('h1', { hasText: /^Today, as of \d{1,2}:\d\d [AP]M$/ }).waitFor();
   const t = await text(page);
   expect(t).toMatch(/no signal/i);
-  expect(t).toContain('What you tick here waits on this phone');
+  expect(t).toContain('Ticks are sent when the signal is back.');
   expect(await listed()).toEqual(shown(kept));
   await inspect(page, 'offline day');
 });
@@ -271,7 +271,7 @@ test('a list kept on an earlier day is a reminder only: no ticks', async () => {
   await page.goto('/calendar');
   await page.waitForURL(/\/offline/);
   await page.locator('h1', { hasText: /^Monday 5 January, as of / }).waitFor();
-  expect(await text(page)).toContain('It is a reminder, so nothing can be ticked here.');
+  expect(await text(page)).toContain('Nothing can be ticked here.');
   await expect(page.getByRole('button', { name: /^Mark / })).toHaveCount(0);
   await signal(true);
 });

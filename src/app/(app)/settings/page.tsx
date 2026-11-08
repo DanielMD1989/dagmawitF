@@ -53,11 +53,6 @@ export default async function SettingsPage() {
       <section className="section" aria-labelledby="notify-heading">
         <div className="section__head">
           <h2 id="notify-heading">Notifications</h2>
-          <p className="hint">
-            Every morning at 7:30, what is on today; an hour before a step with a time, a reminder; and when
-            someone else of this workspace changes an order or ticks a step done. On an iPhone, add the app to
-            the Home Screen first.
-          </p>
         </div>
         <NotificationsSwitch publicKey={publicKey} />
       </section>
@@ -65,11 +60,11 @@ export default async function SettingsPage() {
       <section className="section" aria-labelledby="people-heading">
         <div className="section__head">
           <h2 id="people-heading">People</h2>
-          <p className="hint">
-            {iAmOwner
-              ? 'Someone who works with you sees and changes everything here: clients, orders, the calendar.'
-              : `You work in ${owner ? personName(owner) : 'another'}’s workspace: you see and change everything in it.`}
-          </p>
+          {!iAmOwner && (
+            <p className="hint">
+              {owner ? `${personName(owner)}’s workspace.` : 'Another person’s workspace.'}
+            </p>
+          )}
         </div>
         <ul className="rows" aria-label="People of this workspace">
           {people.map((p) => (
@@ -116,8 +111,7 @@ export default async function SettingsPage() {
           <div className="section__head">
             <h2 id="data-heading">Your data</h2>
             <p className="hint">
-              Everything you have entered, and your pictures, in one file. Keep a copy somewhere safe, away
-              from your phone; whoever looks after the app can bring it back from that file.
+              Everything, with your pictures, in one file. Keep a copy away from your phone.
             </p>
           </div>
           <div className="btn-row">
@@ -125,10 +119,6 @@ export default async function SettingsPage() {
               Download everything
             </a>
           </div>
-          <p className="hint">
-            Pictures can be left stored with nothing pointing at them if a save was cut off halfway. Tidying
-            removes them; nothing you can see changes.
-          </p>
           <TidyForm />
         </section>
       )}

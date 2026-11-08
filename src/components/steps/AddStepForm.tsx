@@ -80,9 +80,6 @@ export function StepFields({
       {delivery ? (
         <>
           <input type="hidden" name="title" value={saved.title} />
-          <p className="hint">
-            The order’s delivery: its day is the order’s delivery day, and changing it here moves it.
-          </p>
           <TextField
             name="day"
             id={`${idPrefix}-day`}
@@ -120,7 +117,6 @@ export function StepFields({
               type="date"
               state={state}
               saved={saved.until}
-              hint="For a step over several days."
             />
           </div>
         </>

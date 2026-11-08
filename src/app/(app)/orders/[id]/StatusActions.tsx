@@ -5,7 +5,6 @@ import { FormNotice } from '@/components/FormNotice';
 import { SubmitButton } from '@/components/SubmitButton';
 import { TextField } from '@/components/fields';
 import { idle, type ActionState } from '@/lib/action-state';
-import { formatDay } from '@/domain/dates';
 import { moveLabel, movesFrom, type OrderStatus } from '@/domain/orders/status';
 import { moveOrder } from './actions';
 
@@ -86,7 +85,6 @@ export function StatusActions({
                         label="Why is it on hold? (optional)"
                         state={state}
                         maxLength={300}
-                        hint="For example: client is abroad until December, fabric is not coming."
                       />
                       <div className="btn-row">
                         <SubmitButton className={className}>{label}</SubmitButton>
@@ -171,7 +169,6 @@ export function StatusActions({
                         state={state}
                         min={today}
                         required
-                        hint={`The old day, ${formatDay(order.deliveryOn)}, has passed.`}
                       />
                       <div className="btn-row">
                         <SubmitButton className={className}>{label}</SubmitButton>

@@ -9,6 +9,7 @@ import {
   measureLines,
   measureProblem,
   measuresValid,
+  parseFirstMeasurements,
   parseMeasurementSet,
   toTenth,
 } from './sets';
@@ -104,7 +105,7 @@ describe('the record-measurements form', () => {
       errors: {
         'taken-on': 'That day has not come yet.',
         unit: 'Choose centimetres or inches.',
-        note: 'Keep the note under 300 characters.',
+        note: 'Keep it under 300 characters.',
         'm-bust': 'Use a number such as 92 or 92.5.',
         'm-waist': 'A measurement must be more than zero.',
       },
@@ -241,5 +242,29 @@ describe('garmentMeasurementStatus', () => {
       text: 'Made to measurements version 2, taken Mon 12 Oct. A newer version, 3, was taken Tue 20 Oct.',
     });
     expect(garmentMeasurementStatus('v1', sets).kind).toBe('outdated');
+  });
+});
+
+describe('the measurements on the new-client form (decision 0102)', () => {
+  it('reads any of them, or none', () => {
+    expect(parseFirstMeasurements(form({ 'm-bust': '92', note: 'Heels' }), fields)).toEqual({
+      ok: true,
+      value: { measures: { bust: 92 }, extra: 'Heels' },
+    });
+    expect(parseFirstMeasurements(form({}), fields)).toEqual({
+      ok: true,
+      value: { measures: {}, extra: '' },
+    });
+  });
+
+  it('refuses a wrong number, and words in Extra with no measurement', () => {
+    expect(parseFirstMeasurements(form({ 'm-waist': 'abc' }), fields)).toMatchObject({
+      ok: false,
+      errors: { 'm-waist': expect.any(String) },
+    });
+    expect(parseFirstMeasurements(form({ note: 'Heels' }), fields)).toEqual({
+      ok: false,
+      errors: { note: 'Add a measurement with it, or write it in Notes.' },
+    });
   });
 });

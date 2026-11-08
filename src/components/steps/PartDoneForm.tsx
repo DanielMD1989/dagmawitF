@@ -56,7 +56,6 @@ export function PartDoneForm({
             placeholder="Bodice and sleeves"
             maxLength={MAX_LEFT_NOTE}
             autoComplete="off"
-            hint="It stays on your calendar, and moves to the next day until you tick it done."
           />
           <FormNotice state={state} />
           <div className="btn-row">

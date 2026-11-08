@@ -40,11 +40,6 @@ export default async function NewJobPage({
       <div className="page-head">
         {event ? <BackLink href="/events">Events</BackLink> : <BackLink href="/orders">Orders</BackLink>}
         <h1>{event ? 'New event' : 'New order'}</h1>
-        <p className="lede">
-          {event
-            ? 'A bazaar, a fashion show: its name and its day.'
-            : 'Who it is for, what it is, and the steps you will take, each on its day.'}
-        </p>
       </div>
       <NewJobForm
         clients={clients.map((c) => ({ id: c.id, name: c.name }))}

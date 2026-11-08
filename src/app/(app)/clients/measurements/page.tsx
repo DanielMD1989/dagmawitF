@@ -25,14 +25,6 @@ export default async function MeasurementListPage() {
       <div className="page-head">
         <BackLink href="/clients">Clients</BackLink>
         <h1>Your list of measurements</h1>
-        <p className="lede">
-          These are the measurements asked for when you record a client. A starter list was set up for you:
-          rename, reorder, hide and add until it matches how you work.
-        </p>
-        <p className="hint">
-          Renaming changes the name everywhere, including measurements already saved. Hiding only stops a
-          measurement being asked for on new forms; nothing already saved is lost.
-        </p>
       </div>
 
       <section className="section" aria-labelledby="unit-heading">
@@ -48,7 +40,7 @@ export default async function MeasurementListPage() {
         </div>
         {visible.length === 0 ? (
           <div className="card card--warn" role="status">
-            <p>Nothing is on the list, so there is nothing to measure. Add a measurement below.</p>
+            <p>The list is empty.</p>
           </div>
         ) : (
           <ul className="field-list">
@@ -70,7 +62,6 @@ export default async function MeasurementListPage() {
         <section className="section" aria-labelledby="hidden-heading">
           <div className="section__head">
             <h2 id="hidden-heading">Hidden</h2>
-            <p className="hint">Not asked for on new forms. Measurements saved with them still show them.</p>
           </div>
           <ul className="field-list">
             {hidden.map((f) => (

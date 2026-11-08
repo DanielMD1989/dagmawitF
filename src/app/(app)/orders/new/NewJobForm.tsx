@@ -111,11 +111,6 @@ export function NewJobForm({
           list={event ? undefined : 'garment-types'}
           autoComplete="off"
           maxLength={120}
-          hint={
-            event
-              ? 'For example “Bazaar at the Hyatt” or “Fashion show”.'
-              : 'For example “Bridal gown” or “Shorten trousers”.'
-          }
         />
         <datalist id="garment-types">
           {garmentTypes.map((g) => (
@@ -139,18 +134,11 @@ export function NewJobForm({
       {event ? (
         <>
           <input type="hidden" name="steps" value={0} />
-          <p className="hint">Today counts the days down to it.</p>
         </>
       ) : (
         <section className="section" aria-labelledby="steps-heading">
           <h2 id="steps-heading">Steps</h2>
-          <p className="hint">Tap the steps this order needs, then give each its day.</p>
-          <StepBuilder
-            usual={usual}
-            today={today}
-            errors={state.errors}
-            emptyHint="No steps yet. Tap one above, or save the order and add them later."
-          />
+          <StepBuilder usual={usual} today={today} errors={state.errors} emptyHint="No steps yet." />
           {state.errors.steps && <p className="error">{state.errors.steps}</p>}
         </section>
       )}
@@ -163,27 +151,9 @@ export function NewJobForm({
         <summary>{event ? 'Notes and number' : 'Design brief, notes and order number'}</summary>
         <div className="disclosure__panel">
           {!event && (
-            <TextArea
-              name="brief"
-              label="Design brief (optional)"
-              state={state}
-              rows={3}
-              maxLength={4000}
-              hint="What the client asked for: neckline, sleeves, fabric ideas, the occasion."
-            />
+            <TextArea name="brief" label="Design brief (optional)" state={state} rows={3} maxLength={4000} />
           )}
-          <TextArea
-            name="notes"
-            label="Notes (optional)"
-            state={state}
-            rows={3}
-            maxLength={4000}
-            hint={
-              event
-                ? 'For you. For example: the stand number, what to bring.'
-                : 'For you. For example: pays in two parts, collects with her mother.'
-            }
-          />
+          <TextArea name="notes" label="Notes (optional)" state={state} rows={3} maxLength={4000} />
           <TextField
             name="number"
             label="Order number"
@@ -192,7 +162,6 @@ export function NewJobForm({
             min={1}
             state={state}
             placeholder={String(nextNumber)}
-            hint={`Leave empty to continue from your highest number. The next one is #${nextNumber}.`}
           />
         </div>
       </details>

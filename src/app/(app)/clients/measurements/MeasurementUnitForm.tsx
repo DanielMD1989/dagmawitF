@@ -22,7 +22,6 @@ export function MeasurementUnitForm({ unit }: { unit: MeasurementUnit }) {
           { value: 'cm', label: 'Centimetres' },
           { value: 'in', label: 'Inches' },
         ]}
-        hint="Measurements already saved keep the unit they were taken in."
       />
       <FormNotice state={state} />
       <div className="btn-row">

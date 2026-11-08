@@ -49,10 +49,6 @@ export default async function OrderMeasurementsPage({ params }: { params: Promis
       <section className="section" aria-labelledby="garments-heading">
         <div className="section__head">
           <h2 id="garments-heading">Which measurements each piece is made to</h2>
-          <p className="hint">
-            A garment keeps the measurements it was planned with, because it may already be cut to them. When
-            a newer version exists you choose whether to switch.
-          </p>
         </div>
         {order.garments.length === 0 && (
           <div className="card">

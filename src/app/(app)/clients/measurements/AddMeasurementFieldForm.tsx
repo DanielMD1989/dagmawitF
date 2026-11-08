@@ -19,7 +19,6 @@ export function AddMeasurementFieldForm() {
         maxLength={60}
         autoComplete="off"
         required
-        hint="For example: Knee to hem, Wrist, Bridal train length. It goes at the end of the list."
       />
       <FormNotice state={state} />
       <div className="btn-row">

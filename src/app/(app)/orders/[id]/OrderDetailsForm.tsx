@@ -46,7 +46,6 @@ export function OrderDetailsForm({
               state={state}
               saved={order.clientId ?? ''}
               options={clients.map((c) => ({ value: c.id, label: c.name }))}
-              hint="Changing the client clears the measurements chosen on this order, because they are hers."
             />
           )}
           <TextField
@@ -75,21 +74,7 @@ export function OrderDetailsForm({
           </label>
         </>
       )}
-      <TextArea
-        name="notes"
-        label="Notes"
-        state={state}
-        saved={order.notes}
-        rows={3}
-        maxLength={4000}
-        hint={
-          closed
-            ? `Notes can still be added to a finished ${event ? 'event' : 'order'}.`
-            : event
-              ? 'For you. For example: the stand number, what to bring.'
-              : 'For you. For example: pays in two parts, collects with her mother.'
-        }
-      />
+      <TextArea name="notes" label="Notes" state={state} saved={order.notes} rows={3} maxLength={4000} />
       <FormNotice state={state} />
       <div className="btn-row">
         <SubmitButton className="btn btn--main">{closed ? 'Save notes' : 'Save'}</SubmitButton>
