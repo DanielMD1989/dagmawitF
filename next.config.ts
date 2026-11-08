@@ -15,9 +15,12 @@ const config: NextConfig = {
     // the largest accepted file is 5 MB, so a little more than that covers the form's other fields.
     serverActions: { bodySizeLimit: '6mb' },
   },
-  // The list of measurements moved from Settings to Clients (decision 0093); an old link still finds it.
+  // Her list of measurements is set (decision 0103): an old link to the page that changed it goes to her clients.
   async redirects() {
-    return [{ source: '/settings/measurements', destination: '/clients/measurements', permanent: true }];
+    return [
+      { source: '/settings/measurements', destination: '/clients', permanent: true },
+      { source: '/clients/measurements', destination: '/clients', permanent: true },
+    ];
   },
   async headers() {
     return [

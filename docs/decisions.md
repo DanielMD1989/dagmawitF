@@ -848,3 +848,11 @@ the unit is chosen once, beside her list, and said above the measurements and in
 
 Fewer words: page descriptions and field hints are gone, and what explained a screen is cut to what she needs to act
 (a reason, a count, a state). Refusals still say what to fix, where she sees it (decision 0100).
+
+## 0103. No page to change her list of measurements
+
+Her list is set (decision 0102), and she asked for the "Measurements" button under Clients to go. The page behind it
+(rename, reorder, hide, add, and the unit) goes with it, and so does the code only it used; an old link to it lands on
+Clients. Measurements are in centimetres, her unit; one already taken in inches keeps its inches, and a new version
+after it starts empty rather than converting. The list is still data in the database, so it can be changed there if
+she ever measures something new.

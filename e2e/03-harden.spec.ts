@@ -493,7 +493,6 @@ test('every screen passes axe with best practices, on a phone and on a computer 
     '/orders/new',
     '/clients',
     '/settings',
-    '/clients/measurements',
     '/offline',
   ];
   for (const look of ['phone', 'desktop-dark'] as const) {

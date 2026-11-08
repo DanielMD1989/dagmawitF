@@ -18,13 +18,7 @@ export default async function ClientsPage() {
         <h1>Your clients</h1>
       </div>
 
-      <QuickActions
-        actions={[
-          { href: '/clients/new', label: 'New client', icon: 'add' },
-          // Her list of measurements and their unit (decision 0093): about her clients, so here, not in Settings.
-          { href: '/clients/measurements', label: 'Measurements', icon: 'measure' },
-        ]}
-      />
+      <QuickActions actions={[{ href: '/clients/new', label: 'New client', icon: 'add' }]} />
 
       {clients.length === 0 ? (
         <div className="card">

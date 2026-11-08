@@ -120,7 +120,6 @@ The database writes a row for each of these, as a code plus a few facts. The wor
 | `/orders/[id]/history`      | What happened, newest first.                                                                  |
 | `/clients`, `/clients/[id]` | Clients, their orders, their measurement versions, recording a new version.                   |
 | `/settings`                 | Adds her order and measurement defaults to the Stage 0 settings.                              |
-| `/clients/measurements`     | Her measurement list: rename, move up or down, hide, show again, add.                         |
 | `/files/[id]`               | Opens a stored sketch or photo.                                                               |
 
 The Plan, Quality and handover tabs of the design board arrive with Stages 3 to 5.

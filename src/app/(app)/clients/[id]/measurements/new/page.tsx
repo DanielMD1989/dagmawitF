@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { BackLink } from '@/components/BackLink';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { asId, isUuid } from '@/domain/form-input';
 import { loadClient } from '@/server/clients';
@@ -48,9 +47,7 @@ export default async function RecordMeasurementsPage({
       </div>
       {visible.length === 0 ? (
         <div className="card card--warn" role="alert">
-          <p>
-            <Link href="/clients/measurements">Add the measurements you take</Link> first.
-          </p>
+          <p>No measurements are set up.</p>
         </div>
       ) : (
         <MeasurementsForm

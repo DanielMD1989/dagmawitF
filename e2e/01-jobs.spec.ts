@@ -424,13 +424,13 @@ test('measurements: she moves one garment to the new version and the other stays
 });
 
 test('measurements: inches stay inches; numbers are never converted into another unit', async () => {
-  const unit = async (label: 'Inches' | 'Centimetres') => {
-    await page.goto('/clients/measurements');
-    await page.locator('.segmented label', { hasText: label }).click();
-    await page.getByRole('button', { name: 'Save the unit' }).click();
-    await page.locator('.notice--success', { hasText: 'Saved.' }).waitFor();
-  };
-  await unit('Inches');
+  // Her unit is centimetres; one measured in inches before is kept in inches.
+  const unit = (u: 'in' | 'cm') =>
+    sql(
+      `update public.profile set measurement_unit = $1 where owner_id = (select id from auth.users where email = $2)`,
+      [u, env.email],
+    );
+  await unit('in');
   await page.goto(`/clients/${ids.client1}/measurements/new`);
   await expect(page.locator('.measure-set legend')).toHaveText('Measurements (in)');
   await page.locator('#m-bust').fill('36.5');
@@ -440,77 +440,9 @@ test('measurements: inches stay inches; numbers are never converted into another
   await page.locator('summary', { hasText: 'Version 3' }).click();
   expect(await text(page)).toMatch(/Bust\s*36\.5 in/);
   // Back in centimetres, the form starts empty: inches are not turned into centimetres.
-  await unit('Centimetres');
+  await unit('cm');
   await page.goto(`/clients/${ids.client1}/measurements/new`);
   await expect(page.locator('#m-bust')).toHaveValue('');
-});
-
-// ---------------------------------------------------------------- her list of measurements (under Clients)
-test('clients: her list of measurements can be renamed, reordered, hidden, shown and added to', async () => {
-  await page.goto('/clients/measurements');
-  await inspect(page, 'measurement list');
-  const labels = () =>
-    page
-      .locator('.field-row__name input.input')
-      .evaluateAll((els) => els.map((e) => (e as HTMLInputElement).value));
-  expect((await labels())[0]).toBe('Bust');
-  expect(await labels()).toHaveLength(13);
-  await page.locator('input[id$="-label"]').first().fill('Bust (fullest part)');
-  await page.getByRole('button', { name: 'Save name of Bust' }).click();
-  await page.locator('.notice--success').first().waitFor();
-  await page.getByRole('button', { name: 'Move Hip up' }).click();
-  await expect.poll(async () => (await labels())[1]).toBe('Hip');
-  expect((await labels()).slice(0, 4)).toEqual(['Bust (fullest part)', 'Hip', 'Waist', 'Shoulder to bust']);
-  await expect(page.getByRole('button', { name: 'Move Bust (fullest part) up' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: 'Move Height down' })).toBeDisabled();
-  // A name already taken, in other capitals, is refused.
-  await page.locator('input[id$="-label"]').nth(2).fill('HIP');
-  await page.getByRole('button', { name: 'Save name of Waist' }).click();
-  await expect(page.locator('.error').first()).toContainText('already have a measurement');
-  await page.reload();
-  await page.getByRole('button', { name: 'Hide Height from new forms' }).click();
-  await page.getByRole('button', { name: 'Show Height on new forms' }).waitFor();
-  expect(await labels()).toHaveLength(12);
-  await page.getByRole('button', { name: 'Show Height on new forms' }).click();
-  await expect.poll(async () => (await labels()).length).toBe(13);
-  await page.getByLabel('A measurement to add').fill('Knee to hem');
-  await page.getByRole('button', { name: 'Add to the list' }).click();
-  await expect.poll(async () => (await labels()).at(-1)).toBe('Knee to hem');
-  // The form follows the list.
-  await page.goto(`/clients/${ids.client1}/measurements/new`);
-  const names = await texts(page.locator('.measure-grid label'));
-  expect(names[0]).toMatch(/^Bust \(fullest part\)/);
-  expect(names[1]).toMatch(/^Hip/);
-  expect(names.at(-1)).toMatch(/^Knee to hem/);
-  // An old version still shows its numbers, under the new name.
-  await page.goto(`/clients/${ids.client1}`);
-  await page.locator('summary', { hasText: 'Version 1' }).click();
-  expect(await text(page)).toMatch(/Bust \(fullest part\)\s*92\.5 cm/);
-});
-
-test('clients: the unit for new measurements is saved and used, beside her list', async () => {
-  await page.goto('/clients');
-  await page.getByRole('link', { name: 'Measurements' }).click();
-  await page.waitForURL(/\/clients\/measurements$/);
-  await page.locator('.segmented label', { hasText: 'Inches' }).click();
-  await page.getByRole('button', { name: 'Save the unit' }).click();
-  await page.locator('.notice--success', { hasText: 'Saved.' }).waitFor();
-  await page.reload();
-  await expect(page.locator('.segmented label', { hasText: 'Inches' }).locator('input')).toBeChecked();
-  // Back to centimetres: the later steps measure in centimetres.
-  await page.locator('.segmented label', { hasText: 'Centimetres' }).click();
-  await page.getByRole('button', { name: 'Save the unit' }).click();
-  await expect
-    .poll(() =>
-      value(
-        `select measurement_unit from public.profile p join auth.users u on u.id = p.owner_id where u.email = $1`,
-        [env.email],
-      ),
-    )
-    .toBe('cm');
-  // An old link to it still finds it.
-  await page.goto('/settings/measurements');
-  await page.waitForURL(/\/clients\/measurements$/);
 });
 
 test('order 2: an evening dress for another new client, with a few steps', async () => {
@@ -739,7 +671,6 @@ test('desktop, and a phone in dark mode: every order screen', async ({ browser }
     '/orders/new',
     `/clients/${ids.client1}`,
     '/settings',
-    '/clients/measurements',
   ];
   for (const look of ['desktop', 'phone-dark'] as const) {
     const c = await signedInContext(browser, look);
