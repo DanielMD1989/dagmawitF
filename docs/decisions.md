@@ -889,3 +889,12 @@ and what is open. A phone's type scale: a large title, 20px section titles, 16px
 - A form fills the screen: Cancel at the top, no tab bar, and its Save fixed at the bottom over the safe area.
 - A sheet is a native dialog: it holds the focus, Escape or a tap outside closes it, and focus goes back to the row;
   what is in it is made when it opens; a form in it closes it once saved.
+
+## 0106. The Orders list: a date to scan by, and hairlines that show
+
+An order in the list was three lines of grey text ("#3 · Delivery Tue 10 Nov (2 days left)", "0 of 2 steps done ·
+Next: …") that wrapped on a phone, and the hairlines between rows did not show at all (the inset shadow meant to start
+them after the left margin covered the whole line). Now each order has its day as a date tile on the left, green, or
+in the warning colour when late, grey once in History; then her client's name, what it is with its number and the
+days left, and what comes next, today and tomorrow said in words. History rows have the same shape. Hairlines between
+rows are drawn as a one-pixel background from where the words start, on every list.

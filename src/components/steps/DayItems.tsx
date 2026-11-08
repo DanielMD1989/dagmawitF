@@ -68,7 +68,7 @@ function WorkCard({
       {showNext && (
         <div className="work__next">
           <span className={`item__note item__note--next${nextIsLate(next, today) ? ' late' : ''}`}>
-            {nextWords(next)}
+            {nextWords(next, today)}
           </span>
           {next.kind === 'step' && next.deliverNow && (
             <DeliverNowButton orderId={job.id} today={today} whose={work} />

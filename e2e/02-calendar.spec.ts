@@ -444,7 +444,7 @@ test('ticking an order’s Delivery finishes it: it leaves Active for History, a
   await page.goto('/orders');
   await ready(page);
   const active = page.getByRole('list', { name: 'Active orders' });
-  await expect(active).toContainText('Yonas Alemu · Hem trousers');
+  await expect(active).toContainText('Hem trousers');
   // An event is not an order (decision 0090).
   await expect(page.locator('main')).not.toContainText('Fashion show at the Sheraton');
   const before = Number(/Active \((\d+)\)/.exec(await text(page))![1]);

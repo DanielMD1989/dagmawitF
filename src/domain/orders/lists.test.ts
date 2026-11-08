@@ -141,6 +141,13 @@ describe('what comes next for an order (decision 0092)', () => {
     expect(nextUp([delivery], due, true)).toMatchObject({ deliverNow: false });
   });
 
+  it('says today and tomorrow in words, given her today', () => {
+    const steps = [step({ title: 'Fix', onDay: '2026-11-08', startsAt: '10:30' })];
+    expect(nextWords(nextUp(steps, due), '2026-11-08')).toBe('Next: Fix, today · 10:30 AM');
+    expect(nextWords(nextUp(steps, due), '2026-11-07')).toBe('Next: Fix, tomorrow · 10:30 AM');
+    expect(nextWords(nextUp(steps, due), '2026-11-01')).toBe('Next: Fix, Sun 8 Nov · 10:30 AM');
+  });
+
   it('is late when its day has passed; a step with no day never is', () => {
     expect(
       nextIsLate(

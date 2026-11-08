@@ -638,14 +638,11 @@ test('history: order 1 tells its story in her words', async () => {
 test('orders list: soonest first, two tabs, steps shown', async () => {
   await page.goto('/orders');
   const titles = await texts(page.locator('.row-link__title'));
-  expect(titles).toEqual([
-    'Yonas Alemu · Suit alteration',
-    'Hanna Tesfaye · Evening dress',
-    'Selam Bekele · Bridal gown',
-  ]);
+  // Who it is for, then what it is and its number, under its day (decision 0105).
+  expect(titles).toEqual(['Yonas Alemu', 'Hanna Tesfaye', 'Selam Bekele']);
   const t = await text(page);
-  expect(t).toContain('0 of 8 steps done');
-  expect(t).toContain('#3 · Delivery');
+  expect(t).toContain('Bridal gown · #1');
+  expect(t).toContain('Suit alteration · #3');
   expect(t).toContain('Next: Fix, ');
   expect(t).toContain('Active (3)');
   await inspect(page, 'orders list');

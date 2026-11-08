@@ -1,4 +1,4 @@
-import { daysBetween, formatDay, type IsoDate } from '../dates';
+import { addDays, daysBetween, formatDay, type IsoDate } from '../dates';
 import { isDeliveryStep } from '../steps/agenda';
 import { clock } from '../steps/words';
 import type { OrderStatus } from './status';
@@ -152,13 +152,15 @@ export function nextUp(steps: readonly OpenStep[], deliveryOn: IsoDate, isEvent 
 
 /**
  * "Next: Fitting, Thu 12 Nov · 10:30 AM", "Next: Sketch, no day yet", "Next: Delivery, Fri 13 Nov"; for an event with
- * nothing left to prepare, "Event day: Sat 14 Nov".
+ * nothing left to prepare, "Event day: Sat 14 Nov". Given her today, today and tomorrow are said in words.
  */
-export function nextWords(next: NextUp): string {
+export function nextWords(next: NextUp, today?: IsoDate): string {
+  const day = (d: IsoDate) =>
+    today && d === today ? 'today' : today && d === addDays(today, 1) ? 'tomorrow' : formatDay(d);
   if (next.kind === 'undated') return `Next: ${next.title}, no day yet`;
-  if (next.kind === 'delivery') return `Next: Delivery, ${formatDay(next.onDay)}`;
-  if (next.kind === 'event') return `Event day: ${formatDay(next.onDay)}`;
-  return `Next: ${next.title}, ${formatDay(next.onDay)}${next.startsAt ? ` · ${clock(next.startsAt)}` : ''}`;
+  if (next.kind === 'delivery') return `Next: Delivery, ${day(next.onDay)}`;
+  if (next.kind === 'event') return `Event day: ${day(next.onDay)}`;
+  return `Next: ${next.title}, ${day(next.onDay)}${next.startsAt ? ` · ${clock(next.startsAt)}` : ''}`;
 }
 
 /** It was for a day that has passed: said in the late colour. */

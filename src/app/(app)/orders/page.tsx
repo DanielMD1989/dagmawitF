@@ -10,6 +10,7 @@ import {
   activeOrders,
   handoverWords,
   historyByMonth,
+  historyDay,
   nextIsLate,
   nextWords,
   type OrdersTab,
@@ -82,16 +83,23 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
             <ul className="rows rows--links">
               {inMonth.map((o) => (
                 <li key={o.id}>
-                  <Link href={`/orders/${o.id}`} className="row-link">
-                    <span className="row-link__title">{jobHeadline(o)}</span>
-                    <span className="hint">
-                      #{o.number} · {handoverWords(o)}
-                    </span>
-                    {o.status === 'cancelled' && (
-                      <span className="row-link__side">
-                        <StatusChip status={o.status} />
+                  <Link href={`/orders/${o.id}`} className="row-link order-row">
+                    <DateTile day={historyDay(o)} tone={o.status === 'cancelled' ? 'late' : 'done'} />
+                    <span className="order-row__main">
+                      <span className="row-link__title">
+                        {o.clientName}
+                        {o.status === 'cancelled' && (
+                          <>
+                            {' '}
+                            <StatusChip status={o.status} />
+                          </>
+                        )}
                       </span>
-                    )}
+                      <span className="order-row__what">
+                        {o.title ? `${o.title} · ` : ''}#{o.number}
+                      </span>
+                      <span className="order-row__done">{handoverWords(o)}</span>
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -115,28 +123,50 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
   );
 }
 
-/** An order in progress: when it is due and how its steps stand; a draft or a paused one says so. */
+/** "Tue / 10 / Nov": the day an order is due, as a phone calendar shows a date (decision 0105). */
+function DateTile({ day, tone = 'due' }: { day: string; tone?: 'due' | 'late' | 'done' }) {
+  const [weekday, date, month] = formatDay(day).split(' ');
+  return (
+    <span className={tone === 'due' ? 'date-tile' : `date-tile date-tile--${tone}`} aria-hidden="true">
+      <span className="date-tile__small">{weekday}</span>
+      <span className="date-tile__big">{date}</span>
+      <span className="date-tile__small">{month}</span>
+    </span>
+  );
+}
+
+/**
+ * An order in progress (decision 0105): its day as a date, who it is for, what it is, and what comes next. A draft or
+ * a paused one says so.
+ */
 function ActiveRow({ order: o, today }: { order: OrderListItem; today: string }) {
   const late = o.status === 'active' && o.deliveryOn < today;
   // Only an active order is handed over: a draft or a paused one is started or resumed first.
   const deliverNow = o.status === 'active' && o.next.kind === 'step' && o.next.deliverNow;
   return (
     <li className={deliverNow ? 'row--action' : undefined}>
-      <Link href={`/orders/${o.id}`} className="row-link">
-        <span className="row-link__title">{jobHeadline(o)}</span>
-        <span className="hint">
-          #{o.number} · Delivery {formatDay(o.deliveryOn)} (
-          <span className={late ? 'late' : undefined}>{daysLeft(o.deliveryOn, today)}</span>)
-        </span>
-        <span className="hint">
-          {o.steps > 0 && `${o.done} of ${o.steps} steps done · `}
-          <span className={nextIsLate(o.next, today) ? 'late' : undefined}>{nextWords(o.next)}</span>
-        </span>
-        {o.status !== 'active' && (
-          <span className="row-link__side">
-            <StatusChip status={o.status} />
+      <Link href={`/orders/${o.id}`} className="row-link order-row">
+        <DateTile day={o.deliveryOn} tone={late ? 'late' : 'due'} />
+        <span className="order-row__main">
+          <span className="row-link__title">
+            {o.clientName}
+            {o.status !== 'active' && (
+              <>
+                {' '}
+                <StatusChip status={o.status} />
+              </>
+            )}
           </span>
-        )}
+          <span className="order-row__what">
+            {o.title ? `${o.title} · ` : ''}#{o.number}
+            <span className="sr-only">, delivery {formatDay(o.deliveryOn)}</span>
+            {' · '}
+            <span className={late ? 'late' : undefined}>{daysLeft(o.deliveryOn, today)}</span>
+          </span>
+          <span className={nextIsLate(o.next, today) ? 'order-row__next late' : 'order-row__next'}>
+            {nextWords(o.next, today)}
+          </span>
+        </span>
       </Link>
       {/* Only its Delivery left: delivered now, even ahead of its day (decision 0097). */}
       {deliverNow && <DeliverNowButton orderId={o.id} today={today} whose={jobHeadline(o)} />}

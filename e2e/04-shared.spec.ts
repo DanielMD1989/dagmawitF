@@ -55,7 +55,7 @@ test('she adds the second account in Settings, by its email', async () => {
 
 test('the second account sees her orders and works on them; what it does is hers', async () => {
   await helper.goto('/orders');
-  await expect(helper.locator('main')).toContainText('Selam Bekele · Bridal gown');
+  await expect(helper.locator('main')).toContainText('Bridal gown · #1');
   await helper.goto(`/orders/${o1}`);
   await ready(helper);
   await addSteps(helper, [{ title: 'Embroidery', day: await value(`select (current_date + 3)::text`) }]);
