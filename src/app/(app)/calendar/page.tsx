@@ -161,6 +161,9 @@ export default async function CalendarPage({
           <li>
             <span className="month__tag month__tag--event" aria-hidden="true" /> Event
           </li>
+          <li>
+            <span className="month__tag month__tag--done" aria-hidden="true" /> Done
+          </li>
         </ul>
       </section>
 

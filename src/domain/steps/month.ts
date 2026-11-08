@@ -52,7 +52,7 @@ export function monthGrid(name: string | undefined, today: IsoDate): MonthGrid {
 
 /** One short label in a day of the month (decision 0086): an order due, an event, or a step. */
 export interface DayMark {
-  kind: 'due' | 'event' | 'step';
+  kind: 'due' | 'event' | 'step' | 'done';
   /** As short as a day's box allows: the client's first name, the event's name, or the step. */
   text: string;
   /** Said in full to a screen reader, and in the day's list. */
@@ -80,11 +80,13 @@ function dueMark(job: DueOn): DayMark {
 
 /**
  * What a day of the month shows, most important first (decision 0086): the orders due that day, by the client's
- * first name, then the events by their name, then the steps not done yet, in the order of the day's list. An order's
+ * first name, then the events by their name, then the steps not done yet, in the order of the day's list; and then
+ * what was done that day (decision 0104), quieter, an order handed over by her client's first name. An order's
  * "Delivery" step is its due mark, so an order is never shown twice on its day.
  */
 export function dayMarks(steps: readonly Step[], due: readonly DueOn[], day: IsoDate): DayMark[] {
-  const entries = entriesOn(steps, day).filter((e) => e.step.doneOn === null);
+  const all = entriesOn(steps, day);
+  const entries = all.filter((e) => e.step.doneOn === null);
   const deliveries = entries.filter((e) => e.step.job && isDeliveryStep(e.step.title));
   const dueJobs = new Map<string, DueOn>(due.map((j) => [j.id, j]));
   for (const e of deliveries) if (!dueJobs.has(e.step.job!.id)) dueJobs.set(e.step.job!.id, e.step.job!);
@@ -95,5 +97,25 @@ export function dayMarks(steps: readonly Step[], due: readonly DueOn[], day: Iso
       const whose = step.job ? (step.job.clientName ?? step.job.title) : null;
       return { kind: 'step', text: step.title, full: whose ? `${step.title} · ${whose}` : step.title };
     });
-  return [...marks.filter((m) => m.kind === 'due'), ...marks.filter((m) => m.kind === 'event'), ...work];
+  const done = all
+    .filter((e) => e.step.doneOn !== null)
+    .map(({ step }): DayMark => {
+      const job = step.job;
+      if (job?.clientName && isDeliveryStep(step.title)) {
+        const headline = job.title ? `${job.clientName} · ${job.title}` : job.clientName;
+        return { kind: 'done', text: `✓ ${firstName(job.clientName)}`, full: `${headline} delivered` };
+      }
+      const whose = job ? (job.clientName ?? job.title) : null;
+      return {
+        kind: 'done',
+        text: `✓ ${step.title}`,
+        full: `${whose ? `${step.title} · ${whose}` : step.title}, done`,
+      };
+    });
+  return [
+    ...marks.filter((m) => m.kind === 'due'),
+    ...marks.filter((m) => m.kind === 'event'),
+    ...work,
+    ...done,
+  ];
 }

@@ -563,12 +563,17 @@ test('an order finished ahead of its day is delivered from its last step, and go
   await page.goto(`/calendar?day=${inDays(5)}`);
   const party_ = work(page, 'Hanna Tesfaye · Party dress');
   await party_.getByRole('button', { name: /^Mark Sewing/ }).click();
-  await expect(party_.locator('.item__note--next')).toHaveText(/^Next: Delivery, \w{3} \d{1,2} \w{3}$/);
+  // Done today, it is on today, the day it was done (decision 0104), and no longer on the day it was planned.
+  await expect(party_).toHaveCount(0);
+  await page.goto('/calendar');
+  const doneToday = work(page, 'Hanna Tesfaye · Party dress');
+  await expect(doneToday.getByRole('button', { name: /^Sewing.*: done/ })).toBeVisible();
+  await expect(doneToday.locator('.item__note--next')).toHaveText(/^Next: Delivery, \w{3} \d{1,2} \w{3}$/);
   // The Orders list offers it too.
   await page.goto('/orders');
   await expect(page.getByLabel('Delivered: Hanna Tesfaye · Party dress')).toBeVisible();
   await inspect(page, 'orders, ready to deliver');
-  await page.goto(`/calendar?day=${inDays(5)}`);
+  await page.goto('/calendar');
   const card = work(page, 'Hanna Tesfaye · Party dress');
   // It asks the day it was handed over (decision 0101): not a day still to come.
   await card.getByLabel('Delivered: Hanna Tesfaye · Party dress').click();
@@ -600,6 +605,11 @@ test('an order finished ahead of its day is delivered from its last step, and go
       [party],
     ),
   ).toBe('true');
+  // The month keeps it on the day it was handed over, done (decision 0104).
+  await page.goto(`/calendar?month=${inDays(-2).slice(0, 7)}`);
+  await expect(
+    page.locator(`a[href$="day=${inDays(-2)}"] .month__tag--done`, { hasText: '✓ Hanna' }),
+  ).toHaveCount(1);
   await page.goto('/orders?tab=history');
   await expect(page.locator('.row-link', { hasText: 'Party dress' })).toContainText(/· 12 days early$/);
 });

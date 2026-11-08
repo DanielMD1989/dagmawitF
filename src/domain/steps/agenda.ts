@@ -155,14 +155,30 @@ function byTimeThenDue(a: Entry, b: Entry): number {
   return a.step.title.localeCompare(b.step.title);
 }
 
+/**
+ * The days a step is on her calendar (decision 0104): once done, the day it was done, so each day keeps what was done
+ * on it; before that, its planned days. Null for a step with no day yet.
+ */
+export function calendarDays(
+  step: Pick<Step, 'onDay' | 'untilDay' | 'doneOn'>,
+): { from: IsoDate; to: IsoDate } | null {
+  if (step.doneOn !== null) return { from: step.doneOn, to: step.doneOn };
+  if (step.onDay === null) return null;
+  return { from: step.onDay, to: step.untilDay ?? step.onDay };
+}
+
 export function entriesOn(steps: readonly Step[], day: IsoDate): Entry[] {
   const entries = steps
-    .filter((s) => isOnCalendar(s) && s.onDay !== null && s.onDay <= day && day <= lastDayOf(s)!)
+    .filter((s) => {
+      const days = isOnCalendar(s) ? calendarDays(s) : null;
+      return days !== null && days.from <= day && day <= days.to;
+    })
     .map((step): Entry => {
-      const of = step.untilDay ? daysBetween(step.onDay!, step.untilDay) + 1 : 1;
+      const days = calendarDays(step)!;
+      const of = daysBetween(days.from, days.to) + 1;
       return {
         step,
-        part: of > 1 ? { n: daysBetween(step.onDay!, day) + 1, of } : null,
+        part: of > 1 ? { n: daysBetween(days.from, day) + 1, of } : null,
         clash: false,
       };
     });

@@ -81,7 +81,8 @@ export async function loadCalendarSteps(supabase: SupabaseClient, today: IsoDate
   const { data, error } = await supabase
     .from('task')
     .select(STEP_COLUMNS)
-    .or(`done_on.is.null,on_day.gte.${addDays(today, -7)}`)
+    // What is open, and what was done this past week, on the day it was done (decision 0104).
+    .or(`done_on.is.null,done_on.gte.${addDays(today, -7)}`)
     .order('on_day', { nullsFirst: false })
     .order('sort')
     .limit(3000);
@@ -89,7 +90,7 @@ export async function loadCalendarSteps(supabase: SupabaseClient, today: IsoDate
   return z.array(stepRow).parse(data).map(toStep);
 }
 
-/** The open steps between two days, for the month. */
+/** The steps on the days between two days, for the month: planned there, or done there (decision 0104). */
 export async function loadStepsBetween(
   supabase: SupabaseClient,
   first: IsoDate,
@@ -98,8 +99,10 @@ export async function loadStepsBetween(
   const { data, error } = await supabase
     .from('task')
     .select(STEP_COLUMNS)
-    .lte('on_day', last)
-    .or(`until_day.gte.${first},on_day.gte.${first}`)
+    .or(
+      `and(done_on.is.null,on_day.lte.${last},or(until_day.gte.${first},on_day.gte.${first})),` +
+        `and(done_on.gte.${first},done_on.lte.${last})`,
+    )
     .limit(3000);
   if (error) fail('her steps', error);
   return z.array(stepRow).parse(data).map(toStep);

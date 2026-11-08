@@ -1985,6 +1985,12 @@ h4 {
   background: var(--event-bg);
   color: var(--event-ink);
 }
+/* What was done that day (decision 0104): there, but quieter than what is still to do. */
+.month__tag--done {
+  background: var(--line);
+  color: var(--muted);
+  font-weight: 500;
+}
 .month__more {
   padding-left: 3px;
   font-size: 10px;

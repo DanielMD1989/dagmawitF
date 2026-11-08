@@ -67,6 +67,15 @@ describe('her calendar', () => {
     expect(a.days[0]!.entries[0]!.step.doneOn).toBe(TODAY);
   });
 
+  it('puts a done step on the day it was done, once, whatever day it was planned for (decision 0104)', () => {
+    const early = step({ title: 'Beading', onDay: '2026-12-01', untilDay: '2026-12-03', doneOn: TODAY });
+    expect(entriesOn([early], TODAY)).toMatchObject([{ step: { title: 'Beading' }, part: null }]);
+    expect(entriesOn([early], '2026-12-02')).toEqual([]);
+    const late = step({ title: 'Press', onDay: '2026-10-01', doneOn: TODAY });
+    expect(entriesOn([late], '2026-10-01')).toEqual([]);
+    expect(entriesOn([late], TODAY)).toHaveLength(1);
+  });
+
   it('orders a day by time first, then by the soonest order', () => {
     const later = { ...JOB, id: 'j2', dueOn: '2026-12-01' };
     const steps = [

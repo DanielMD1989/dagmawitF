@@ -80,10 +80,9 @@ describe('the labels of a day in the month', () => {
     expect(marks).toEqual([{ kind: 'due', text: 'Yonas', full: 'Yonas Alemu · Hem trousers due' }]);
   });
 
-  it('leaves out what is done, and steps on other days; a step over several days is on each', () => {
+  it('leaves out steps on other days; a step over several days is on each', () => {
     const marks = dayMarks(
       [
-        step({ title: 'Cutting', doneOn: DAY }),
         step({ title: 'Sketch', onDay: '2026-11-21' }),
         step({ title: 'Beading', onDay: '2026-11-19', untilDay: '2026-11-21' }),
       ],
@@ -91,5 +90,21 @@ describe('the labels of a day in the month', () => {
       DAY,
     );
     expect(marks.map((m) => m.text)).toEqual(['Beading']);
+  });
+
+  it('keeps what was done on the day it was done, after what is to do (decision 0104)', () => {
+    const steps = [
+      // Planned for the 22nd, done early on the 20th: it is on the 20th, not the 22nd.
+      step({ title: 'Cutting', onDay: '2026-11-22', doneOn: DAY }),
+      step({ title: 'Delivery', onDay: '2026-11-25', doneOn: DAY, job: { ...YONAS, status: 'delivered' } }),
+      step({ title: 'Press' }),
+    ];
+    expect(dayMarks(steps, [], DAY)).toEqual([
+      { kind: 'step', text: 'Press', full: 'Press · Selam Bekele' },
+      { kind: 'done', text: '✓ Cutting', full: 'Cutting · Selam Bekele, done' },
+      { kind: 'done', text: '✓ Yonas', full: 'Yonas Alemu · Hem trousers delivered' },
+    ]);
+    expect(dayMarks(steps, [], '2026-11-22')).toEqual([]);
+    expect(dayMarks(steps, [], '2026-11-25')).toEqual([]);
   });
 });

@@ -159,7 +159,9 @@ export async function loadJobDays(
   const { data, error } = await supabase
     .from('orders')
     .select('id, number, title, delivery_on, client:client(name)')
-    .eq('status', 'active')
+    // An order still to deliver; an event, also once it is over, so its day keeps it (decision 0104). A delivered
+    // order is on the day it was handed over, by its Delivery step.
+    .or('status.eq.active,and(status.eq.delivered,client_id.is.null)')
     .gte('delivery_on', first)
     .lte('delivery_on', last)
     .order('delivery_on')

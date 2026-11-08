@@ -856,3 +856,14 @@ Her list is set (decision 0102), and she asked for the "Measurements" button und
 Clients. Measurements are in centimetres, her unit; one already taken in inches keeps its inches, and a new version
 after it starts empty rather than converting. The list is still data in the database, so it can be changed there if
 she ever measures something new.
+
+## 0104. The calendar keeps what was done, on the day it was done
+
+Past days of her month were empty. Each day's box showed only what was still to do, so a step ticked done left it;
+a delivered order left its day too, since only orders still to deliver were marked; and a finished event left its
+day. The day's list kept a done step, but on the day it had been planned for, not the day she did it.
+
+Now a done step is on the day it was done, once, whatever day it was planned for: a step finished early is on the
+day she finished it, and is no longer on the day ahead it was planned for. The month shows it after what is still to
+do, quieter (grey, with a ✓): the step's name, or for a delivered order her client's first name. A finished event
+stays on its day. Today keeps the past week's done steps the same way.
