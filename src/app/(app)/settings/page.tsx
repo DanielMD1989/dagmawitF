@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { BackLink } from '@/components/BackLink';
 import { ConfirmAction } from '@/components/ConfirmAction';
 import { SignOutForm } from '@/components/offline/SignOutForm';
 import { pushPublicKey } from '@/server/news';
@@ -29,6 +30,7 @@ export default async function SettingsPage() {
 
   return (
     <>
+      <BackLink href="/">Today</BackLink>
       <div className="page-head">
         <h1>Settings</h1>
       </div>

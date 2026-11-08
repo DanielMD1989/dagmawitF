@@ -12,18 +12,20 @@ const ICONS = {
     <path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8Z M2 21v-1a6 6 0 0 1 6-6h2a6 6 0 0 1 6 6v1 M17 3.2a4 4 0 0 1 0 7.6 M22 21v-1a6 6 0 0 0-4-5.7" />
   ),
   planner: <path d="M4 5h16v15H4z M4 10h16 M9 5v15 M14 5v15 M8 3v4 M16 3v4" />,
+  going: <path d="M4 20h16 M7 16v-5 M12 16V6 M17 16v-8" />,
   settings: (
     <path d="M4 7h10 M18 7h2 M4 17h2 M10 17h10 M16 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z M8 15a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
   ),
 };
 
-// Five fit a phone's bar. With the Library gone (decision 0075), Clients takes its place there.
+// Five fit a phone's bar (decision 0107): how her business is going has the fifth place; Settings is a round button at
+// the top of Today.
 const LINKS = [
   { href: '/', label: 'Today', icon: 'day' },
   { href: '/calendar', label: 'Calendar', icon: 'planner' },
   { href: '/orders', label: 'Orders', icon: 'orders' },
   { href: '/clients', label: 'Clients', icon: 'clients' },
-  { href: '/settings', label: 'Settings', icon: 'settings' },
+  { href: '/how-its-going', label: 'How it’s going', icon: 'going' },
 ] as const;
 
 export function NavLinks() {

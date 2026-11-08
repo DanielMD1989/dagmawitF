@@ -20,6 +20,8 @@ const config: NextConfig = {
     return [
       { source: '/settings/measurements', destination: '/clients', permanent: true },
       { source: '/clients/measurements', destination: '/clients', permanent: true },
+      // Numbers became its own tab, How it's going (decision 0107).
+      { source: '/numbers', destination: '/how-its-going', permanent: true },
     ];
   },
   async headers() {

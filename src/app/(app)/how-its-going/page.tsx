@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { BackLink } from '@/components/BackLink';
+import { PageTitle } from '@/components/PageTitle';
 import { todayIn } from '@/domain/dates';
 import { compared, orderNumbers, type Period } from '@/domain/orders/numbers';
 import { loadOrders } from '@/server/orders';
@@ -8,13 +8,13 @@ import { loadPreferences } from '@/server/preferences';
 import { requireUser } from '@/server/session';
 import { createSupabase } from '@/server/supabase';
 
-export const metadata: Metadata = { title: 'Numbers' };
+export const metadata: Metadata = { title: 'How it’s going' };
 
 /**
  * How her orders are going (decision 0091): this week or month against the last, the last twelve as bars, on-time
  * handovers, what is in hand now and who orders most. Customer orders only.
  */
-export default async function NumbersPage({ searchParams }: { searchParams: Promise<{ by?: string }> }) {
+export default async function HowItsGoingPage({ searchParams }: { searchParams: Promise<{ by?: string }> }) {
   await requireUser();
   const period: Period = (await searchParams).by === 'month' ? 'month' : 'week';
   const supabase = await createSupabase();
@@ -31,17 +31,15 @@ export default async function NumbersPage({ searchParams }: { searchParams: Prom
 
   return (
     <>
-      <BackLink href="/orders">Orders</BackLink>
-      <div className="page-head">
-        <h1>Numbers</h1>
-      </div>
+      {/* Her business at a glance, a tab of its own (decision 0107): not a list of orders, so not under Orders. */}
+      <PageTitle title="How it’s going" />
 
       <nav aria-label="By week or by month">
-        <div className="segmented">
-          <Link href="/numbers" aria-current={period === 'week' ? 'true' : undefined}>
+        <div className="segmented segmented--bar">
+          <Link href="/how-its-going" aria-current={period === 'week' ? 'true' : undefined}>
             By week
           </Link>
-          <Link href="/numbers?by=month" aria-current={period === 'month' ? 'true' : undefined}>
+          <Link href="/how-its-going?by=month" aria-current={period === 'month' ? 'true' : undefined}>
             By month
           </Link>
         </div>

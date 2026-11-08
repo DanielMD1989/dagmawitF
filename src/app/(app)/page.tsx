@@ -59,26 +59,41 @@ export default async function TodayPage() {
         eyebrow={formatDayLong(today)}
         title="Today"
         action={
-          // What can be added from Today, in one sheet behind one "+" (decision 0105).
-          <Sheet
-            title="New"
-            opener={<Plus />}
-            openerClass="icon-btn icon-btn--round icon-btn--solid"
-            openerLabel="New order, event, or something for yourself"
-            chevron={false}
-          >
-            <div className="sheet__group">
-              <Link href="/orders/new" className="sheet__row">
-                New order
-                <Chevron />
-              </Link>
-              <Link href="/orders/new?event=1" className="sheet__row">
-                New event
-                <Chevron />
-              </Link>
-              <AddStepForm orderId={null} day={today} summary="Something for yourself" idPrefix="own" row />
-            </div>
-          </Sheet>
+          <div className="title-bar__actions">
+            {/* Settings, now that its place in the bar is How it's going (decision 0107). */}
+            <Link href="/settings" className="icon-btn icon-btn--round" aria-label="Settings">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                aria-hidden="true"
+              >
+                <path d="M4 7h10 M18 7h2 M4 17h2 M10 17h10 M16 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z M8 15a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
+              </svg>
+            </Link>
+            {/* What can be added from Today, in one sheet behind one "+" (decision 0105). */}
+            <Sheet
+              title="New"
+              opener={<Plus />}
+              openerClass="icon-btn icon-btn--round icon-btn--solid"
+              openerLabel="New order, event, or something for yourself"
+              chevron={false}
+            >
+              <div className="sheet__group">
+                <Link href="/orders/new" className="sheet__row">
+                  New order
+                  <Chevron />
+                </Link>
+                <Link href="/orders/new?event=1" className="sheet__row">
+                  New event
+                  <Chevron />
+                </Link>
+                <AddStepForm orderId={null} day={today} summary="Something for yourself" idPrefix="own" row />
+              </div>
+            </Sheet>
+          </div>
         }
       />
 

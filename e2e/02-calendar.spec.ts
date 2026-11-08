@@ -263,8 +263,12 @@ test('there is no Library: her steps are the same each time, so the step buttons
     'Calendar',
     'Orders',
     'Clients',
-    'Settings',
+    'How it’s going',
   ]);
+  // Settings is a round button at the top of Today (decision 0107).
+  await page.getByRole('link', { name: 'Settings' }).click();
+  await page.waitForURL(/\/settings$/);
+  await expect(page.locator('.back-link')).toHaveText('Today');
   await page.goto('/orders/new');
   await expect(page.getByText('Or all the steps of a list')).toHaveCount(0);
   await expect(page.getByRole('group', { name: 'Your usual steps' })).toBeVisible();
@@ -535,9 +539,11 @@ test('events have their own list, and Numbers counts the orders taken and delive
   await coming.getByRole('link', { name: /Fashion show/ }).click();
   await expect(page.locator('.back-link')).toHaveAttribute('href', '/events');
 
+  // How it's going is a tab of its own, not under Orders (decision 0107).
   await page.goto('/orders');
-  await page.getByRole('link', { name: 'Numbers' }).click();
-  await page.waitForURL(/\/numbers$/);
+  await expect(page.getByRole('link', { name: 'Numbers' })).toHaveCount(0);
+  await page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'How it’s going' }).click();
+  await page.waitForURL(/\/how-its-going$/);
   const thisWeek = page.getByRole('region', { name: 'This week' });
   // Hem trousers was delivered today.
   const deliveredNow = Number(
@@ -630,7 +636,7 @@ test('desktop, and a phone in dark mode: every calendar screen', async ({ browse
     `/orders/${ids.o4}`,
     '/orders?tab=history',
     '/events',
-    '/numbers',
+    '/how-its-going',
   ];
   for (const look of ['desktop', 'phone-dark'] as const) {
     const c = await signedInContext(browser, look);

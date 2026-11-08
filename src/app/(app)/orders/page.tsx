@@ -108,14 +108,10 @@ export default async function OrdersPage({ searchParams }: { searchParams: Promi
         ))
       )}
 
-      {/* Further on from her orders: her events, and how it is going (decision 0105). */}
+      {/* Her events, kept apart from her orders (decision 0090). */}
       <nav className="link-rows" aria-label="More">
         <Link href="/events" className="sheet__row">
           Events
-          <Chevron />
-        </Link>
-        <Link href="/numbers" className="sheet__row">
-          Numbers
           <Chevron />
         </Link>
       </nav>

@@ -898,3 +898,10 @@ them after the left margin covered the whole line). Now each order has its day a
 in the warning colour when late, grey once in History; then her client's name, what it is with its number and the
 days left, and what comes next, today and tomorrow said in words. History rows have the same shape. Hairlines between
 rows are drawn as a one-pixel background from where the words start, on every list.
+
+## 0107. How it's going: a tab of its own
+
+"Numbers" (decision 0091) was under Orders, but it is not a list of orders: it is how her business is going (orders
+taken, delivered, on time, days per order, by week or by month). She chose a tab of its own, named "How it's going",
+at /how-its-going (an old /numbers link goes there). It takes the fifth place in the bottom bar; Settings, opened
+rarely, is a round button beside the "+" at the top of Today, and its page leads back to Today.
