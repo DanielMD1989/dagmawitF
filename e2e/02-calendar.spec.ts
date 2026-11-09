@@ -111,7 +111,7 @@ test('an appointment is a step at a time on its day; a time already taken is ref
   const error = page.locator('#step-0-from-error');
   await expect(error).toContainText('10:00–10:30 AM on ');
   await expect(error).toContainText('is taken by “Sharpen the shears” (your own).');
-  await expect(page.getByLabel('For', { exact: true })).toHaveValue(/[0-9a-f-]{36}/);
+  await expect(page.locator('input[name="client"]')).toHaveValue(/[0-9a-f-]{36}/);
   await expect(page.getByLabel('What it is (optional)')).toHaveValue('Wedding guest dress');
   await settled(page);
   // Right after it is free: the end of one is the start of the next.

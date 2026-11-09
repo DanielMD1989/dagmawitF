@@ -917,3 +917,18 @@ sheet's place, with Back, "What to do" and one big Add; once added, the sheet cl
 The same change found a fault of decision 0105: a button brought into view at the bottom of the screen (by a script,
 by tabbing, by a refusal taking her to a field) could stop under the bottom bar, where a tap lands on the bar. The
 page now keeps 88px (and the safe area) clear at its bottom on a phone (`scroll-padding-bottom`).
+
+## 0109. A client is found by typing, never picked from everyone
+
+Her clients will be many, and the order form listed them all in a drop-down; the Clients page listed them all too. Now:
+
+- On a new order, "For" is a search (`ClientPicker`, an ARIA combobox): two letters of her name, or three digits of
+  her phone, show the few that match (six at most), best first: a name that starts with it, then each word typed
+  starting a word of her name ("sel bek"), then anywhere in it, then her phone however it was written. No case or
+  accents. Last comes "+ Add “…” as a new client", which opens the new client's name filled with what she typed.
+  Picked, she shows as a green box with her phone and "Change". Arrows, Enter and Escape work from the keyboard.
+- The Clients page opens on a search ("Search 38 clients") and the clients with open orders; every client is one tap
+  further ("Show all"). Searching shows up to thirty matches.
+
+The match is one function (`src/domain/clients/search.ts`), shared by both. Her clients come to the phone with the page
+(up to 2,000), so finding is instant and works on a weak signal; past that, the search would move to the database.

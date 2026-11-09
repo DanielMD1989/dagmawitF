@@ -42,7 +42,7 @@ export default async function NewJobPage({
         <h1>{event ? 'New event' : 'New order'}</h1>
       </div>
       <NewJobForm
-        clients={clients.map((c) => ({ id: c.id, name: c.name }))}
+        clients={clients.map((c) => ({ id: c.id, name: c.name, phone: c.phone }))}
         initialClient={initialClient}
         usual={usualSteps(used)}
         today={prefs.today}

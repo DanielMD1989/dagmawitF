@@ -1,6 +1,7 @@
 'use client';
 
 import { startTransition, useActionState, useState, type FormEvent } from 'react';
+import { ClientPicker, type PickableClient } from '@/components/ClientPicker';
 import { FormNotice } from '@/components/FormNotice';
 import { TextArea, TextField } from '@/components/fields';
 import { fieldValue, idle } from '@/lib/action-state';
@@ -23,7 +24,7 @@ export function NewJobForm({
   nextNumber,
   garmentTypes,
 }: {
-  clients: { id: string; name: string }[];
+  clients: PickableClient[];
   initialClient: string | null;
   usual: string[];
   today: string;
@@ -46,6 +47,8 @@ export function NewJobForm({
     event ? NO_CLIENT : fieldValue(state, 'client', initialClient ?? (clients.length ? '' : NEW_CLIENT)),
   );
   const [due, setDue] = useState('');
+  // The name she typed looking for her client, kept for a new one.
+  const [newName, setNewName] = useState('');
 
   return (
     <form onSubmit={submit} className="form" noValidate aria-busy={pending}>
@@ -56,37 +59,23 @@ export function NewJobForm({
           <h2 id="who-heading" className="sr-only">
             Who it is for
           </h2>
-          <div className="field">
-            <label htmlFor="client">For</label>
-            <select
-              id="client"
-              name="client"
-              className="select"
-              value={client}
-              onChange={(e) => setClient(e.target.value)}
-              aria-invalid={Boolean(state.errors.client)}
-              aria-describedby={state.errors.client ? 'client-error' : undefined}
-            >
-              <option value="">Choose a client…</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-              <option value={NEW_CLIENT}>+ A new client</option>
-            </select>
-            {state.errors.client && (
-              <p id="client-error" className="error">
-                {state.errors.client}
-              </p>
-            )}
-          </div>
+          <ClientPicker
+            clients={clients}
+            value={client}
+            newValue={NEW_CLIENT}
+            onPick={(value, typed) => {
+              setClient(value);
+              if (typed !== undefined) setNewName(typed);
+            }}
+            error={state.errors.client}
+          />
           {client === NEW_CLIENT && (
             <div className="form-grid form-grid--2">
               <TextField
                 name="client-name"
                 label="Client's name"
                 state={state}
+                saved={newName}
                 autoComplete="off"
                 maxLength={120}
               />

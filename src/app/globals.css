@@ -2962,3 +2962,87 @@ h4 {
     scroll-padding-bottom: calc(88px + env(safe-area-inset-bottom));
   }
 }
+
+/* Finding a client (decision 0109): a search field with its glass, and the few clients that match under it. */
+.search {
+  position: relative;
+}
+.search > svg {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  width: 20px;
+  height: 20px;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+.search__input {
+  padding-left: 44px;
+  background: var(--icon-bg);
+  border-color: transparent;
+}
+.picker {
+  position: relative;
+}
+.picker__list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 4px 0;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 8px 24px rgb(12 22 14 / 12%);
+  overflow: hidden;
+}
+.picker__option {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 52px;
+  padding: 6px 16px;
+  cursor: pointer;
+}
+.picker__option[aria-selected='true'] {
+  background: var(--tint);
+}
+.picker__name {
+  font-weight: 600;
+}
+.picker__phone {
+  font-size: 14px;
+  color: var(--muted);
+}
+.picker__option--new {
+  color: var(--accent);
+  font-weight: 600;
+  border-top: 1px solid var(--line);
+}
+.picked {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  min-height: 52px;
+  padding: 8px 8px 8px 16px;
+  border-radius: 12px;
+  background: var(--tint);
+}
+.picked__name {
+  font-weight: 600;
+}
+.picked__phone {
+  font-size: 14px;
+  color: var(--muted);
+}
+.picked__change {
+  margin-left: auto;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}

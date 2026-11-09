@@ -418,11 +418,13 @@ test('the keyboard alone: take an order', async () => {
 
   await page.goto('/orders/new');
   await page.locator('body').focus();
-  const client = page.getByLabel('For', { exact: true });
+  const client = page.getByRole('combobox', { name: 'For' });
   await tabTo(client);
-  // A closed list picks the option whose name she types.
-  await page.keyboard.type('Hanna');
-  await expect(client).toHaveValue(/[0-9a-f-]{36}/);
+  // She types a few letters of her client's name, and Enter picks the first that matches (decision 0109).
+  await page.keyboard.type('Han');
+  await expect(page.getByRole('option').first()).toContainText('Hanna Tesfaye');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('input[name="client"]')).toHaveValue(/[0-9a-f-]{36}/);
   const due = page.getByLabel('Delivery day');
   await tabTo(due);
   const [y, m, d] = inDays(20).split('-');

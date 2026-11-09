@@ -134,15 +134,20 @@ export async function fillNewJob(
       await page.goto('/orders/new?event=1');
   } else if (url.pathname !== '/orders/new' || url.searchParams.get('event') === '1')
     await page.goto('/orders/new');
-  const forWhom = page.getByLabel('For', { exact: true });
+  // She finds her client by typing a few letters, and picks her from what matches (decision 0109).
+  const forWhom = page.getByRole('combobox', { name: 'For' });
   if (job.client === 'event') {
     // No customer is asked.
   } else if (typeof job.client === 'object') {
-    if ((await forWhom.locator('option').count()) > 0)
-      await forWhom.selectOption({ label: '+ A new client' });
-    await page.getByLabel("Client's name").fill(job.client.name);
+    // She types the name, finds no one, and adds it as a new client: its name comes filled in.
+    await forWhom.fill(job.client.name);
+    await page.getByRole('option', { name: /^\+ Add/ }).click();
+    await expect(page.getByLabel("Client's name")).toHaveValue(job.client.name);
     if (job.client.phone) await page.getByLabel('Phone (optional)').fill(job.client.phone);
-  } else if (job.client) await forWhom.selectOption({ label: job.client });
+  } else if (job.client) {
+    await forWhom.fill(job.client.slice(0, 4));
+    await page.getByRole('option', { name: new RegExp(`^${esc(job.client)}`) }).click();
+  }
   if (job.title !== undefined)
     await page
       .getByLabel(job.client === 'event' ? 'Name of the event' : 'What it is (optional)')

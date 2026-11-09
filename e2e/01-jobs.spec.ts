@@ -505,7 +505,9 @@ test('order 3: a client added on her own, then a fix started from the client pag
   await inspect(page, 'client page (no orders)');
   await page.getByRole('link', { name: 'New order for Yonas Alemu' }).click();
   await page.waitForURL(/orders\/new\?client=/);
-  await expect(page.getByLabel('For', { exact: true })).toHaveValue(ids.client3);
+  // Opened from her page, she is already chosen.
+  await expect(page.locator('input[name="client"]')).toHaveValue(ids.client3);
+  await expect(page.locator('.picked')).toContainText('Yonas Alemu');
   await fillNewJob(page, {
     title: 'Suit alteration',
     brief: 'Take in the waist 3 cm, shorten trousers',
@@ -652,6 +654,29 @@ test('orders list: soonest first, two tabs, steps shown', async () => {
   expect(await has('No finished orders yet.')).toBe(true);
   await page.goto('/orders?tab=nonsense');
   expect(await has('Active (3)')).toBe(true);
+});
+
+test('clients: found by typing, never all listed at once (decision 0109)', async () => {
+  await page.goto('/clients');
+  // Until she types: the clients she is working for now, and every client one tap further.
+  await expect(page.getByRole('heading', { name: 'With open orders' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'All clients' })).toHaveCount(0);
+  const find = page.getByLabel('Find a client');
+  // One letter is not enough; two are.
+  await find.fill('s');
+  await expect(page.getByRole('region', { name: 'Clients found' })).toHaveCount(0);
+  await find.fill('se');
+  const found = page.getByRole('region', { name: 'Clients found' });
+  await expect(found.locator('.row-link__title')).toHaveText(['Selam Bekele']);
+  // By her phone, however it is written.
+  await find.fill('0911 22');
+  await expect(found.locator('.row-link__title')).toHaveText(['Selam Bekele']);
+  await find.fill('Rahel');
+  await expect(found).toContainText('No client called “Rahel”.');
+  await inspect(page, 'clients, searching');
+  await find.fill('');
+  await page.getByRole('button', { name: /^Show all \d+ clients$/ }).click();
+  await expect(page.getByRole('heading', { name: 'All clients' })).toBeVisible();
 });
 
 test('clients: a client with orders cannot be deleted; one without can', async () => {
