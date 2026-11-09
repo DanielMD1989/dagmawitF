@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { expect, test, type Page } from '@playwright/test';
-import { PASSWORD_FILE, inspect, open, signedInContext, watchErrors } from './support/app';
+import { PASSWORD_FILE, inspect, open, settled, signedInContext, watchErrors } from './support/app';
 import { env, ZONE } from './support/env';
 
 // Last, because changing the password and signing out touch the one session every spec shares (decision 0065).
@@ -55,11 +55,15 @@ test('she changes her password: the old one stops working, the new one works', a
   await form.getByLabel('New password again').fill(next);
   await form.getByRole('button', { name: 'Change the password' }).click();
   await expect(form.locator('#current-password-error')).toHaveText('That is not the password you use now.');
+  // The form is reset to the server's answer a moment after the message shows: wait before typing again.
+  await settled(page);
   // Too short, and two that differ.
   await form.getByLabel('Password you use now').fill(old);
   await form.getByLabel('New password', { exact: true }).fill('short');
   await form.getByRole('button', { name: 'Change the password' }).click();
   await expect(form.locator('#new-password-error')).toHaveText('Use at least 10 characters.');
+  // The form is reset to the server's answer a moment after the message shows: wait before typing again.
+  await settled(page);
   await form.getByLabel('Password you use now').fill(old);
   await form.getByLabel('New password', { exact: true }).fill(next);
   await form.getByLabel('New password again').fill(`${next}x`);

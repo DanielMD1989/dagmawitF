@@ -18,7 +18,6 @@ export function AddStepForm({
   summary,
   idPrefix,
   usual = [],
-  row = false,
 }: {
   orderId: string | null;
   /** The day it starts on unless she changes it. */
@@ -27,8 +26,35 @@ export function AddStepForm({
   idPrefix: string;
   /** Her usual steps, offered as she types the title. */
   usual?: readonly string[];
-  /** A row of a sheet (Today's "+"), rather than a link under a list. */
-  row?: boolean;
+}) {
+  return (
+    <details className="disclosure disclosure--link">
+      <summary>{summary}</summary>
+      <div className="disclosure__panel">
+        <AddStep orderId={orderId} day={day} idPrefix={idPrefix} usual={usual} />
+      </div>
+    </details>
+  );
+}
+
+/**
+ * The form that adds a step, on its own: inside "Add steps" on an order, and in Today's "+" sheet for her own work
+ * (decision 0108), where it closes the sheet once added.
+ */
+export function AddStep({
+  orderId,
+  day,
+  idPrefix,
+  usual = [],
+  titleLabel = 'Step',
+  placeholder = 'Cutting, sewing, fitting…',
+}: {
+  orderId: string | null;
+  day: string;
+  idPrefix: string;
+  usual?: readonly string[];
+  titleLabel?: string;
+  placeholder?: string;
 }) {
   const [state, action] = useActionState(addStep, idle);
   const form = useRef<HTMLFormElement>(null);
@@ -37,27 +63,23 @@ export function AddStepForm({
   }, [state]);
   useCloseOnSaved(form, state);
   return (
-    <details
-      className={row ? 'disclosure disclosure--row' : 'disclosure disclosure--link'}
-      open={state.status === 'error' || undefined}
-    >
-      <summary>{summary}</summary>
-      <div className="disclosure__panel">
-        <form ref={form} action={action} className="form" noValidate>
-          {orderId && <input type="hidden" name="order-id" value={orderId} />}
-          <StepFields
-            state={state}
-            idPrefix={idPrefix}
-            saved={{ title: '', day, until: '', from: '', to: '' }}
-            usual={usual}
-          />
-          <FormNotice state={state} />
-          <div className="btn-row">
-            <SubmitButton pendingText="Adding…">Add</SubmitButton>
-          </div>
-        </form>
+    <form ref={form} action={action} className="form" noValidate>
+      {orderId && <input type="hidden" name="order-id" value={orderId} />}
+      <StepFields
+        state={state}
+        idPrefix={idPrefix}
+        saved={{ title: '', day, until: '', from: '', to: '' }}
+        usual={usual}
+        titleLabel={titleLabel}
+        placeholder={placeholder}
+      />
+      <FormNotice state={state} />
+      <div className="btn-row">
+        <SubmitButton className="btn btn--main" pendingText="Adding…">
+          Add
+        </SubmitButton>
       </div>
-    </details>
+    </form>
   );
 }
 
@@ -68,6 +90,8 @@ export function StepFields({
   saved,
   usual = [],
   delivery = false,
+  titleLabel = 'Step',
+  placeholder = 'Cutting, sewing, fitting…',
 }: {
   state: Parameters<typeof TextField>[0]['state'];
   idPrefix: string;
@@ -75,6 +99,8 @@ export function StepFields({
   usual?: readonly string[];
   /** An order's Delivery (decision 0096): its name stays, it is on one day, and that day is the delivery day. */
   delivery?: boolean;
+  titleLabel?: string;
+  placeholder?: string;
 }) {
   return (
     <>
@@ -102,10 +128,10 @@ export function StepFields({
           <TextField
             name="title"
             id={`${idPrefix}-title`}
-            label="Step"
+            label={titleLabel}
             state={state}
             saved={saved.title}
-            placeholder="Cutting, sewing, fitting…"
+            placeholder={placeholder}
             autoComplete="off"
             list={usual.length > 0 ? `${idPrefix}-usual` : undefined}
           />

@@ -905,3 +905,15 @@ rows are drawn as a one-pixel background from where the words start, on every li
 taken, delivered, on time, days per order, by week or by month). She chose a tab of its own, named "How it's going",
 at /how-its-going (an old /numbers link goes there). It takes the fifth place in the bottom bar; Settings, opened
 rarely, is a round button beside the "+" at the top of Today, and its page leads back to Today.
+
+## 0108. Today's "+": three clear choices
+
+The sheet behind Today's "+" was a title "New" over three plain text rows ("New order", "New event", "Something for
+yourself"), the last an arrow that unfolded a form inside the list. She found it ugly. It is now "Add" with three
+choices, each a picture, a name and one line saying what it is: Order (for a client, with its steps), Event (a bazaar
+or a show, and what to prepare), For yourself (a task of your own, on a day). For yourself opens its form in the
+sheet's place, with Back, "What to do" and one big Add; once added, the sheet closes.
+
+The same change found a fault of decision 0105: a button brought into view at the bottom of the screen (by a script,
+by tabbing, by a refusal taking her to a field) could stop under the bottom bar, where a tap lands on the bar. The
+page now keeps 88px (and the safe area) clear at its bottom on a phone (`scroll-padding-bottom`).

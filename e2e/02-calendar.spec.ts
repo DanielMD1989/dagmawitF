@@ -8,7 +8,7 @@ import {
   item,
   more,
   open,
-  openNew,
+  openOwn,
   openStep,
   ready,
   settled,
@@ -77,8 +77,8 @@ test('she ticks a step done, it tells the order’s history, and she can open it
 });
 
 test('something of her own for today, at a time', async () => {
-  const form = await openNew(page, 'Something for yourself');
-  await form.getByLabel('Step').fill('Sharpen the shears');
+  const form = await openOwn(page);
+  await form.getByLabel('What to do').fill('Sharpen the shears');
   await form.getByLabel('From (optional)').fill('10:00');
   await form.getByLabel('To (optional)').fill('10:30');
   await form.getByRole('button', { name: 'Add' }).click();
@@ -89,13 +89,13 @@ test('something of her own for today, at a time', async () => {
 
 test('a refused step keeps what she typed and says why next to the field', async () => {
   await page.goto('/');
-  const form = await openNew(page, 'Something for yourself');
-  await form.getByLabel('Step').fill('Press the veil');
+  const form = await openOwn(page);
+  await form.getByLabel('What to do').fill('Press the veil');
   await form.getByLabel('From (optional)').fill('11:00');
   await form.getByLabel('To (optional)').fill('10:00');
   await form.getByRole('button', { name: 'Add' }).click();
   await expect(form.locator('#own-to-error')).toHaveText('The end comes after the start.');
-  await expect(form.getByLabel('Step')).toHaveValue('Press the veil');
+  await expect(form.getByLabel('What to do')).toHaveValue('Press the veil');
   await settled(page);
 });
 
@@ -132,8 +132,8 @@ test('an appointment is a step at a time on its day; a time already taken is ref
 });
 
 test('a step’s time already taken is refused there too', async () => {
-  const form = await openNew(page, 'Something for yourself');
-  await form.getByLabel('Step').fill('Call the lace supplier');
+  const form = await openOwn(page);
+  await form.getByLabel('What to do').fill('Call the lace supplier');
   // The appointment is at 10:30.
   await form.getByLabel('From (optional)').fill('10:30');
   await form.getByRole('button', { name: 'Add' }).click();
@@ -282,8 +282,11 @@ test('there is no Library: her steps are the same each time, so the step buttons
 test('an event, such as a bazaar or a show, is its name and its day, counted down on Today however far', async () => {
   await page.goto('/');
   // From Today's "+" (decision 0105).
-  await page.getByRole('button', { name: 'New order, event, or something for yourself' }).click();
-  await page.getByRole('dialog').getByRole('link', { name: 'New event' }).click();
+  await page.getByRole('button', { name: 'Add an order, an event, or something for yourself' }).click();
+  await page
+    .getByRole('dialog')
+    .getByRole('link', { name: /^Event/ })
+    .click();
   await page.waitForURL(/\/orders\/new\?event=1$/);
   await expect(page.locator('h1')).toHaveText('New event');
   // An event is for no customer: it is not asked which (decision 0084).

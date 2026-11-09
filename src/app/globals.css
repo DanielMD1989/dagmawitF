@@ -2865,3 +2865,100 @@ h4 {
 .title-bar__actions .icon-btn--solid {
   margin-bottom: 0;
 }
+
+/* What Today's "+" offers (decision 0108): each choice a picture, a name and a line saying what it is. */
+.add-choices {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.add-choice {
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-height: 72px;
+  padding: 12px 14px;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.add-choice:active {
+  background: var(--tint);
+}
+.add-choice__icon {
+  width: 46px;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 14px;
+  background: var(--tint);
+  color: var(--accent);
+}
+.add-choice__icon svg {
+  width: 24px;
+  height: 24px;
+}
+.add-choice__words {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.add-choice__title {
+  font-size: 17px;
+  font-weight: 600;
+}
+.add-choice__sub {
+  font-size: 14px;
+  line-height: 19px;
+  color: var(--muted);
+}
+.add-own {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px 16px 16px;
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.add-own__back {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 36px;
+  margin: -6px 0 -4px -8px;
+  padding: 0 8px 0 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 16px;
+  cursor: pointer;
+}
+.add-own__back svg {
+  width: 22px;
+  height: 22px;
+}
+.add-own__title {
+  font-size: 20px;
+  font-weight: 650;
+}
+
+/* The bottom bar (or a form's Save bar) sits over the page's last 80px on a phone: anything brought into view (a
+   refused field, the next field as she tabs, a button) stops above it, never under it. */
+@media (max-width: 899px) {
+  html {
+    scroll-padding-bottom: calc(88px + env(safe-area-inset-bottom));
+  }
+}

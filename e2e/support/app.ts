@@ -216,12 +216,15 @@ export async function open(scope: Locator, summary: string): Promise<Locator> {
 }
 
 /**
- * Opens what Today's "+" offers (decision 0105), and in it the disclosure whose summary starts with `summary`
- * ("Something for yourself"). Returns it.
+ * Opens Today's "+" (decision 0108) and in it "For yourself", whose form takes the sheet's place. Returns the form.
  */
-export async function openNew(page: Page, summary: string): Promise<Locator> {
-  await page.getByRole('button', { name: 'New order, event, or something for yourself' }).click();
-  return open(page.getByRole('dialog'), summary);
+export async function openOwn(page: Page): Promise<Locator> {
+  await page.getByRole('button', { name: 'Add an order, an event, or something for yourself' }).click();
+  const sheet = page.getByRole('dialog');
+  await sheet.getByRole('button', { name: /^For yourself/ }).click();
+  const form = sheet.locator('form');
+  await form.waitFor();
+  return form;
 }
 
 /** Opens a step's sheet from its row (decision 0105) and returns the sheet. */

@@ -1,10 +1,10 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { JobDueRow } from '@/components/JobDueRow';
+import { AddChoices } from '@/components/AddChoices';
 import { PageTitle, Plus } from '@/components/PageTitle';
 import { Chevron, Sheet } from '@/components/Sheet';
 import { SaveForOffline } from '@/components/offline/SaveForOffline';
-import { AddStepForm } from '@/components/steps/AddStepForm';
 import { DayItems } from '@/components/steps/DayItems';
 import { formatDay, formatDayLong } from '@/domain/dates';
 import { dueNotShown } from '@/domain/jobs/words';
@@ -73,25 +73,15 @@ export default async function TodayPage() {
                 <path d="M4 7h10 M18 7h2 M4 17h2 M10 17h10 M16 5a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z M8 15a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" />
               </svg>
             </Link>
-            {/* What can be added from Today, in one sheet behind one "+" (decision 0105). */}
+            {/* What can be added from Today, in one sheet behind one "+" (decisions 0105, 0108). */}
             <Sheet
-              title="New"
+              title="Add"
               opener={<Plus />}
               openerClass="icon-btn icon-btn--round icon-btn--solid"
-              openerLabel="New order, event, or something for yourself"
+              openerLabel="Add an order, an event, or something for yourself"
               chevron={false}
             >
-              <div className="sheet__group">
-                <Link href="/orders/new" className="sheet__row">
-                  New order
-                  <Chevron />
-                </Link>
-                <Link href="/orders/new?event=1" className="sheet__row">
-                  New event
-                  <Chevron />
-                </Link>
-                <AddStepForm orderId={null} day={today} summary="Something for yourself" idPrefix="own" row />
-              </div>
+              <AddChoices today={today} />
             </Sheet>
           </div>
         }
